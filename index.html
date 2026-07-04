@@ -420,9 +420,20 @@ function chapStats(ci){
 const MEMBERS = DATA.length;   // メンバー情報タブのインデックス
 const ADMIN   = DATA.length+1; // 管理タブのインデックス（キー保持者のみ表示）
 
+/* 章の表示制御：WS期生（1期生〜）は入会年度に「FS」が付く人だけ卸・メーカーを表示 */
+function chapterHidden(ci){
+  if(DATA[ci].ch !== "実践（卸・メーカー）") return false;
+  if(!me) return false;
+  const m = ROSTER.find(s=>s.sid===me.sid);
+  if(!m || !m.cohort) return false;
+  if(m.cohort.indexOf("WS") === 0 && m.cohort.indexOf("FS") < 0) return true;
+  return false;
+}
+
 function renderTabs(){
   const el=document.getElementById("tabs"); el.innerHTML="";
   DATA.forEach((c,ci)=>{
+    if(chapterHidden(ci)) return;
     const {t,d}=chapStats(ci);
     const b=document.createElement("button");
     b.className="tab"+(ci===chap?" on":"");
@@ -562,6 +573,7 @@ function renderMembers(){
 }
 
 function render(){
+  if(chap < DATA.length && chapterHidden(chap)) chap = 0;
   renderTabs();
   const pc=document.querySelector(".progress-card");
   if(chap===MEMBERS){
