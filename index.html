@@ -557,7 +557,7 @@ function renderMembers(){
     const ageN=parseInt(m.age,10);
     const ageOk=(!isNaN(ageN)&&ageN>=10&&ageN<=100)?String(ageN):"";
     const rows=[["エリア",m.area],["年齢/性別",[ageOk,m.gender].filter(Boolean).join(" / ")],
-                ["入会",fmtCohortJoin(m)],["専業/副業",m.work],["稼働時間",m.time]]
+                ["入会",fmtCohortJoin(m)],["専業/副業",m.work]]
       .filter(([,v])=>v)
       .map(([k,v])=>`<div class="mrow"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
     const c=document.createElement("div"); c.className="mcard";
