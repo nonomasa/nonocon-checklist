@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ののコン チェックリスト（イメージ）</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#fff; --line:#e3e6ea; --ink:#1c2430; --sub:#6b7686;
+    --head:#1f2937; --accent:#e8744f; --accent-soft:#fdeee8; --done:#0e9f6e; --done-soft:#eafaf2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6}
+  header{background:var(--head);color:#fff;padding:16px 20px 0}
+  header .wrap{max-width:860px;margin:0 auto}
+  header h1{font-size:17px;font-weight:700}
+  header .sub{font-size:12px;color:#cdd5e0;margin:3px 0 14px}
+  /* mode toggle */
+  .mode{display:inline-flex;background:#0e1620;border-radius:999px;padding:3px;gap:2px;margin-bottom:14px}
+  .mode button{background:none;border:none;color:#9aa6b4;font-size:12.5px;font-weight:700;
+    padding:7px 16px;border-radius:999px;cursor:pointer}
+  .mode button.on{background:var(--accent);color:#fff}
+  /* tabs */
+  .tabs{display:flex;gap:2px;flex-wrap:wrap}
+  .tab{padding:10px 18px;color:#aab4c2;cursor:pointer;border:none;background:none;font-size:13px;
+    border-bottom:3px solid transparent;font-weight:600}
+  .tab.on{color:#fff;border-bottom-color:var(--accent)}
+  .tab .c{opacity:.7;font-size:11px;margin-left:5px}
+  /* 名前選択バー */
+  .ident{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 12px;
+    color:#e6ebf1;font-size:13px}
+  .ident select{padding:7px 10px;border-radius:8px;border:1px solid #3a4653;background:#0e1620;
+    color:#fff;font-size:13px;min-width:200px}
+  .ident .who{font-weight:700;color:#fff}
+  .ident button{background:none;border:1px solid #3a4653;color:#cdd5e0;font-size:12px;
+    padding:5px 11px;border-radius:999px;cursor:pointer}
+  .ident button:hover{border-color:var(--accent);color:var(--accent)}
+  .ident .warn{background:#3a2a1e;color:#f0c9b3;padding:4px 10px;border-radius:8px;font-size:12px}
+
+  .wrap{max-width:860px;margin:0 auto;padding:20px 16px 80px}
+  .modeNote{font-size:12.5px;color:var(--sub);background:var(--accent-soft);
+    border-radius:8px;padding:8px 12px;margin-bottom:16px}
+
+  .progress-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;gap:16px}
+  .ring{position:relative;width:54px;height:54px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+  .pmeta{flex:1}
+  .pmeta .big{font-size:14px;font-weight:700}
+  .pmeta .small{font-size:12px;color:var(--sub)}
+
+  .group{margin-bottom:18px}
+  .group .gh{font-size:12px;font-weight:700;color:var(--sub);text-transform:none;
+    margin-bottom:7px;display:flex;align-items:center;gap:7px}
+  .group .gh .gc{margin-left:auto;font-weight:400;font-size:11px}
+  ul{list-style:none}
+  li.item{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:11px 14px;margin-bottom:7px;display:flex;gap:12px;align-items:flex-start;
+    cursor:pointer;transition:.15s}
+  li.item:hover{border-color:#cfd5dc}
+  .check{width:20px;height:20px;border:2px solid #cdd3da;border-radius:6px;flex:none;margin-top:1px;
+    display:flex;align-items:center;justify-content:center;transition:.15s}
+  .check svg{width:12px;height:12px;opacity:0;transition:.15s}
+  li.done .check{background:var(--done);border-color:var(--done)}
+  li.done .check svg{opacity:1}
+  li.done{background:var(--done-soft);border-color:#cdeede}
+  li.done .title{color:var(--sub);text-decoration:line-through}
+  .title{font-size:14px;font-weight:600}
+  .note{font-size:12px;color:var(--sub);margin-top:1px}
+  .tag{display:inline-block;font-size:10.5px;padding:1px 8px;border-radius:999px;margin-top:5px}
+  .tag.watch{background:#eef1f5;color:#7a8696}
+  .tag.do{background:#fff0e8;color:#c5663c}
+  .ilink{flex:none;align-self:center;font-size:12px;font-weight:700;color:var(--accent);
+    text-decoration:none;padding:6px 12px;border:1px solid #f3d5c7;border-radius:999px;white-space:nowrap}
+  .ilink:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  /* 管理タブ */
+  .metrics{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .metric{flex:1;min-width:130px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+  .metric .k{font-size:11.5px;color:var(--sub)}
+  .metric .v{font-size:20px;font-weight:700;margin-top:2px}
+  .apanel{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto}
+  .apanel table{border-collapse:collapse;width:100%;font-size:13px}
+  .apanel th,.apanel td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .apanel th{background:#eef1f5;color:var(--sub);font-weight:600;font-size:11.5px;position:sticky;top:0}
+  .apanel tbody tr{cursor:pointer}
+  .apanel tbody tr:hover{background:#fafcff}
+  .apanel tbody tr.sel{background:var(--accent-soft)}
+  .apanel .pname{font-weight:700}
+  .abar{width:100px;height:8px;background:#eef1f5;border-radius:99px;overflow:hidden;display:inline-block;
+    vertical-align:middle;margin-right:8px}
+  .abar > i{display:block;height:100%;background:var(--accent)}
+  .apct{font-size:12px;color:var(--sub)}
+  .badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px}
+  .badge.ok{background:var(--done-soft);color:var(--done)}
+  .badge.warn{background:#fef3e2;color:#d97706}
+  .badge.bad{background:#fdecec;color:#dc2626}
+  .adetail{margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}
+  .adetail h3{font-size:14.5px;margin-bottom:12px}
+  .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .dcol .chh{font-size:12.5px;font-weight:700;color:var(--sub);margin-bottom:7px;display:flex;gap:8px}
+  .dcol .chh .cnt{margin-left:auto;font-weight:400}
+  .dstep{font-size:12.5px;padding:2px 0}
+  .dstep.off{color:#a5adb8}
+  .ahint{color:var(--sub);font-size:12px;margin:12px 0}
+  .abtn{background:#fff;border:1px solid var(--line);color:var(--sub);font-size:12px;
+    padding:6px 14px;border-radius:999px;cursor:pointer;margin-bottom:14px}
+  .abtn:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* メンバー情報カード */
+  .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .mcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;
+    display:flex;flex-direction:column;gap:10px}
+  .mtop{display:flex;gap:12px;align-items:center}
+  .mava{width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:#fff;font-size:16px;background:var(--accent)}
+  .mname{font-size:15px;font-weight:700;line-height:1.2}
+  .mkana{font-size:11px;color:var(--sub)}
+  .mrows{display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+  .mrow{display:flex;gap:8px}
+  .mrow .k{color:var(--sub);width:76px;flex:none}
+  .mrow .v{color:var(--ink);font-weight:500}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>ののコン スタートアップ チェックリスト</h1>
+    <div class="sub">動画は<b>オンクラス</b>で。ここでは「実際に手を動かすこと」を順に潰していきます。</div>
+    <div class="ident" id="ident"></div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="progress-card">
+    <div class="ring">
+      <svg width="54" height="54">
+        <circle cx="27" cy="27" r="23" fill="none" stroke="#e3e6ea" stroke-width="6"/>
+        <circle id="ringFg" cx="27" cy="27" r="23" fill="none" stroke="#e8744f" stroke-width="6"
+          stroke-linecap="round" stroke-dasharray="144.5" stroke-dashoffset="144.5"/>
+      </svg>
+      <div class="pct" id="pctText">0%</div>
+    </div>
+    <div class="pmeta">
+      <div class="big" id="countText"></div>
+      <div class="small" id="chapName"></div>
+    </div>
+  </div>
+  <div id="body"></div>
+</div>
+
+<script>
+/* ============================================================
+   設定：Apps Scriptをデプロイしたら、下の "" の中にURLを貼る
+   例) const API_URL = "https://script.google.com/macros/s/AK.../exec";
+   空のままだと「デモモード」（保存はこの端末だけ）で動きます。
+   ============================================================ */
+const API_URL = "https://script.google.com/macros/s/AKfycbyCQ462ytUhwsLcBg2bG7_Qm7uPBBk_xMBzt_C_uLdbE_N98cgwX3ED9h2HnZuLeaAK/exec";
+
+/* === 行動チェックリスト。id は固定（順番や文言を変えても進捗が壊れない） === */
+/* 【いつか入れるメモ】裏ののコン章
+   - {id:"ura-nomi", t:"ののさんと飲みに行く", n:"在籍中は無料"}
+   - {id:"ura-tsunagari", t:"物販界隈の人たちと繋がる", n:"ののの影響力を使って紹介"}
+*/
+const DATA = [
+  { ch:"準備", groups:[
+    { g:"ののコンに登録する", items:[
+      {id:"prep-onclass", t:"オンクラスに登録する", n:"動画コンテンツはここで視聴"},
+      {id:"prep-community", t:"LINEグループ・Discordに参加する", n:"連絡・サポート・仲間との交流"},
+      {id:"prep-rakujan", t:"ののコンのらくじゃんに登録する", n:"商品共有・開閉店情報の収集に使う"},
+      {id:"prep-intro-form", t:"自己紹介フォームに回答する", n:"あなたの情報がメンバー情報に載ります", url:"https://forms.gle/bEY7jqRXX4FdVDpY9"},
+      {id:"prep-names", t:"みんなの名前を覚える", n:"メンバー情報タブを見てみよう"},
+      {id:"prep-line-rules", t:"LINEグループの運用を覚える", n:"goodマークなどをつけて読んだことを伝える"},
+      {id:"prep-orientation", t:"ののコン初回説明を受ける", n:""},
+    ]},
+    { g:"作業環境を整える", items:[
+      {id:"prep-google", t:"事業専用のGoogleアカウント（メールアドレス）を作る", n:"連絡・各種登録の管理用。プライベートと分ける"},
+      {id:"prep-apps", t:"必要なアプリ・拡張をスマホ/PCに入れる", n:"オンクラスもブックマーク"},
+    ]},
+    { g:"お金まわり", items:[
+      {id:"base-kaigyou", t:"開業届を提出する", n:"freee等で作成→税務署へ。屋号口座にも使える"},
+      {id:"base-bank", t:"事業専用の銀行口座を開設する", n:"住信SBI等のネット銀行が楽（楽天銀行は不可）"},
+      {id:"base-card", t:"事業専用のクレジットカードを用意する", n:"仕入れ支払い・ポイント用。限度額＝仕入れ規模の上限"},
+      {id:"prep-kobutsusho", t:"古物商許可証を申請する", n:"中古を扱うなら必須。警察署で申請、取得まで1〜2ヶ月かかるので早めに"},
+    ]},
+  ]},
+  { ch:"基礎", groups:[
+    { g:"セラーアカウント", items:[
+      {id:"base-seller", t:"Amazon出品用アカウントを作成する", n:"必ず大口プランで。必要書類（顔写真付き本人確認書類＋住所が載った明細）を準備 → 本人確認 → 二段階認証 → 入金先口座・税務情報の登録まで一式完了させる", dep:"クレカ・口座"},
+    ]},
+    { g:"はじめての出品", items:[
+      {id:"base-kisei-check", t:"自分のアカウントの出品規制を確認する", n:"どのメーカー・カテゴリに規制があるか把握しておく"},
+      {id:"base-kisei-first", t:"まずは1メーカー出品制限を解除してみる", n:"解除リストの優先度が高いメーカーから"},
+      {id:"tool-sc-study", t:"Amazon出品大学を確認する", n:"出品の基本が学べます。セラーセントラルの困りごとはテクサポに連絡しましょう"},
+      {id:"base-sc-setup", t:"セラーセントラルの初期設定をする", n:"配送・返品・通知の設定"},
+      {id:"base-first-list", t:"はじめての商品登録（相乗り）をしてみる", n:"1商品でOK。流れを覚える"},
+      {id:"do-shuppin-sedopre", t:"せどりすとプレミアムで出品をしてみよう", n:"ののコンでは基本せどプレで出品。ののと一緒にやってみましょう"},
+      {id:"base-plan-pricetar", t:"プライスターで納品プランを作ってみよう", n:""},
+      {id:"base-plan-sc", t:"セラセンで納品プランを作ってみよう", n:""},
+      {id:"base-first-fba", t:"はじめてのFBA納品をしてみる", n:"小さく1個納品"},
+    ]},
+  ]},
+  { ch:"ツール", groups:[
+    { g:"無料編", items:[
+      {id:"tool-quickshop", t:"クイックショップに登録する", n:"", url:"https://lp.quickshop.jp/"},
+      {id:"tool-app-sc", t:"セラーセントラルアプリをインストールする", n:"スマホで出品・売上確認"},
+      {id:"tool-app-pricetar", t:"プライスターアプリをインストールする", n:""},
+      {id:"tool-app-kaitori", t:"買取スキャナーアプリをインストールする", n:""},
+      {id:"tool-app-locasma", t:"ロケスマをインストールする", n:"店舗ルート作りに便利"},
+      {id:"tool-app-mercari", t:"メルカリ／ジモティーをインストールする", n:""},
+    ]},
+    { g:"有料編", items:[
+      {id:"tool-keepa", t:"Keepaに登録して設定する", n:"相場リサーチの必需品", url:"https://keepa.com/#!"},
+      {id:"tool-sedorist", t:"せどりすとプレミアムを導入する", n:"バーコード読み取り・利益計算", url:"https://www.sedolist.info/premium/"},
+      {id:"tool-sedorist-ext", t:"せどりすとプレミアムの拡張機能をインストールする", n:""},
+      {id:"tool-pricetar", t:"プライスターに登録する", n:"価格改定・売上管理", url:"https://pricetar.com/entry/afi/?afi_id=385"},
+    ]},
+    { g:"使い方を学ぶ", items:[
+      {id:"tool-sedorist-study", t:"せどりすとプレミアムの基本的な使い方を勉強する", n:"店舗講座内の動画で学べます"},
+      {id:"do-pricetar-link", t:"せどプレとプライスターを連携させよう", n:"連携手順はこちらを参照", url:"https://pricetar.com/help/?p=6603"},
+      {id:"tool-pricetar-manual", t:"プライスターのマニュアルをチェックしよう", n:"", url:"https://pricetar.com/help/"},
+      {id:"tool-keepa-study", t:"Keepaの基礎をしっかり学ぶ", n:"Keepaを制する者はせどりを制す。波形は「3ヶ月」と「全期間」の2画面でOK。見方が甘いと「本当は仕入れ商品」を逃します"},
+    ]},
+  ]},
+  { ch:"実践（せどり）", groups:[
+    { g:"店舗に行ってみよう", items:[
+      {id:"do-shiire-kijun", t:"仕入れ基準を覚えよう", n:"店舗は利益率20%以上、高回転のものなら10%以上可、電脳は15%以上"},
+      {id:"do-10chains", t:"10チェーン行ってみよう", n:"例：ヤマダ電機・ビックカメラ・ドンキ・イオン・コストコ・カインズ・パソコン工房・スポーツオーソリティ・トイザらス・マツキヨ。色々なチェーンに行くと学びがあります"},
+      {id:"do-500search", t:"500検索してみよう", n:"1日店舗せどりの目安は1000検索。素振りと同じで、やればやるほど上達します"},
+      {id:"do-consult10", t:"利益商品を10件相談してみよう", n:"怪しいものを見つけたら積極的にコンサルチームに相談"},
+      {id:"do-kiroku", t:"毎日の数字を記録する習慣をつける", n:"検索数・店舗数・仕入額。目標は「月1万検索」のように数値に落とす"},
+    ]},
+    { g:"初回の同行をしよう", items:[
+      {id:"do-douko-route", t:"同行のルートを決める", n:"進捗確認シートの他のメンバーの同行ルートを参考に作成", url:"https://otoko-sedori.com/doukouroute"},
+      {id:"do-douko-video", t:"同行するチェーンの動画を観ておく", n:"店舗せどり講座の該当チェーンの動画"},
+      {id:"do-douko-pre", t:"同行前に自分でそのルートを回る", n:"自分で回った店舗だと同行時の学びが大きくなります"},
+      {id:"do-douko-report", t:"同行のまとめを3日以内に提出する", n:"報告の速さ＝行動力。過去の先輩方のまとめも格納されているので確認しましょう"},
+    ]},
+    { g:"出品・納品・梱包をしてみよう", items:[
+      {id:"do-shuppin-video", t:"アマゾン出品大学の納品動画を観る", n:"納品の仕方が学べます"},
+      {id:"do-sonkiri", t:"はじめての損切りを経験する", n:"損切りできないと物販は死にます。価格改定は毎日"},
+      /* 「混合在庫の設定を解除」は2026年3月31日でプログラム自体が廃止されたため削除 */
+    ]},
+    { g:"規制・トラブル対応（必要になったら）", items:[
+      {id:"do-oroshi-invoice", t:"卸の請求書で出品規制を解除する", n:"ネッシー／卸問屋.com／カワダオンライン／スーパーデリバリーで請求書をもらって解除"},
+      {id:"do-shingan", t:"真贋調査が来たら落ち着いて対応する", n:"レシート＋店舗名・電話・HPをワードにまとめて提出。困ったらすぐ相談"},
+    ]},
+  ]},
+  { ch:"実践（刈り取り）", groups:[
+    { g:"", items:[
+    ]},
+  ]},
+  { ch:"実践（卸・メーカー）", groups:[
+    { g:"", items:[
+    ]},
+  ]},
+  { ch:"勉強会予定", groups:[
+    { g:"", items:[
+      {id:"benkyo-nouhin", t:"納品を実際にやる", n:""},
+    ]},
+  ]},
+];
+
+/* ---------- 状態 ---------- */
+let chap=0;
+let me = JSON.parse(localStorage.getItem("nonocon_me")||"null"); // {sid,name}
+let state = {}; // {stepId:true}
+let ROSTER = []; // メンバー情報（名簿）
+
+/* 受講生用の合言葉（正誤はサーバー側で照合。HTMLには書かれていない） */
+const PASS_KEY = "nonocon_pass";
+let PASS = localStorage.getItem(PASS_KEY) || "";
+
+/* ---------- 管理モード（のの専用）----------
+   受講生には管理タブは一切表示されない。
+   checklist.html#admin で開いてキーを入力すると、このブラウザにだけ「📊 管理」タブが出る。
+   キーの正誤はサーバー側(action=all)で検証されるので、ページを覗いてもデータは取れない。 */
+let ADMIN_KEY = localStorage.getItem("nonocon_admin_key") || "";
+let adminCache = null, adminSel = null;
+if(location.hash === "#admin" && !ADMIN_KEY){
+  const k = prompt("管理キーを入力してください");
+  if(k && k.trim()){ ADMIN_KEY = k.trim(); localStorage.setItem("nonocon_admin_key", ADMIN_KEY); }
+}
+const cacheKey = ()=> "nonocon_progress_"+(me?me.sid:"local");
+const loadCache = ()=>{ state = JSON.parse(localStorage.getItem(cacheKey())||"{}"); };
+const saveCache = ()=>{ localStorage.setItem(cacheKey(), JSON.stringify(state)); };
+
+/* ---------- スプシ通信（JSONPでCORS回避） ---------- */
+function jsonp(params){
+  return new Promise((resolve,reject)=>{
+    if(!API_URL){ reject("no-api"); return; }
+    const cb = "cb_"+Date.now()+"_"+Math.floor(Math.random()*1e6);
+    const s = document.createElement("script");
+    const cleanup = ()=>{ delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); };
+    window[cb] = (data)=>{ resolve(data); cleanup(); };
+    s.onerror = ()=>{ reject("net"); cleanup(); };
+    const q = Object.entries(Object.assign({pass:PASS},params,{callback:cb}))
+      .map(([k,v])=>encodeURIComponent(k)+"="+encodeURIComponent(v)).join("&");
+    s.src = API_URL+"?"+q;
+    document.body.appendChild(s);
+  });
+}
+
+/* 入会年度＋入会年月の合体表記（例：ののコン2024（2025年1月））。「23年9月」→「2023年9月」に補完 */
+function fmtCohortJoin(m){
+  const jm = String(m.join||"").match(/^(\d{2})年(\d{1,2})月/);
+  const jf = jm ? `20${jm[1]}年${jm[2]}月` : String(m.join||"").replace(/-$/,"");
+  if(m.cohort && jf) return `${m.cohort}（${jf}）`;
+  return m.cohort || jf || "—";
+}
+
+/* ---------- 名簿の読み込み ---------- */
+async function loadRoster(){
+  if(ROSTER.length) return ROSTER;
+  const r = await jsonp({action:"roster"});
+  if(r && r.error) throw r.error;
+  ROSTER = r.students||[];
+  return ROSTER;
+}
+
+/* ---------- 合言葉ゲート ---------- */
+function showPassGate(el){
+  el.innerHTML = '🔑 合言葉を入力してください：' +
+    '<input id="pw" type="password" placeholder="合言葉" style="padding:7px 10px;border-radius:8px;border:1px solid #3a4653;background:#0e1620;color:#fff;font-size:13px">' +
+    '<button id="pwgo">OK</button>' +
+    '<span id="pwerr" class="warn" style="display:none">合言葉が違います</span>';
+  const go = async ()=>{
+    const v = document.getElementById("pw").value.trim();
+    if(!v) return;
+    PASS = v;
+    try{
+      const r = await jsonp({action:"roster"});
+      if(r && r.error) throw r.error;
+      ROSTER = r.students||[];
+      localStorage.setItem(PASS_KEY, PASS);
+      initIdent();
+    }catch(e){
+      PASS = "";
+      document.getElementById("pwerr").style.display = "";
+    }
+  };
+  document.getElementById("pwgo").onclick = go;
+  document.getElementById("pw").addEventListener("keydown", ev=>{ if(ev.key==="Enter") go(); });
+  document.getElementById("pw").focus();
+}
+
+/* ---------- 名前選択バー ---------- */
+async function initIdent(){
+  const el = document.getElementById("ident");
+  if(!API_URL){
+    el.innerHTML = '<span class="warn">デモモード：保存はこの端末だけ（URL未設定）</span>';
+    loadCache(); render(); return;
+  }
+  if(!PASS){ showPassGate(el); return; }
+  if(me){
+    el.innerHTML = `<span class="who">👤 ${me.name} さん</span><button id="switch">別の人に切り替え</button>`;
+    document.getElementById("switch").onclick=()=>{ localStorage.removeItem("nonocon_me"); me=null; initIdent(); };
+    loadProgress();
+    loadRoster().then(()=>render()).catch(()=>{}); // メンバー情報用に裏で名簿取得
+    return;
+  }
+  el.innerHTML = 'お名前を選んでください：<select id="who"><option>読み込み中…</option></select>';
+  try{
+    await loadRoster();
+    const sel = document.getElementById("who");
+    sel.innerHTML = '<option value="">— 選択 —</option>' +
+      ROSTER.map(s=>`<option value="${s.sid}" data-name="${s.name}">${s.name}</option>`).join("");
+    sel.onchange=()=>{
+      const o=sel.selectedOptions[0]; if(!o.value) return;
+      me={sid:o.value, name:o.dataset.name};
+      localStorage.setItem("nonocon_me", JSON.stringify(me));
+      initIdent();
+    };
+  }catch(e){
+    if(String(e).indexOf("unauthorized") >= 0){
+      localStorage.removeItem(PASS_KEY); PASS = "";
+      showPassGate(el); return;
+    }
+    el.innerHTML = '<span class="warn">名簿の読み込みに失敗。通信環境を確認してください。</span>';
+    loadCache(); render();
+  }
+}
+
+async function loadProgress(){
+  loadCache(); render();                 // まずキャッシュを即表示
+  if(API_URL && me){
+    try{ const r = await jsonp({action:"progress", uid:me.sid}); if(r && !r.error){ state = r.checked||{}; saveCache(); render(); } }
+    catch(e){ /* オフライン時はキャッシュのまま */ }
+  }
+}
+
+function toggle(item){
+  state[item.id] = !state[item.id];
+  saveCache(); render();
+  if(API_URL && me){
+    jsonp({action:"save", uid:me.sid, name:me.name, step:item.id, label:item.t, checked:state[item.id]?1:0})
+      .catch(()=>{});
+  }
+}
+
+/* ---------- 描画 ---------- */
+function chapStats(ci){
+  let t=0,d=0;
+  DATA[ci].groups.forEach(g=>g.items.forEach(it=>{t++; if(state[it.id])d++;}));
+  return {t,d};
+}
+const MEMBERS = DATA.length;   // メンバー情報タブのインデックス
+const ADMIN   = DATA.length+1; // 管理タブのインデックス（キー保持者のみ表示）
+
+function renderTabs(){
+  const el=document.getElementById("tabs"); el.innerHTML="";
+  DATA.forEach((c,ci)=>{
+    const {t,d}=chapStats(ci);
+    const b=document.createElement("button");
+    b.className="tab"+(ci===chap?" on":"");
+    b.innerHTML=`${c.ch}<span class="c">${d}/${t}</span>`;
+    b.onclick=()=>{chap=ci;render();};
+    el.appendChild(b);
+  });
+  const mb=document.createElement("button");
+  mb.className="tab"+(chap===MEMBERS?" on":"");
+  mb.innerHTML=`メンバー情報${ROSTER.length?`<span class="c">${ROSTER.length}名</span>`:""}`;
+  mb.onclick=()=>{chap=MEMBERS;render();};
+  el.appendChild(mb);
+  if(ADMIN_KEY){
+    const ab=document.createElement("button");
+    ab.className="tab"+(chap===ADMIN?" on":"");
+    ab.innerHTML=`📊 管理`;
+    ab.onclick=()=>{chap=ADMIN;render();};
+    el.appendChild(ab);
+  }
+}
+
+/* ---------- 管理ビュー（全員の進捗一覧）---------- */
+const A_CHAPTERS = DATA.map(c=>({ch:c.ch, steps:c.groups.flatMap(g=>g.items.map(it=>[it.id,it.t]))}));
+const A_TOTAL = A_CHAPTERS.reduce((a,c)=>a+c.steps.length,0);
+
+async function renderAdmin(){
+  const body=document.getElementById("body");
+  if(!adminCache){
+    body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">全員の進捗を読み込み中…</div>';
+    let d;
+    try{ d = await jsonp({action:"all", key:ADMIN_KEY}); }
+    catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">通信エラー</div>'; return; }
+    if(d.error){
+      localStorage.removeItem("nonocon_admin_key"); ADMIN_KEY=""; adminCache=null;
+      alert("管理キーが無効です"); chap=0; render(); return;
+    }
+    adminCache = d;
+    if(chap!==ADMIN) return; // 読み込み中に他タブへ移動した場合
+  }
+  const roster = adminCache.roster||[];
+  const prog={}, last={};
+  (adminCache.rows||[]).forEach(r=>{
+    if(!prog[r.uid]) prog[r.uid]={};
+    prog[r.uid][r.step]=r.checked;
+    if(r.checked && r.updated){
+      const t=new Date(r.updated);
+      if(!last[r.uid] || t>last[r.uid]) last[r.uid]=t;
+    }
+  });
+  const now=new Date();
+  const rows = roster.map(s=>{
+    const p=prog[s.sid]||{};
+    const per=A_CHAPTERS.map(c=>({done:c.steps.filter(([id])=>p[id]).length, total:c.steps.length}));
+    const done=per.reduce((a,x)=>a+x.done,0);
+    const lu=last[s.sid];
+    const days=lu?Math.floor((now-lu)/86400000):null;
+    return {s,p,per,done,pct:Math.round(done/A_TOTAL*100),lu,days};
+  }).sort((a,b)=>b.pct-a.pct);
+
+  const avg=rows.length?Math.round(rows.reduce((a,r)=>a+r.pct,0)/rows.length):0;
+  const notStarted=rows.filter(r=>r.done===0).length;
+  const stalled=rows.filter(r=>r.done>0&&r.days!==null&&r.days>=7).length;
+
+  let html=`<button class="abtn" id="areload">🔄 最新に更新</button>
+    <div class="metrics">
+      <div class="metric"><div class="k">受講生</div><div class="v">${rows.length}名</div></div>
+      <div class="metric"><div class="k">平均進捗</div><div class="v">${avg}%</div></div>
+      <div class="metric"><div class="k">未着手</div><div class="v">${notStarted}名</div></div>
+      <div class="metric"><div class="k">7日以上停滞</div><div class="v">${stalled}名</div></div>
+    </div>
+    <div class="apanel"><table>
+      <thead><tr><th>受講生</th><th>入会</th>${A_CHAPTERS.map(c=>`<th>${c.ch}</th>`).join("")}
+      <th>進捗</th><th>最終更新</th><th>状態</th></tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const badge = r.done===0 ? '<span class="badge bad">未着手</span>'
+      : (r.days>=7 ? `<span class="badge warn">⚠️ ${r.days}日停滞</span>`
+      : (r.pct===100 ? '<span class="badge ok">完了 🎉</span>' : '<span class="badge ok">進行中</span>'));
+    html+=`<tr data-uid="${r.s.sid}" class="${adminSel===r.s.sid?'sel':''}">
+      <td class="pname">${r.s.name.replace(/^-/,"")}</td>
+      <td>${fmtCohortJoin(r.s)}</td>
+      ${r.per.map(x=>`<td>${x.done}/${x.total}</td>`).join("")}
+      <td><span class="abar"><i style="width:${r.pct}%"></i></span><span class="apct">${r.pct}%</span></td>
+      <td>${r.lu?`${r.lu.getMonth()+1}/${r.lu.getDate()}`:"—"}</td>
+      <td>${badge}</td></tr>`;
+  });
+  html+=`</tbody></table></div>
+    <div class="ahint">行をクリックすると、その受講生のステップ詳細が下に表示されます</div>
+    <div id="adetail"></div>`;
+  body.innerHTML=html;
+
+  document.getElementById("areload").onclick=()=>{adminCache=null;renderAdmin();};
+  body.querySelectorAll("tbody tr").forEach(tr=>{
+    tr.onclick=()=>{adminSel=tr.dataset.uid;renderAdmin();};
+  });
+  if(adminSel){
+    const r=rows.find(x=>x.s.sid===adminSel);
+    if(r){
+      document.getElementById("adetail").innerHTML=`<div class="adetail">
+        <h3>👤 ${r.s.name.replace(/^-/,"")} さんの詳細</h3>
+        <div class="dgrid">${A_CHAPTERS.map(c=>{
+          const done=c.steps.filter(([id])=>r.p[id]).length;
+          return `<div class="dcol">
+            <div class="chh">${c.ch}<span class="cnt">${done}/${c.steps.length}</span></div>
+            ${c.steps.map(([id,label])=>`<div class="dstep ${r.p[id]?'':'off'}">${r.p[id]?'✅':'⬜'} ${label}</div>`).join("")}
+          </div>`;
+        }).join("")}</div></div>`;
+    }
+  }
+}
+
+function renderMembers(){
+  const body=document.getElementById("body"); body.innerHTML="";
+  if(!ROSTER.length){
+    body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">メンバー情報を読み込み中…</div>';
+    return;
+  }
+  const grid=document.createElement("div"); grid.className="mgrid";
+  ROSTER.forEach(m=>{
+    const initial=(m.kana||m.name).trim().replace(/^-/,"").charAt(0);
+    // 生年月日未記入だと年齢がシート数式で126等になるため、ありえない値は非表示
+    const ageN=parseInt(m.age,10);
+    const ageOk=(!isNaN(ageN)&&ageN>=10&&ageN<=100)?String(ageN):"";
+    const rows=[["エリア",m.area],["年齢/性別",[ageOk,m.gender].filter(Boolean).join(" / ")],
+                ["入会",fmtCohortJoin(m)],["専業/副業",m.work],["稼働時間",m.time]]
+      .filter(([,v])=>v)
+      .map(([k,v])=>`<div class="mrow"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
+    const c=document.createElement("div"); c.className="mcard";
+    c.innerHTML=`
+      <div class="mtop">
+        <div class="mava">${initial}</div>
+        <div><div class="mname">${m.name.replace(/^-/,"")}</div>${m.kana?`<div class="mkana">${m.kana}</div>`:""}</div>
+      </div>
+      <div class="mrows">${rows}</div>`;
+    grid.appendChild(c);
+  });
+  body.appendChild(grid);
+}
+
+function render(){
+  renderTabs();
+  const pc=document.querySelector(".progress-card");
+  if(chap===MEMBERS){
+    pc.style.display="none";
+    renderMembers();
+    return;
+  }
+  if(chap===ADMIN){
+    pc.style.display="none";
+    renderAdmin();
+    return;
+  }
+  pc.style.display="flex";
+  const c=DATA[chap];
+  const body=document.getElementById("body"); body.innerHTML="";
+  c.groups.forEach(g=>{
+    const gd=document.createElement("div"); gd.className="group";
+    let gt=0,gdone=0; const ul=document.createElement("ul");
+    g.items.forEach(it=>{
+      gt++; const done=!!state[it.id]; if(done)gdone++;
+      const li=document.createElement("li"); li.className="item"+(done?" done":"");
+      const dep = it.dep?`<span class="tag do">前提：${it.dep}</span>`:"";
+      const link = it.url?`<a class="ilink" href="${it.url}" target="_blank" rel="noopener">開く ↗</a>`:"";
+      li.innerHTML=`<div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"
+        stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div style="flex:1"><div class="title">${it.t}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}</div>${link}`;
+      li.onclick=()=>toggle(it);
+      const a=li.querySelector(".ilink");
+      if(a) a.onclick=e=>e.stopPropagation(); // リンククリックではチェックを切り替えない
+      ul.appendChild(li);
+    });
+    if(g.g) gd.innerHTML=`<div class="gh">${g.g}<span class="gc">${gdone}/${gt}</span></div>`;
+    gd.appendChild(ul); body.appendChild(gd);
+  });
+  const {t,d}=chapStats(chap);
+  const pct=t?Math.round(d/t*100):0;
+  document.getElementById("pctText").textContent=pct+"%";
+  document.getElementById("countText").textContent=`${d} / ${t} 完了`;
+  document.getElementById("chapName").textContent=`「${c.ch}」章`;
+  document.getElementById("ringFg").style.strokeDashoffset=144.5*(1-pct/100);
+}
+
+if(location.hash==="#admin" && ADMIN_KEY) chap=ADMIN; // 管理者はそのまま管理タブへ
+initIdent();
+</script>
+</body>
+</html>
