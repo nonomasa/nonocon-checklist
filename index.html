@@ -333,6 +333,10 @@ function showPassGate(el){
     const v = document.getElementById("pw").value.trim();
     if(!v) return;
     PASS = v;
+    const btn = document.getElementById("pwgo");
+    btn.disabled = true;
+    btn.textContent = "確認中…";
+    document.getElementById("pwerr").style.display = "none";
     try{
       const r = await jsonp({action:"roster"});
       if(r && r.error) throw r.error;
@@ -341,6 +345,8 @@ function showPassGate(el){
       initIdent();
     }catch(e){
       PASS = "";
+      btn.disabled = false;
+      btn.textContent = "OK";
       document.getElementById("pwerr").style.display = "";
     }
   };
