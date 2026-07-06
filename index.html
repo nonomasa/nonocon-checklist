@@ -508,13 +508,19 @@ async function renderAdmin(){
     }
   });
   const now=new Date();
+  const isStd = st => st.cohort && st.cohort.indexOf("WS")===0 && st.cohort.indexOf("FS")<0;
   const rows = roster.map(s=>{
     const p=prog[s.sid]||{};
-    const per=A_CHAPTERS.map(c=>({done:c.steps.filter(([id])=>p[id]).length, total:c.steps.length}));
-    const done=per.reduce((a,x)=>a+x.done,0);
+    const std=isStd(s);
+    const per=A_CHAPTERS.map(c=>{
+      if(std && c.ch==="実践（卸・メーカー）") return null; // STは対象外
+      return {done:c.steps.filter(([id])=>p[id]).length, total:c.steps.length};
+    });
+    const done=per.reduce((a,x)=>a+(x?x.done:0),0);
+    const total=per.reduce((a,x)=>a+(x?x.total:0),0);
     const lu=last[s.sid];
     const days=lu?Math.floor((now-lu)/86400000):null;
-    return {s,p,per,done,pct:Math.round(done/A_TOTAL*100),lu,days};
+    return {s,p,per,done,pct:total?Math.round(done/total*100):0,lu,days};
   }).sort((a,b)=>b.pct-a.pct);
 
   const avg=rows.length?Math.round(rows.reduce((a,r)=>a+r.pct,0)/rows.length):0;
@@ -538,7 +544,7 @@ async function renderAdmin(){
     html+=`<tr data-uid="${r.s.sid}" class="${adminSel===r.s.sid?'sel':''}">
       <td class="pname">${r.s.name.replace(/^-/,"")}</td>
       <td>${fmtCohortJoin(r.s)}</td>
-      ${r.per.map(x=>`<td>${x.done}/${x.total}</td>`).join("")}
+      ${r.per.map(x=>x?`<td>${x.done}/${x.total}</td>`:`<td style="color:#c2c8d0">—</td>`).join("")}
       <td><span class="abar"><i style="width:${r.pct}%"></i></span><span class="apct">${r.pct}%</span></td>
       <td>${r.lu?`${r.lu.getMonth()+1}/${r.lu.getDate()}`:"—"}</td>
       <td>${badge}</td></tr>`;
@@ -557,7 +563,7 @@ async function renderAdmin(){
     if(r){
       document.getElementById("adetail").innerHTML=`<div class="adetail">
         <h3>👤 ${r.s.name.replace(/^-/,"")} さんの詳細</h3>
-        <div class="dgrid">${A_CHAPTERS.map(c=>{
+        <div class="dgrid">${A_CHAPTERS.filter(c=>!(isStd(r.s)&&c.ch==="実践（卸・メーカー）")).map(c=>{
           const done=c.steps.filter(([id])=>r.p[id]).length;
           return `<div class="dcol">
             <div class="chh">${c.ch}<span class="cnt">${done}/${c.steps.length}</span></div>
