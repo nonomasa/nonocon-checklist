@@ -116,6 +116,7 @@
     padding:6px 14px;border-radius:999px;cursor:pointer;margin-bottom:14px}
   .abtn:hover{border-color:var(--accent);color:var(--accent)}
 
+  .mpanel tbody tr{cursor:default}
   /* メンバー情報カード */
   .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
   .mcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;
@@ -598,26 +599,20 @@ function renderMembers(){
     body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">メンバー情報を読み込み中…</div>';
     return;
   }
-  const grid=document.createElement("div"); grid.className="mgrid";
+  // 生年月日未記入だと年齢がシート数式で126等になるため、ありえない値は非表示
+  const ageOk=a=>{const n=parseInt(a,10);return(!isNaN(n)&&n>=10&&n<=100)?String(n):"";};
+  let html='<div class="apanel mpanel"><table><thead><tr>'+
+    '<th>名前</th><th>エリア</th><th>年齢/性別</th><th>誕生日</th><th>入会</th><th>専業/副業</th></tr></thead><tbody>';
   ROSTER.forEach(m=>{
-    const initial=(m.kana||m.name).trim().replace(/^-/,"").charAt(0);
-    // 生年月日未記入だと年齢がシート数式で126等になるため、ありえない値は非表示
-    const ageN=parseInt(m.age,10);
-    const ageOk=(!isNaN(ageN)&&ageN>=10&&ageN<=100)?String(ageN):"";
-    const rows=[["エリア",m.area],["年齢/性別",[ageOk,m.gender].filter(Boolean).join(" / ")],
-                ["入会",fmtCohortJoin(m)],["専業/副業",m.work]]
-      .filter(([,v])=>v)
-      .map(([k,v])=>`<div class="mrow"><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
-    const c=document.createElement("div"); c.className="mcard";
-    c.innerHTML=`
-      <div class="mtop">
-        <div class="mava">${initial}</div>
-        <div><div class="mname">${m.name.replace(/^-/,"")}</div>${m.kana?`<div class="mkana">${m.kana}</div>`:""}</div>
-      </div>
-      <div class="mrows">${rows}</div>`;
-    grid.appendChild(c);
+    html+=`<tr><td class="pname">${m.name.replace(/^-/,"")}<div class="mkana">${m.kana||""}</div></td>`+
+      `<td>${m.area||"—"}</td>`+
+      `<td>${[ageOk(m.age),m.gender].filter(Boolean).join(" / ")||"—"}</td>`+
+      `<td>${m.bday||"—"}</td>`+
+      `<td>${fmtCohortJoin(m)}</td>`+
+      `<td>${m.work||"—"}</td></tr>`;
   });
-  body.appendChild(grid);
+  html+='</tbody></table></div>';
+  body.innerHTML=html;
 }
 
 function render(){
