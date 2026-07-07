@@ -117,6 +117,10 @@
   .abtn:hover{border-color:var(--accent);color:var(--accent)}
 
   .mpanel tbody tr{cursor:default}
+  .mpanel tr.male td{background:#eaf4fd}
+  .mpanel tr.female td{background:#fdeef3}
+  .mpanel tr.male td:first-child{background:#eaf4fd}
+  .mpanel tr.female td:first-child{background:#fdeef3}
   /* メンバー情報カード */
   .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
   .mcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;
@@ -602,11 +606,12 @@ function renderMembers(){
   // 生年月日未記入だと年齢がシート数式で126等になるため、ありえない値は非表示
   const ageOk=a=>{const n=parseInt(a,10);return(!isNaN(n)&&n>=10&&n<=100)?String(n):"";};
   let html='<div class="apanel mpanel"><table><thead><tr>'+
-    '<th>名前</th><th>エリア</th><th>年齢/性別</th><th>誕生日</th><th>入会</th><th>専業/副業</th></tr></thead><tbody>';
+    '<th>名前</th><th>エリア</th><th>年齢</th><th>誕生日</th><th>入会</th><th>専業/副業</th></tr></thead><tbody>';
   ROSTER.forEach(m=>{
-    html+=`<tr><td class="pname">${m.name.replace(/^-/,"")}<div class="mkana">${m.kana||""}</div></td>`+
+    const gcls=(m.gender||"").indexOf("男")>=0?"male":((m.gender||"").indexOf("女")>=0?"female":"");
+    html+=`<tr class="${gcls}"><td class="pname">${m.name.replace(/^-/,"")}<div class="mkana">${m.kana||""}</div></td>`+
       `<td>${m.area||"—"}</td>`+
-      `<td>${[ageOk(m.age),m.gender].filter(Boolean).join(" / ")||"—"}</td>`+
+      `<td>${ageOk(m.age)||"—"}</td>`+
       `<td>${m.bday||"—"}</td>`+
       `<td>${fmtCohortJoin(m)}</td>`+
       `<td>${m.work||"—"}</td></tr>`;
