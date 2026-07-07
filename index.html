@@ -89,6 +89,13 @@
   .apanel tbody tr:hover{background:#fafcff}
   .apanel tbody tr.sel{background:var(--accent-soft)}
   .apanel .pname{font-weight:700}
+  /* 名前列を左固定（横スクロールしても見える） */
+  .apanel th:first-child{position:sticky;left:0;z-index:3;background:#eef1f5;
+    border-right:1px solid var(--line)}
+  .apanel td:first-child{position:sticky;left:0;z-index:1;background:#fff;
+    border-right:1px solid var(--line)}
+  .apanel tbody tr:hover td:first-child{background:#fafcff}
+  .apanel tbody tr.sel td:first-child{background:var(--accent-soft)}
   .abar{width:100px;height:8px;background:#eef1f5;border-radius:99px;overflow:hidden;display:inline-block;
     vertical-align:middle;margin-right:8px}
   .abar > i{display:block;height:100%;background:var(--accent)}
