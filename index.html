@@ -607,7 +607,14 @@ function renderMembers(){
   const ageOk=a=>{const n=parseInt(a,10);return(!isNaN(n)&&n>=10&&n<=100)?String(n):"";};
   let html='<div class="apanel mpanel"><table><thead><tr>'+
     '<th>名前</th><th>エリア</th><th>年齢</th><th>誕生日</th><th>入会</th><th>専業/副業</th></tr></thead><tbody>';
-  ROSTER.forEach(m=>{
+  const sorted=[...ROSTER].sort((a,b)=>{
+    const na=parseInt(a.sid,10), nb=parseInt(b.sid,10);
+    if(isNaN(na)&&isNaN(nb))return 0;
+    if(isNaN(na))return 1;
+    if(isNaN(nb))return -1;
+    return na-nb;
+  });
+  sorted.forEach(m=>{
     const gcls=(m.gender||"").indexOf("男")>=0?"male":((m.gender||"").indexOf("女")>=0?"female":"");
     html+=`<tr class="${gcls}"><td class="pname">${m.name.replace(/^-/,"")}<div class="mkana">${m.kana||""}</div></td>`+
       `<td>${m.area||"—"}</td>`+
