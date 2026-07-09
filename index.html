@@ -117,6 +117,8 @@
   .abtn:hover{border-color:var(--accent);color:var(--accent)}
 
   .mpanel tbody tr{cursor:default}
+  .mbadge{display:inline-block;font-size:10px;font-weight:700;color:#7c3aed;background:#f2ecfd;
+    border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle;white-space:nowrap}
   .mpanel tr.male td{background:#eaf4fd}
   .mpanel tr.female td{background:#fdeef3}
   .mpanel tr.male td:first-child{background:#eaf4fd}
@@ -616,7 +618,9 @@ function renderMembers(){
   });
   sorted.forEach(m=>{
     const gcls=(m.gender||"").indexOf("男")>=0?"male":((m.gender||"").indexOf("女")>=0?"female":"");
-    html+=`<tr class="${gcls}"><td class="pname">${m.name.replace(/^-/,"")}<div class="mkana">${m.kana||""}</div></td>`+
+    const isNono=m.sid==="0"||m.name.replace(/[\s　]+/g,"")==="野々脇雅史";
+    const badge=isNono?'<span class="mbadge">マスタ</span>':(m.grad?'<span class="mbadge">卒業生・講師</span>':"");
+    html+=`<tr class="${gcls}"><td class="pname">${m.name.replace(/^-/,"")}${badge}<div class="mkana">${m.kana||""}</div></td>`+
       `<td>${m.area||"—"}</td>`+
       `<td>${ageOk(m.age)||"—"}</td>`+
       `<td>${m.bday||"—"}</td>`+
