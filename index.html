@@ -339,6 +339,12 @@ let me = JSON.parse(localStorage.getItem("nonocon_me")||"null"); // {sid,name}
 let state = {}; // {stepId:true}
 let ROSTER = []; // メンバー情報（名簿）
 
+/* ブランド別解除状況 */
+let BRANDS = null;        // ブランドマスタ（優先度1〜3）
+let kaijoState = {};      // 自分の状態 {brand: status}
+let kaijoLoaded = false;
+const KSTATUS = ["未確認","制限なし","要承認","SD解除","楽天解除","ヨド解除","ビック解除","アマ解除","卸解除","その他解除"];
+
 /* 受講生用の合言葉（正誤はサーバー側で照合。HTMLには書かれていない） */
 const PASS_KEY = "nonocon_pass";
 let PASS = localStorage.getItem(PASS_KEY) || "";
@@ -612,10 +618,13 @@ async function renderAdmin(){
   });
   html+=`</tbody></table></div>
     <div class="ahint">行をクリックすると、その受講生のステップ詳細が下に表示されます</div>
-    <div id="adetail"></div>`;
+    <div id="adetail"></div>
+    <button class="abtn" id="kmatrixBtn" style="margin-top:14px">🔓 ブランド解除マトリクスを表示</button>
+    <div id="kmatrixBox"></div>`;
   body.innerHTML=html;
 
   document.getElementById("areload").onclick=()=>{adminCache=null;renderAdmin();};
+  document.getElementById("kmatrixBtn").onclick=renderKaijoMatrix;
   body.querySelectorAll("tbody tr").forEach(tr=>{
     tr.onclick=()=>{adminSel=tr.dataset.uid;renderAdmin();};
   });
@@ -667,6 +676,99 @@ function renderMembers(){
   body.innerHTML=html;
 }
 
+/* ---------- 管理：全員×ブランドの解除マトリクス ---------- */
+async function renderKaijoMatrix(){
+  const box=document.getElementById("kmatrixBox");
+  if(!box) return;
+  box.innerHTML='<div style="color:#6b7686;padding:14px">読み込み中…</div>';
+  let all;
+  try{
+    if(!BRANDS){ const r=await jsonp({action:"kbrands"}); if(r&&r.error) throw r.error; BRANDS=r.brands||[]; }
+    all=await jsonp({action:"kall", key:ADMIN_KEY});
+    if(all&&all.error) throw all.error;
+  }catch(e){ box.innerHTML='<div style="color:#dc2626;padding:14px">読み込み失敗</div>'; return; }
+  const map={}; // uid -> {brand: status}
+  (all.rows||[]).forEach(r=>{ if(!map[r.uid])map[r.uid]={}; map[r.uid][r.brand]=r.status; });
+  const roster=(adminCache&&adminCache.roster||[]).filter(st=>!st.grad && st.name.replace(/[\s　]+/g,"")!=="野々脇雅史");
+  const short=v=>{
+    if(!v||v==="未確認")return "";
+    if(v==="制限なし")return "なし";
+    if(v==="要承認")return "要承";
+    return v.replace("解除","");
+  };
+  const color=v=>{
+    if(!v||v==="未確認")return "#c2c8d0";
+    if(v==="制限なし")return "#0e9f6e";
+    if(v==="要承認")return "#d97706";
+    return "#2563eb";
+  };
+  let html='<div class="apanel" style="margin-top:10px;max-height:70vh"><table><thead><tr><th>受講生</th>';
+  BRANDS.forEach(b=>{ html+=`<th title="${b.pri}">${b.brand}</th>`; });
+  html+='</tr></thead><tbody>';
+  roster.forEach(s=>{
+    const m=map[s.sid]||{};
+    html+=`<tr><td class="pname">${s.name.replace(/^-/,"")}</td>`;
+    BRANDS.forEach(b=>{
+      const v=m[b.brand]||"";
+      html+=`<td style="color:${color(v)};font-weight:700;font-size:12px" title="${b.brand}: ${v||"未確認"}">${short(v)}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div><div class="ahint">緑=制限なし／オレンジ=要承認／青=解除済み（解除先）／空欄=未確認</div>';
+  box.innerHTML=html;
+}
+
+/* ---------- ブランド別 解除状況（制限解除タブ内） ---------- */
+function kselColor(sel){
+  const v=sel.value;
+  let bg="#eef1f5", fg="#6b7686";
+  if(v==="制限なし"){bg="#eafaf2";fg="#0e9f6e";}
+  else if(v==="要承認"){bg="#fef3e2";fg="#d97706";}
+  else if(v.indexOf("解除")>=0){bg="#eaf1ff";fg="#2563eb";}
+  sel.style.background=bg; sel.style.color=fg; sel.style.fontWeight="700";
+}
+
+function renderKaijoSection(body){
+  const sec=document.createElement("div"); sec.className="group";
+  sec.innerHTML='<div class="gh">ブランド別 解除状況（優先度順）<span class="gc" id="kaijoCnt"></span></div><div id="kaijoBox" style="color:#6b7686;font-size:13px">読み込み中…</div>';
+  body.appendChild(sec);
+  fillKaijo();
+}
+
+async function fillKaijo(){
+  const box=document.getElementById("kaijoBox");
+  if(!box) return;
+  if(!me){ box.textContent="お名前を選ぶと、自分の解除状況を記録できます"; return; }
+  try{
+    if(!BRANDS){ const r=await jsonp({action:"kbrands"}); if(r&&r.error) throw r.error; BRANDS=r.brands||[]; }
+    if(!kaijoLoaded){ const r2=await jsonp({action:"kget", uid:me.sid}); if(r2&&!r2.error){ kaijoState=r2.status||{}; kaijoLoaded=true; } }
+  }catch(e){ box.textContent="読み込みに失敗しました。通信環境を確認してください"; return; }
+  const cnt=document.getElementById("kaijoCnt");
+  if(cnt){ const done=Object.values(kaijoState).filter(v=>v&&v!=="未確認").length; cnt.textContent=`確認済み ${done}/${BRANDS.length}`; }
+  let html='<div class="apanel mpanel"><table><thead><tr><th>優先度</th><th>ブランド</th><th>状態</th></tr></thead><tbody>';
+  BRANDS.forEach(b=>{
+    const st=kaijoState[b.brand]||"未確認";
+    const opts=KSTATUS.map(o=>`<option ${o===st?"selected":""}>${o}</option>`).join("");
+    const asin=b.asin?` <a href="https://www.amazon.co.jp/dp/${encodeURIComponent(b.asin)}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;text-decoration:none">確認↗</a>`:"";
+    html+=`<tr><td style="font-size:12px;color:#6b7686">${b.pri}</td>`+
+      `<td class="pname">${b.brand}${asin}</td>`+
+      `<td><select class="ksel" data-brand="${b.brand.replace(/"/g,"&quot;")}" style="padding:6px 10px;border:1px solid #e3e6ea;border-radius:8px;font-size:12.5px">${opts}</select></td></tr>`;
+  });
+  html+='</tbody></table></div>';
+  box.innerHTML=html;
+  box.querySelectorAll(".ksel").forEach(sel=>{
+    kselColor(sel);
+    sel.onchange=()=>{
+      const brand=sel.dataset.brand, st=sel.value;
+      kaijoState[brand]=st;
+      kselColor(sel);
+      const cnt2=document.getElementById("kaijoCnt");
+      if(cnt2){ const done=Object.values(kaijoState).filter(v=>v&&v!=="未確認").length; cnt2.textContent=`確認済み ${done}/${BRANDS.length}`; }
+      jsonp({action:"ksave", uid:me.sid, name:me.name, brand:brand, status:st}).catch(()=>{});
+    };
+  });
+}
+
 function render(){
   if(chap < DATA.length && chapterHidden(chap)) chap = 0;
   renderTabs();
@@ -703,6 +805,7 @@ function render(){
     if(g.g) gd.innerHTML=`<div class="gh">${g.g}<span class="gc">${gdone}/${gt}</span></div>`;
     gd.appendChild(ul); body.appendChild(gd);
   });
+  if(DATA[chap].ch==="制限解除") renderKaijoSection(body);
   const {t,d}=chapStats(chap);
   const pct=t?Math.round(d/t*100):0;
   document.getElementById("pctText").textContent=pct+"%";
