@@ -364,6 +364,13 @@ function jsonp(params){
   });
 }
 
+/* 入会表記：WS期生のFSコースは青文字で強調 */
+function fmtCohortJoinHtml(m){
+  const t = fmtCohortJoin(m);
+  const isFS = (m.cohort||"").indexOf("WS")===0 && (m.cohort||"").indexOf("FS")>=0;
+  return isFS ? `<span style="color:#2563eb;font-weight:700">${t}</span>` : t;
+}
+
 /* 入会年度＋入会年月の合体表記（例：ののコン2024（2025年1月））。「23年9月」→「2023年9月」に補完 */
 function fmtCohortJoin(m){
   const jm = String(m.join||"").match(/^(\d{2})年(\d{1,2})月/);
@@ -581,7 +588,7 @@ async function renderAdmin(){
       : (r.pct===100 ? '<span class="badge ok">完了 🎉</span>' : '<span class="badge ok">進行中</span>'));
     html+=`<tr data-uid="${r.s.sid}" class="${adminSel===r.s.sid?'sel':''}">
       <td class="pname"><span style="color:#9aa3af;font-weight:400;margin-right:6px">${isNaN(parseInt(r.s.sid,10))?"":r.s.sid}</span>${r.s.name.replace(/^-/,"")}</td>
-      <td>${fmtCohortJoin(r.s)}</td>
+      <td>${fmtCohortJoinHtml(r.s)}</td>
       ${r.per.map(x=>x?`<td>${x.done}/${x.total}</td>`:`<td style="color:#c2c8d0">—</td>`).join("")}
       <td><span class="abar"><i style="width:${r.pct}%"></i></span><span class="apct">${r.pct}%</span></td>
       <td>${r.lu?`${r.lu.getMonth()+1}/${r.lu.getDate()}`:"—"}</td>
@@ -637,7 +644,7 @@ function renderMembers(){
       `<td>${m.area||"—"}</td>`+
       `<td>${ageOk(m.age)||"—"}</td>`+
       `<td>${m.bday||"—"}</td>`+
-      `<td>${fmtCohortJoin(m)}</td>`+
+      `<td>${fmtCohortJoinHtml(m)}</td>`+
       `<td>${m.work||"—"}</td></tr>`;
   });
   html+='</tbody></table></div>';
