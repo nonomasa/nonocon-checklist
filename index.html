@@ -553,7 +553,13 @@ async function renderAdmin(){
     const lu=last[s.sid];
     const days=lu?Math.floor((now-lu)/86400000):null;
     return {s,p,per,done,pct:total?Math.round(done/total*100):0,lu,days};
-  }).sort((a,b)=>b.pct-a.pct);
+  }).sort((a,b)=>{
+    const na=parseInt(a.s.sid,10), nb=parseInt(b.s.sid,10);
+    if(isNaN(na)&&isNaN(nb))return 0;
+    if(isNaN(na))return 1;
+    if(isNaN(nb))return -1;
+    return na-nb;
+  });
 
   const avg=rows.length?Math.round(rows.reduce((a,r)=>a+r.pct,0)/rows.length):0;
   const notStarted=rows.filter(r=>r.done===0).length;
@@ -574,7 +580,7 @@ async function renderAdmin(){
       : (r.days>=7 ? `<span class="badge warn">⚠️ ${r.days}日停滞</span>`
       : (r.pct===100 ? '<span class="badge ok">完了 🎉</span>' : '<span class="badge ok">進行中</span>'));
     html+=`<tr data-uid="${r.s.sid}" class="${adminSel===r.s.sid?'sel':''}">
-      <td class="pname">${r.s.name.replace(/^-/,"")}</td>
+      <td class="pname"><span style="color:#9aa3af;font-weight:400;margin-right:6px">${isNaN(parseInt(r.s.sid,10))?"":r.s.sid}</span>${r.s.name.replace(/^-/,"")}</td>
       <td>${fmtCohortJoin(r.s)}</td>
       ${r.per.map(x=>x?`<td>${x.done}/${x.total}</td>`:`<td style="color:#c2c8d0">—</td>`).join("")}
       <td><span class="abar"><i style="width:${r.pct}%"></i></span><span class="apct">${r.pct}%</span></td>
