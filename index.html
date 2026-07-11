@@ -1021,7 +1021,8 @@ function render(){
   body.appendChild(fb);
   fb.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{lvFilter=+b.dataset.lv;render();});
   c.groups.forEach(g=>{
-    const items=g.items.filter(it=>!lvFilter || it.l===lvFilter);
+    const items=g.items.filter(it=>!lvFilter || it.l===lvFilter)
+      .slice().sort((a,b)=>(a.l||0)-(b.l||0)); // ⭐の少ない順（同レベル内は元の並び）
     if(!items.length) return;
     const gd=document.createElement("div"); gd.className="group";
     let gt=0,gdone=0; const ul=document.createElement("ul");
