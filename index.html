@@ -495,8 +495,11 @@ function chapStats(ci){
   DATA[ci].groups.forEach(g=>g.items.forEach(it=>{t++; if(state[it.id])d++;}));
   return {t,d};
 }
-const MEMBERS = DATA.length;   // メンバー情報タブのインデックス
-const ADMIN   = DATA.length+1; // 管理タブのインデックス（キー保持者のみ表示）
+const BRAND   = DATA.length;   // ブランド解除タブ
+const PALL    = DATA.length+1; // みんなの進捗タブ
+const MEMBERS = DATA.length+2; // メンバー情報タブ
+const ADMIN   = DATA.length+3; // 管理タブ（キー保持者のみ表示）
+let pallCache = null;          // みんなの進捗のキャッシュ
 
 /* 章の表示制御：WS期生（1期生〜）は入会年度に「FS」が付く人だけ卸・メーカーを表示 */
 function chapterHidden(ci){
@@ -519,6 +522,16 @@ function renderTabs(){
     b.onclick=()=>{chap=ci;render();};
     el.appendChild(b);
   });
+  const kb=document.createElement("button");
+  kb.className="tab"+(chap===BRAND?" on":"");
+  kb.innerHTML=`ブランド解除`;
+  kb.onclick=()=>{chap=BRAND;render();};
+  el.appendChild(kb);
+  const pb=document.createElement("button");
+  pb.className="tab"+(chap===PALL?" on":"");
+  pb.innerHTML=`みんなの進捗`;
+  pb.onclick=()=>{chap=PALL;render();};
+  el.appendChild(pb);
   const mb=document.createElement("button");
   mb.className="tab"+(chap===MEMBERS?" on":"");
   mb.innerHTML=`メンバー情報${ROSTER.length?`<span class="c">${ROSTER.length}名</span>`:""}`;
@@ -676,6 +689,56 @@ function renderMembers(){
   body.innerHTML=html;
 }
 
+/* ---------- みんなの進捗（全員が見られる） ---------- */
+async function renderEveryone(){
+  const body=document.getElementById("body");
+  body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
+  try{
+    await loadRoster();
+    if(!pallCache){ const r=await jsonp({action:"pall"}); if(r&&r.error) throw r.error; pallCache=r; }
+  }catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; return; }
+  if(chap!==PALL) return;
+  const prog={}, last={};
+  (pallCache.rows||[]).forEach(r=>{
+    if(!prog[r.uid])prog[r.uid]={};
+    prog[r.uid][r.step]=r.checked;
+    if(r.checked&&r.updated){const t=new Date(r.updated); if(!last[r.uid]||t>last[r.uid])last[r.uid]=t;}
+  });
+  const isStd=st=>st.cohort&&st.cohort.indexOf("WS")===0&&st.cohort.indexOf("FS")<0;
+  const roster=ROSTER.filter(st=>!st.grad&&st.name.replace(/[\s　]+/g,"")!=="野々脇雅史")
+    .slice().sort((a,b)=>{
+      const na=parseInt(a.sid,10),nb=parseInt(b.sid,10);
+      if(isNaN(na)&&isNaN(nb))return 0;
+      if(isNaN(na))return 1;
+      if(isNaN(nb))return -1;
+      return na-nb;
+    });
+  let html='<button class="abtn" id="preload">🔄 最新に更新</button>'+
+    '<div class="apanel mpanel"><table><thead><tr><th>受講生</th><th>入会</th>'+
+    A_CHAPTERS.map(c=>`<th>${c.ch}</th>`).join("")+
+    '<th>進捗</th><th>最終更新</th></tr></thead><tbody>';
+  roster.forEach(st=>{
+    const p=prog[st.sid]||{};
+    const std=isStd(st);
+    const per=A_CHAPTERS.map(c=>{
+      if(std&&c.ch==="実践（卸・メーカー）")return null;
+      return {done:c.steps.filter(([id])=>p[id]).length,total:c.steps.length};
+    });
+    const done=per.reduce((a,x)=>a+(x?x.done:0),0);
+    const total=per.reduce((a,x)=>a+(x?x.total:0),0);
+    const pct=total?Math.round(done/total*100):0;
+    const lu=last[st.sid];
+    html+=`<tr><td class="pname"><span style="color:#9aa3af;font-weight:400;margin-right:6px">${isNaN(parseInt(st.sid,10))?"":st.sid}</span>${st.name.replace(/^-/,"")}</td>`+
+      `<td>${fmtCohortJoinHtml(st)}</td>`+
+      per.map(x=>x?`<td>${x.done}/${x.total}</td>`:`<td style="color:#c2c8d0">—</td>`).join("")+
+      `<td><span class="abar"><i style="width:${pct}%"></i></span><span class="apct">${pct}%</span></td>`+
+      `<td>${lu?`${lu.getMonth()+1}/${lu.getDate()}`:"—"}</td></tr>`;
+  });
+  html+='</tbody></table></div><div class="ahint">みんなで進捗を見せ合って、切磋琢磨しましょう💪</div>';
+  body.innerHTML=html;
+  document.getElementById("preload").onclick=()=>{pallCache=null;renderEveryone();};
+}
+
 /* ---------- 管理：全員×ブランドの解除マトリクス ---------- */
 async function renderKaijoMatrix(){
   const box=document.getElementById("kmatrixBox");
@@ -773,6 +836,17 @@ function render(){
   if(chap < DATA.length && chapterHidden(chap)) chap = 0;
   renderTabs();
   const pc=document.querySelector(".progress-card");
+  if(chap===BRAND){
+    pc.style.display="none";
+    const body0=document.getElementById("body"); body0.innerHTML="";
+    renderKaijoSection(body0);
+    return;
+  }
+  if(chap===PALL){
+    pc.style.display="none";
+    renderEveryone();
+    return;
+  }
   if(chap===MEMBERS){
     pc.style.display="none";
     renderMembers();
@@ -805,7 +879,6 @@ function render(){
     if(g.g) gd.innerHTML=`<div class="gh">${g.g}<span class="gc">${gdone}/${gt}</span></div>`;
     gd.appendChild(ul); body.appendChild(gd);
   });
-  if(DATA[chap].ch==="制限解除") renderKaijoSection(body);
   const {t,d}=chapStats(chap);
   const pct=t?Math.round(d/t*100):0;
   document.getElementById("pctText").textContent=pct+"%";
