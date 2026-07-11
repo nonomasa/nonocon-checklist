@@ -117,6 +117,11 @@
   .dstep{font-size:12.5px;padding:2px 0}
   .dstep.off{color:#a5adb8}
   .ahint{color:var(--sub);font-size:12px;margin:12px 0}
+  .schip{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;margin:2px 3px}
+  .schip.done{background:var(--done-soft);color:var(--done)}
+  .schip.notyet{background:#fdecec;color:#dc2626}
+  .ssel{padding:8px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:#fff;
+    max-width:100%;margin-bottom:10px}
   .abtn{background:#fff;border:1px solid var(--line);color:var(--sub);font-size:12px;
     padding:6px 14px;border-radius:999px;cursor:pointer;margin-bottom:14px}
   .abtn:hover{border-color:var(--accent);color:var(--accent)}
@@ -612,6 +617,7 @@ const PALL    = DATA.length+1; // みんなの進捗タブ
 const MEMBERS = DATA.length+2; // メンバー情報タブ
 const ADMIN   = DATA.length+3; // 管理タブ（キー保持者のみ表示）
 let pallCache = null;          // みんなの進捗のキャッシュ
+let adminStepSel = "";         // 管理：ステップ別ビューで選択中のステップID
 let lvFilter = 0;              // ステージフィルタ（0=すべて, 1〜3=⭐の数）
 
 /* 章の表示制御：WS期生（1期生〜）は入会年度に「FS」が付く人だけ卸・メーカーを表示 */
@@ -742,15 +748,29 @@ async function renderAdmin(){
       <td>${r.lu?`${r.lu.getMonth()+1}/${r.lu.getDate()}`:"—"}</td>
       <td>${badge}</td></tr>`;
   });
+  // ステップ別ビュー用のセレクト（章ごとにまとめる）
+  let stepOpts='<option value="">— ステップを選択 —</option>';
+  A_CHAPTERS.forEach(c=>{
+    stepOpts+=`<optgroup label="${c.ch}">`+
+      c.steps.map(([id,label])=>`<option value="${id}" ${adminStepSel===id?"selected":""}>${label}</option>`).join("")+
+      '</optgroup>';
+  });
   html+=`</tbody></table></div>
     <div class="ahint">行をクリックすると、その受講生のステップ詳細が下に表示されます</div>
     <div id="adetail"></div>
+    <div class="adetail" style="display:block;margin-top:16px">
+      <h3>📋 ステップ別の完了状況</h3>
+      <select class="ssel" id="stepSel">${stepOpts}</select>
+      <div id="stepResult" class="ahint" style="margin:4px 0 0">ステップを選ぶと、完了した人／未完了の人が表示されます</div>
+    </div>
     <button class="abtn" id="kmatrixBtn" style="margin-top:14px">🔓 ブランド解除マトリクスを表示</button>
     <div id="kmatrixBox"></div>`;
   body.innerHTML=html;
 
   document.getElementById("areload").onclick=()=>{adminCache=null;renderAdmin();};
   document.getElementById("kmatrixBtn").onclick=renderKaijoMatrix;
+  document.getElementById("stepSel").onchange=e=>{adminStepSel=e.target.value;renderStepView();};
+  if(adminStepSel) renderStepView();
   body.querySelectorAll("tbody tr").forEach(tr=>{
     tr.onclick=()=>{adminSel=tr.dataset.uid;renderAdmin();};
   });
@@ -850,6 +870,27 @@ async function renderEveryone(){
   html+='</tbody></table></div><div class="ahint">みんなで進捗を見せ合って、切磋琢磨しましょう💪</div>';
   body.innerHTML=html;
   document.getElementById("preload").onclick=()=>{pallCache=null;renderEveryone();};
+}
+
+/* ---------- 管理：ステップ別の完了状況 ---------- */
+function renderStepView(){
+  const box=document.getElementById("stepResult");
+  if(!box||!adminCache) return;
+  if(!adminStepSel){ box.textContent="ステップを選ぶと、完了した人／未完了の人が表示されます"; return; }
+  // 対象ステップの章を特定（STは卸・メーカー章を対象外に）
+  let stepCh="";
+  A_CHAPTERS.forEach(c=>{ if(c.steps.some(([id])=>id===adminStepSel)) stepCh=c.ch; });
+  const prog={};
+  (adminCache.rows||[]).forEach(r=>{ if(!prog[r.uid])prog[r.uid]={}; prog[r.uid][r.step]=r.checked; });
+  const isStd=st=>st.cohort&&st.cohort.indexOf("WS")===0&&st.cohort.indexOf("FS")<0;
+  let roster=(adminCache.roster||[]).filter(st=>!st.grad && st.name.replace(/[\s　]+/g,"")!=="野々脇雅史");
+  if(stepCh==="実践（卸・メーカー）") roster=roster.filter(st=>!isStd(st));
+  const done=roster.filter(st=>prog[st.sid]&&prog[st.sid][adminStepSel]);
+  const notyet=roster.filter(st=>!(prog[st.sid]&&prog[st.sid][adminStepSel]));
+  const chip=(st,cls)=>`<span class="schip ${cls}">${st.name.replace(/^-/,"")}</span>`;
+  box.innerHTML=
+    `<div style="margin-bottom:8px"><b style="color:var(--done)">✅ 完了 ${done.length}名</b><br>${done.map(st=>chip(st,"done")).join("")||'<span style="color:#9aa3af">なし</span>'}</div>`+
+    `<div><b style="color:#dc2626">⬜ 未完了 ${notyet.length}名</b><br>${notyet.map(st=>chip(st,"notyet")).join("")||'<span style="color:#9aa3af">なし</span>'}</div>`;
 }
 
 /* ---------- 管理：全員×ブランドの解除マトリクス ---------- */
