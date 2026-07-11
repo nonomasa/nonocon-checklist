@@ -577,15 +577,21 @@ async function renderAdmin(){
   const notStarted=rows.filter(r=>r.done===0).length;
   const stalled=rows.filter(r=>r.done>0&&r.days!==null&&r.days>=7).length;
 
+  const cohortOf=r=>String(r.s.cohort||"");
+  const cntNono=rows.filter(r=>cohortOf(r)&&cohortOf(r).indexOf("WS")!==0).length;
+  const cntFS=rows.filter(r=>cohortOf(r).indexOf("WS")===0&&cohortOf(r).indexOf("FS")>=0).length;
+  const cntST=rows.filter(r=>cohortOf(r).indexOf("WS")===0&&cohortOf(r).indexOf("FS")<0).length;
   let html=`<button class="abtn" id="areload">🔄 最新に更新</button>
     <div class="metrics">
-      <div class="metric"><div class="k">受講生</div><div class="v">${rows.length}名</div></div>
+      <div class="metric"><div class="k">ののコン生</div><div class="v">${cntNono}名</div></div>
+      <div class="metric"><div class="k">WSフルサポート</div><div class="v">${cntFS}名</div></div>
+      <div class="metric"><div class="k">WSスタンダード</div><div class="v">${cntST}名</div></div>
       <div class="metric"><div class="k">平均進捗</div><div class="v">${avg}%</div></div>
       <div class="metric"><div class="k">未着手</div><div class="v">${notStarted}名</div></div>
       <div class="metric"><div class="k">7日以上停滞</div><div class="v">${stalled}名</div></div>
     </div>
     <div class="apanel"><table>
-      <thead><tr><th>受講生</th><th>入会</th>${A_CHAPTERS.map(c=>`<th>${c.ch}</th>`).join("")}
+      <thead><tr><th>受講生</th><th>入会</th><th>エリア</th>${A_CHAPTERS.map(c=>`<th>${c.ch}</th>`).join("")}
       <th>進捗</th><th>最終更新</th><th>状態</th></tr></thead><tbody>`;
   rows.forEach(r=>{
     const badge = r.done===0 ? '<span class="badge bad">未着手</span>'
@@ -594,6 +600,7 @@ async function renderAdmin(){
     html+=`<tr data-uid="${r.s.sid}" class="${adminSel===r.s.sid?'sel':''}">
       <td class="pname"><span style="color:#9aa3af;font-weight:400;margin-right:6px">${isNaN(parseInt(r.s.sid,10))?"":r.s.sid}</span>${r.s.name.replace(/^-/,"")}</td>
       <td>${fmtCohortJoinHtml(r.s)}</td>
+      <td>${r.s.area||"—"}</td>
       ${r.per.map(x=>x?`<td>${x.done}/${x.total}</td>`:`<td style="color:#c2c8d0">—</td>`).join("")}
       <td><span class="abar"><i style="width:${r.pct}%"></i></span><span class="apct">${r.pct}%</span></td>
       <td>${r.lu?`${r.lu.getMonth()+1}/${r.lu.getDate()}`:"—"}</td>
