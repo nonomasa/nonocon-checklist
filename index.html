@@ -1110,7 +1110,7 @@ function render(){
       const lv = it.l?`<span class="lv">${"⭐".repeat(it.l)}</span>`:"";
       li.innerHTML=`<div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"
         stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div style="flex:1"><div class="title${it.l===1?' st1':''}">${it.t}${lv}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}</div>${link}`;
+        <div style="flex:1"><div class="title${it.hot?' st1':''}">${it.t}${lv}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}</div>${link}`;
       li.onclick=()=>toggle(it);
       const a=li.querySelector(".ilink");
       if(a) a.onclick=e=>e.stopPropagation(); // リンククリックではチェックを切り替えない
