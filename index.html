@@ -919,7 +919,7 @@ function renderMembers(){
     const isNono=m.sid==="0"||m.name.replace(/[\s　]+/g,"")==="野々脇雅史";
     const badge=isNono?'<span class="mbadge">マスタ</span>':(m.grad?'<span class="mbadge">卒業生・講師</span>':"");
     const hasDetail=!!(m.hobby||m.mbti);
-    html+=`<tr class="${gcls}${hasDetail?" mrow":""}" data-mi="${i}"><td class="pname">${m.name.replace(/^-/,"")}${badge}${hasDetail?'<span class="mmore">▸</span>':""}<div class="mkana">${m.kana||""}</div></td>`+
+    html+=`<tr class="${gcls}${hasDetail?" mexp":""}" data-mi="${i}"><td class="pname">${m.name.replace(/^-/,"")}${badge}${hasDetail?'<span class="mmore">▸</span>':""}<div class="mkana">${m.kana||""}</div></td>`+
       `<td>${m.area||"—"}</td>`+
       `<td>${ageOk(m.age)||"—"}</td>`+
       `<td>${m.bday||"—"}</td>`+
@@ -934,7 +934,7 @@ function renderMembers(){
   });
   html+='</tbody></table></div>';
   body.innerHTML=html;
-  body.querySelectorAll("tr.mrow").forEach(tr=>{
+  body.querySelectorAll("tr.mexp").forEach(tr=>{
     tr.style.cursor="pointer";
     tr.onclick=()=>{
       const d=body.querySelector(`tr.mdetail[data-md="${tr.dataset.mi}"]`);
