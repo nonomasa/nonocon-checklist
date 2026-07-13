@@ -83,6 +83,9 @@
   .mmore{font-size:10px;color:#8a93a3;margin-left:6px}
   .gpanel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
   .gph{font-size:14px;font-weight:700;margin-bottom:10px}
+  .gtoggle{cursor:pointer;user-select:none;margin-bottom:0}
+  .gtoggle .caret{font-size:10px;color:#8a93a3}
+  .gpanel #gbody{margin-top:10px}
   .gpn{font-size:11.5px;font-weight:400;color:var(--sub)}
   .glbl{display:block;font-size:12px;font-weight:700;color:var(--sub);margin:8px 0 4px}
   .ginput{width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fafbfc}
@@ -907,7 +910,7 @@ async function renderAdmin(){
   }
 }
 
-let GOALS=null, GOALS_LOADING=false;
+let GOALS=null, GOALS_LOADING=false, goalPanelOpen=null; // null=自動（未入力なら開く）
 function loadGoals(){
   if(GOALS_LOADING) return; GOALS_LOADING=true;
   jsonp({action:"gall"}).then(d=>{
@@ -928,12 +931,15 @@ function renderMembers(){
   const mine=(GOALS&&me&&GOALS[me.sid])||{num:"",after:""};
   let html="";
   if(me){
-    html+=`<div class="gpanel"><div class="gph">🎯 あなたの目標 <span class="gpn">（メンバー全員に表示されます）</span></div>
+    const gOpen = goalPanelOpen!==null ? goalPanelOpen : !(mine.num||mine.after);
+    html+=`<div class="gpanel"><div class="gph gtoggle" id="gphToggle"><span class="caret">${gOpen?"▼":"▶"}</span> 🎯 あなたの目標を入力 <span class="gpn">（メンバー全員に表示されます）</span></div>
+      <div id="gbody" style="${gOpen?"":"display:none"}">
       <label class="glbl">卒業までに達成したい数字</label>
       <input class="ginput" id="gnum" placeholder="例：月利50万円" value="${escH(mine.num)}">
       <label class="glbl">卒業した後にどんな事をやっていきたいか<span class="gpn">（今の段階で構いません／物販でも物販以外でも）</span></label>
       <textarea class="ginput" id="gafter" rows="2" placeholder="例：卸メーカー仕入れに挑戦しながら情報発信もやりたい">${escH(mine.after)}</textarea>
-      <div><button class="gbtn" id="gsaveBtn">保存する</button><span class="gmsg" id="gmsg"></span></div></div>`;
+      <div><button class="gbtn" id="gsaveBtn">保存する</button><span class="gmsg" id="gmsg"></span></div>
+      </div></div>`;
   }
   html+='<div class="apanel mpanel"><table><thead><tr>'+
     '<th>名前</th><th>エリア</th><th>年齢</th><th>誕生日</th><th>入会</th><th>専業/副業</th></tr></thead><tbody>';
@@ -967,6 +973,16 @@ function renderMembers(){
   });
   html+='</tbody></table></div>';
   body.innerHTML=html;
+  const gt=document.getElementById("gphToggle");
+  if(gt){
+    gt.onclick=()=>{
+      const gb=document.getElementById("gbody");
+      const open=gb.style.display!=="none";
+      goalPanelOpen=!open;
+      gb.style.display=open?"none":"";
+      gt.querySelector(".caret").textContent=open?"▶":"▼";
+    };
+  }
   const btn=document.getElementById("gsaveBtn");
   if(btn){
     btn.onclick=()=>{
