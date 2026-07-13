@@ -78,6 +78,9 @@
   .tag.watch{background:#eef1f5;color:#7a8696}
   .tag.do{background:#fff0e8;color:#c5663c}
   .lv{font-size:10px;margin-left:6px;vertical-align:middle;white-space:nowrap}
+  tr.mdetail td{font-size:13px;color:var(--sub);padding:10px 14px 12px;line-height:1.7}
+  tr.mdetail .mdl{display:inline-block;font-size:11px;font-weight:700;color:#8a93a3;margin-right:8px;min-width:76px}
+  .mmore{font-size:10px;color:#8a93a3;margin-left:6px}
   .lvbar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .lvbtn{padding:6px 13px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;
     font-size:12px;color:var(--sub);font-weight:600}
@@ -911,19 +914,35 @@ function renderMembers(){
     if(isNaN(nb))return -1;
     return na-nb;
   });
-  sorted.forEach(m=>{
+  sorted.forEach((m,i)=>{
     const gcls=(m.gender||"").indexOf("男")>=0?"male":((m.gender||"").indexOf("女")>=0?"female":"");
     const isNono=m.sid==="0"||m.name.replace(/[\s　]+/g,"")==="野々脇雅史";
     const badge=isNono?'<span class="mbadge">マスタ</span>':(m.grad?'<span class="mbadge">卒業生・講師</span>':"");
-    html+=`<tr class="${gcls}"><td class="pname">${m.name.replace(/^-/,"")}${badge}<div class="mkana">${m.kana||""}</div></td>`+
+    const hasDetail=!!(m.hobby||m.mbti);
+    html+=`<tr class="${gcls}${hasDetail?" mrow":""}" data-mi="${i}"><td class="pname">${m.name.replace(/^-/,"")}${badge}${hasDetail?'<span class="mmore">▸</span>':""}<div class="mkana">${m.kana||""}</div></td>`+
       `<td>${m.area||"—"}</td>`+
       `<td>${ageOk(m.age)||"—"}</td>`+
       `<td>${m.bday||"—"}</td>`+
       `<td>${fmtCohortJoinHtml(m)}</td>`+
       `<td>${m.work||"—"}</td></tr>`;
+    if(hasDetail){
+      html+=`<tr class="mdetail ${gcls}" data-md="${i}" style="display:none"><td colspan="6">`+
+        (m.hobby?`<div><span class="mdl">趣味・特技</span>${m.hobby}</div>`:"")+
+        (m.mbti?`<div><span class="mdl">タイプ別診断</span>${m.mbti}</div>`:"")+
+        `</td></tr>`;
+    }
   });
   html+='</tbody></table></div>';
   body.innerHTML=html;
+  body.querySelectorAll("tr.mrow").forEach(tr=>{
+    tr.style.cursor="pointer";
+    tr.onclick=()=>{
+      const d=body.querySelector(`tr.mdetail[data-md="${tr.dataset.mi}"]`);
+      const open=d.style.display!=="none";
+      d.style.display=open?"none":"";
+      const car=tr.querySelector(".mmore"); if(car)car.textContent=open?"▸":"▾";
+    };
+  });
 }
 
 /* ---------- みんなの進捗（全員が見られる） ---------- */
