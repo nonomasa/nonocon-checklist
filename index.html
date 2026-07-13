@@ -94,6 +94,8 @@
     border:none;border-radius:8px;padding:8px 22px;cursor:pointer}
   .gbtn:hover{opacity:.88}
   .gmsg{font-size:12.5px;color:var(--sub);margin-left:10px}
+  .ghist{margin-bottom:8px}
+  .ghist .gline{margin-left:8px;line-height:1.6}
   .lvbar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .lvbtn{padding:6px 13px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;
     font-size:12px;color:var(--sub);font-weight:600}
@@ -914,7 +916,7 @@ let GOALS=null, GOALS_LOADING=false, goalPanelOpen=null; // null=自動（未入
 function loadGoals(){
   if(GOALS_LOADING) return; GOALS_LOADING=true;
   jsonp({action:"gall"}).then(d=>{
-    GOALS={}; (d.goals||[]).forEach(g=>{GOALS[g.uid]=g;});
+    GOALS={}; (d.goals||[]).forEach(g=>{ (GOALS[g.uid]=GOALS[g.uid]||[]).push(g); });
     if(chap===MEMBERS) renderMembers();
   }).catch(()=>{ GOALS={}; });
 }
@@ -928,11 +930,12 @@ function renderMembers(){
   if(GOALS===null) loadGoals();
   // 生年月日未記入だと年齢がシート数式で126等になるため、ありえない値は非表示
   const ageOk=a=>{const n=parseInt(a,10);return(!isNaN(n)&&n>=10&&n<=100)?String(n):"";};
-  const mine=(GOALS&&me&&GOALS[me.sid])||{num:"",after:""};
+  const myLog=(GOALS&&me&&GOALS[me.sid])||[];
+  const mine=myLog.length?myLog[myLog.length-1]:{num:"",after:""};
   let html="";
   if(me){
     const gOpen = goalPanelOpen!==null ? goalPanelOpen : !(mine.num||mine.after);
-    html+=`<div class="gpanel"><div class="gph gtoggle" id="gphToggle"><span class="caret">${gOpen?"▼":"▶"}</span> 🎯 あなたの目標を入力 <span class="gpn">（メンバー全員に表示されます）</span></div>
+    html+=`<div class="gpanel"><div class="gph gtoggle" id="gphToggle"><span class="caret">${gOpen?"▼":"▶"}</span> 🎯 あなたの目標を入力 <span class="gpn">（メンバー全員に表示・月ごとにログが残ります）</span></div>
       <div id="gbody" style="${gOpen?"":"display:none"}">
       <label class="glbl">卒業までに達成したい数字</label>
       <input class="ginput" id="gnum" placeholder="例：月利50万円" value="${escH(mine.num)}">
@@ -954,8 +957,8 @@ function renderMembers(){
     const gcls=(m.gender||"").indexOf("男")>=0?"male":((m.gender||"").indexOf("女")>=0?"female":"");
     const isNono=m.sid==="0"||m.name.replace(/[\s　]+/g,"")==="野々脇雅史";
     const badge=isNono?'<span class="mbadge">マスタ</span>':(m.grad?'<span class="mbadge">卒業生・講師</span>':"");
-    const g=(GOALS&&GOALS[m.sid])||null;
-    const hasDetail=!!(m.hobby||m.mbti||(g&&(g.num||g.after)));
+    const glog=(GOALS&&GOALS[m.sid])||[];
+    const hasDetail=!!(m.hobby||m.mbti||glog.length);
     html+=`<tr class="${gcls}${hasDetail?" mexp":""}" data-mi="${i}"><td class="pname">${m.name.replace(/^-/,"")}${badge}${hasDetail?'<span class="mmore">▸</span>':""}<div class="mkana">${m.kana||""}</div></td>`+
       `<td>${m.area||"—"}</td>`+
       `<td>${ageOk(m.age)||"—"}</td>`+
@@ -966,8 +969,11 @@ function renderMembers(){
       html+=`<tr class="mdetail ${gcls}" data-md="${i}" style="display:none"><td colspan="6">`+
         (m.hobby?`<div><span class="mdl">趣味・特技</span>${escH(m.hobby)}</div>`:"")+
         (m.mbti?`<div><span class="mdl">タイプ別診断</span>${escH(m.mbti)}</div>`:"")+
-        (g&&g.num?`<div><span class="mdl">卒業までの数字</span>${escH(g.num)}</div>`:"")+
-        (g&&g.after?`<div><span class="mdl">卒業後やりたい事</span>${escH(g.after)}</div>`:"")+
+        glog.slice().reverse().map(g=>
+          `<div class="ghist"><span class="mdl">目標（${escH(g.ym)}）</span>`+
+          (g.num?`<div class="gline">🎯 卒業までの数字：${escH(g.num)}</div>`:"")+
+          (g.after?`<div class="gline">🚀 卒業後やりたい事：${escH(g.after)}</div>`:"")+
+          `</div>`).join("")+
         `</td></tr>`;
     }
   });
@@ -991,7 +997,14 @@ function renderMembers(){
       const msg=document.getElementById("gmsg");
       msg.textContent="保存中…";
       jsonp({action:"gsave",uid:me.sid,name:me.name,num:num,after:after}).then(d=>{
-        if(d&&d.ok){ if(!GOALS)GOALS={}; GOALS[me.sid]={uid:me.sid,num:num,after:after}; msg.textContent="✅ 保存しました"; setTimeout(()=>{renderMembers();},600); }
+        if(d&&d.ok){
+          if(!GOALS)GOALS={};
+          const arr=GOALS[me.sid]=GOALS[me.sid]||[];
+          const e=arr.find(x=>x.ym===d.ym);
+          if(e){ e.num=num; e.after=after; } else arr.push({uid:me.sid,ym:d.ym,num:num,after:after});
+          msg.textContent="✅ 保存しました（"+d.ym+"のログとして記録）";
+          setTimeout(()=>{renderMembers();},900);
+        }
         else msg.textContent="保存に失敗しました";
       }).catch(()=>{ msg.textContent="通信エラー"; });
     };
