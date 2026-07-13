@@ -377,7 +377,7 @@ const DATA = [
       {id:"tool-variation", l:2, t:"バリエーション商品の見方を覚える", n:"売れているサイズ・色の見極め。波形の罠に注意"},
     ]},
   ]},
-  { ch:"実践（せどり）", groups:[
+  { ch:"店舗せどり", groups:[
     { g:"店舗に行ってみよう", items:[
       {id:"do-shiire-kijun", l:1, t:"仕入れ基準を覚えよう", n:"店舗は利益率20%以上、高回転のものなら10%以上可、電脳は15%以上。複数個買う時は月の販売個数と出品者数を見る"},
       {id:"do-tenpo-junbi", l:1, t:"店舗せどりの持ち物を揃える", n:"モバイルバッテリー・イヤホンなど"},
@@ -481,7 +481,15 @@ const DATA = [
       {id:"do-shingan", l:3, t:"真贋調査が来たら落ち着いて対応する", n:"レシート＋店舗名・電話・HPをワードにまとめて提出。困ったらすぐ相談"},
       {id:"do-maker-keikoku", l:3, t:"メーカー警告が来た時の対応を覚える", n:"出品停止→謝罪文→警告共有シートに記録"},
     ]},
-    { g:"電脳", items:[
+    { g:"効率化", items:[
+      {id:"do-jisho", l:2, t:"辞書登録・ショートカットで定型作業を高速化する", n:""},
+      {id:"do-daiko-kijun", l:3, t:"納品代行の検討基準を知る", n:"月商いくらから割に合うか"},
+      {id:"do-kazoku", l:3, t:"家族に検品・梱包を手伝ってもらう体制を作る", n:""},
+      {id:"v41", l:3, t:"納品外注は在宅希望の主婦を狙い、採用は妥協しない", n:"家族構成・作業スペースを確認"},
+    ]},
+  ]},
+  { ch:"電脳せどり", groups:[
+    { g:"", items:[
       {id:"den-junkai", l:2, t:"電脳の巡回先リストを作る", n:"楽天スーパーセール・Yahoo!ビッグボーナス等"},
       {id:"do-pointsite", l:2, t:"ポイントサイト（ハピタス等）経由の仕入れを習慣化する", n:""},
       {id:"den-rieki", l:2, t:"電脳の送料・ポイント込み利益計算を覚える", n:""},
@@ -494,14 +502,8 @@ const DATA = [
       {id:"v43", l:2, t:"メルカリ→ヤフショ/メルカリShops→楽天の順で販路を拡大する", n:""},
       {id:"v44", l:3, t:"楽天出店は自治体の販路拡大補助金で初期費用を賄う", n:""},
     ]},
-    { g:"効率化", items:[
-      {id:"do-jisho", l:2, t:"辞書登録・ショートカットで定型作業を高速化する", n:""},
-      {id:"do-daiko-kijun", l:3, t:"納品代行の検討基準を知る", n:"月商いくらから割に合うか"},
-      {id:"do-kazoku", l:3, t:"家族に検品・梱包を手伝ってもらう体制を作る", n:""},
-      {id:"v41", l:3, t:"納品外注は在宅希望の主婦を狙い、採用は妥協しない", n:"家族構成・作業スペースを確認"},
-    ]},
   ]},
-  { ch:"実践（刈り取り）", groups:[
+  { ch:"刈り取り", groups:[
     { g:"", items:[
       {id:"kari-shikumi", l:2, t:"刈り取りの仕組みとリスクを理解する", n:"利益構造・4つの手法"},
       {id:"kari-kankyo", l:2, t:"刈り取りの環境構築をする", n:"Keepa初期設定・dアカウント連携"},
@@ -519,7 +521,7 @@ const DATA = [
       {id:"v31", l:2, t:"価格急落した廃盤候補にトラッキングを設定する", n:"廃盤・在庫処分時に刈り取る"},
     ]},
   ]},
-  { ch:"実践（卸・メーカー）", groups:[
+  { ch:"卸メーカー", groups:[
     { g:"", items:[
       {id:"oroshi-meishi", l:3, t:"名刺を作る", n:"商談・卸対応での機会損失を防ぐ"},
       {id:"oroshi-tameshi", l:2, t:"ネット卸で試しに1回仕入れてみる", n:"ネッシー等"},
@@ -722,7 +724,7 @@ let openG = {};                // アコーディオン開閉状態（章名|グ
 
 /* 章の表示制御：WS期生（1期生〜）は入会年度に「FS」が付く人だけ卸・メーカーを表示 */
 function chapterHidden(ci){
-  if(DATA[ci].ch !== "実践（卸・メーカー）") return false;
+  if(DATA[ci].ch !== "卸メーカー") return false;
   if(!me) return false;
   const m = ROSTER.find(s=>s.sid===me.sid);
   if(!m || !m.cohort) return false;
@@ -799,7 +801,7 @@ async function renderAdmin(){
     const p=prog[s.sid]||{};
     const std=isStd(s);
     const per=A_CHAPTERS.map(c=>{
-      if(std && c.ch==="実践（卸・メーカー）") return null; // STは対象外
+      if(std && c.ch==="卸メーカー") return null; // STは対象外
       return {done:c.steps.filter(([id])=>p[id]).length, total:c.steps.length};
     });
     const done=per.reduce((a,x)=>a+(x?x.done:0),0);
@@ -879,7 +881,7 @@ async function renderAdmin(){
     if(r){
       document.getElementById("adetail").innerHTML=`<div class="adetail">
         <h3>👤 ${r.s.name.replace(/^-/,"")} さんの詳細</h3>
-        <div class="dgrid">${A_CHAPTERS.filter(c=>!(isStd(r.s)&&c.ch==="実践（卸・メーカー）")).map(c=>{
+        <div class="dgrid">${A_CHAPTERS.filter(c=>!(isStd(r.s)&&c.ch==="卸メーカー")).map(c=>{
           const done=c.steps.filter(([id])=>r.p[id]).length;
           return `<div class="dcol">
             <div class="chh">${c.ch}<span class="cnt">${done}/${c.steps.length}</span></div>
@@ -954,7 +956,7 @@ async function renderEveryone(){
     const p=prog[st.sid]||{};
     const std=isStd(st);
     const per=A_CHAPTERS.map(c=>{
-      if(std&&c.ch==="実践（卸・メーカー）")return null;
+      if(std&&c.ch==="卸メーカー")return null;
       return {done:c.steps.filter(([id])=>p[id]).length,total:c.steps.length};
     });
     const done=per.reduce((a,x)=>a+(x?x.done:0),0);
@@ -984,7 +986,7 @@ function renderStepView(){
   (adminCache.rows||[]).forEach(r=>{ if(!prog[r.uid])prog[r.uid]={}; prog[r.uid][r.step]=r.checked; });
   const isStd=st=>st.cohort&&st.cohort.indexOf("WS")===0&&st.cohort.indexOf("FS")<0;
   let roster=(adminCache.roster||[]).filter(st=>!st.grad && st.name.replace(/[\s　]+/g,"")!=="野々脇雅史");
-  if(stepCh==="実践（卸・メーカー）") roster=roster.filter(st=>!isStd(st));
+  if(stepCh==="卸メーカー") roster=roster.filter(st=>!isStd(st));
   const done=roster.filter(st=>prog[st.sid]&&prog[st.sid][adminStepSel]);
   const notyet=roster.filter(st=>!(prog[st.sid]&&prog[st.sid][adminStepSel]));
   const chip=(st,cls)=>`<span class="schip ${cls}">${st.name.replace(/^-/,"")}</span>`;
