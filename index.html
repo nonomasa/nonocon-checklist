@@ -81,6 +81,16 @@
   tr.mdetail td{font-size:13px;color:var(--sub);padding:10px 14px 12px;line-height:1.7}
   tr.mdetail .mdl{display:inline-block;font-size:11px;font-weight:700;color:#8a93a3;margin-right:8px;min-width:76px}
   .mmore{font-size:10px;color:#8a93a3;margin-left:6px}
+  .gpanel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+  .gph{font-size:14px;font-weight:700;margin-bottom:10px}
+  .gpn{font-size:11.5px;font-weight:400;color:var(--sub)}
+  .glbl{display:block;font-size:12px;font-weight:700;color:var(--sub);margin:8px 0 4px}
+  .ginput{width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fafbfc}
+  .ginput:focus{outline:none;border-color:#f97316;background:#fff}
+  .gbtn{margin-top:10px;font:inherit;font-size:13px;font-weight:700;color:#fff;background:var(--accent);
+    border:none;border-radius:8px;padding:8px 22px;cursor:pointer}
+  .gbtn:hover{opacity:.88}
+  .gmsg{font-size:12.5px;color:var(--sub);margin-left:10px}
   .lvbar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .lvbtn{padding:6px 13px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;
     font-size:12px;color:var(--sub);font-weight:600}
@@ -897,15 +907,35 @@ async function renderAdmin(){
   }
 }
 
+let GOALS=null, GOALS_LOADING=false;
+function loadGoals(){
+  if(GOALS_LOADING) return; GOALS_LOADING=true;
+  jsonp({action:"gall"}).then(d=>{
+    GOALS={}; (d.goals||[]).forEach(g=>{GOALS[g.uid]=g;});
+    if(chap===MEMBERS) renderMembers();
+  }).catch(()=>{ GOALS={}; });
+}
+const escH=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 function renderMembers(){
   const body=document.getElementById("body"); body.innerHTML="";
   if(!ROSTER.length){
     body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">メンバー情報を読み込み中…</div>';
     return;
   }
+  if(GOALS===null) loadGoals();
   // 生年月日未記入だと年齢がシート数式で126等になるため、ありえない値は非表示
   const ageOk=a=>{const n=parseInt(a,10);return(!isNaN(n)&&n>=10&&n<=100)?String(n):"";};
-  let html='<div class="apanel mpanel"><table><thead><tr>'+
+  const mine=(GOALS&&me&&GOALS[me.sid])||{num:"",after:""};
+  let html="";
+  if(me){
+    html+=`<div class="gpanel"><div class="gph">🎯 あなたの目標 <span class="gpn">（メンバー全員に表示されます）</span></div>
+      <label class="glbl">卒業までに達成したい数字</label>
+      <input class="ginput" id="gnum" placeholder="例：月利50万円" value="${escH(mine.num)}">
+      <label class="glbl">卒業した後にどんな事をやっていきたいか<span class="gpn">（今の段階で構いません／物販でも物販以外でも）</span></label>
+      <textarea class="ginput" id="gafter" rows="2" placeholder="例：卸メーカー仕入れに挑戦しながら情報発信もやりたい">${escH(mine.after)}</textarea>
+      <div><button class="gbtn" id="gsaveBtn">保存する</button><span class="gmsg" id="gmsg"></span></div></div>`;
+  }
+  html+='<div class="apanel mpanel"><table><thead><tr>'+
     '<th>名前</th><th>エリア</th><th>年齢</th><th>誕生日</th><th>入会</th><th>専業/副業</th></tr></thead><tbody>';
   const sorted=[...ROSTER].sort((a,b)=>{
     const na=parseInt(a.sid,10), nb=parseInt(b.sid,10);
@@ -918,7 +948,8 @@ function renderMembers(){
     const gcls=(m.gender||"").indexOf("男")>=0?"male":((m.gender||"").indexOf("女")>=0?"female":"");
     const isNono=m.sid==="0"||m.name.replace(/[\s　]+/g,"")==="野々脇雅史";
     const badge=isNono?'<span class="mbadge">マスタ</span>':(m.grad?'<span class="mbadge">卒業生・講師</span>':"");
-    const hasDetail=!!(m.hobby||m.mbti);
+    const g=(GOALS&&GOALS[m.sid])||null;
+    const hasDetail=!!(m.hobby||m.mbti||(g&&(g.num||g.after)));
     html+=`<tr class="${gcls}${hasDetail?" mexp":""}" data-mi="${i}"><td class="pname">${m.name.replace(/^-/,"")}${badge}${hasDetail?'<span class="mmore">▸</span>':""}<div class="mkana">${m.kana||""}</div></td>`+
       `<td>${m.area||"—"}</td>`+
       `<td>${ageOk(m.age)||"—"}</td>`+
@@ -927,13 +958,28 @@ function renderMembers(){
       `<td>${m.work||"—"}</td></tr>`;
     if(hasDetail){
       html+=`<tr class="mdetail ${gcls}" data-md="${i}" style="display:none"><td colspan="6">`+
-        (m.hobby?`<div><span class="mdl">趣味・特技</span>${m.hobby}</div>`:"")+
-        (m.mbti?`<div><span class="mdl">タイプ別診断</span>${m.mbti}</div>`:"")+
+        (m.hobby?`<div><span class="mdl">趣味・特技</span>${escH(m.hobby)}</div>`:"")+
+        (m.mbti?`<div><span class="mdl">タイプ別診断</span>${escH(m.mbti)}</div>`:"")+
+        (g&&g.num?`<div><span class="mdl">卒業までの数字</span>${escH(g.num)}</div>`:"")+
+        (g&&g.after?`<div><span class="mdl">卒業後やりたい事</span>${escH(g.after)}</div>`:"")+
         `</td></tr>`;
     }
   });
   html+='</tbody></table></div>';
   body.innerHTML=html;
+  const btn=document.getElementById("gsaveBtn");
+  if(btn){
+    btn.onclick=()=>{
+      const num=document.getElementById("gnum").value.trim();
+      const after=document.getElementById("gafter").value.trim();
+      const msg=document.getElementById("gmsg");
+      msg.textContent="保存中…";
+      jsonp({action:"gsave",uid:me.sid,name:me.name,num:num,after:after}).then(d=>{
+        if(d&&d.ok){ if(!GOALS)GOALS={}; GOALS[me.sid]={uid:me.sid,num:num,after:after}; msg.textContent="✅ 保存しました"; setTimeout(()=>{renderMembers();},600); }
+        else msg.textContent="保存に失敗しました";
+      }).catch(()=>{ msg.textContent="通信エラー"; });
+    };
+  }
   body.querySelectorAll("tr.mexp").forEach(tr=>{
     tr.style.cursor="pointer";
     tr.onclick=()=>{
