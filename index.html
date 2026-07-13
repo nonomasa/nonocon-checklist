@@ -77,6 +77,7 @@
   .tag{display:inline-block;font-size:10.5px;padding:1px 8px;border-radius:999px;margin-top:5px}
   .tag.watch{background:#eef1f5;color:#7a8696}
   .tag.do{background:#fff0e8;color:#c5663c}
+  .tag.mov{background:#e8f1fd;color:#3b74c4}
   .lv{font-size:10px;margin-left:6px;vertical-align:middle;white-space:nowrap}
   tr.mdetail td{font-size:13px;color:var(--sub);padding:10px 14px 12px;line-height:1.7}
   tr.mdetail .mdl{display:inline-block;font-size:11px;font-weight:700;color:#8a93a3;margin-right:8px;min-width:76px}
@@ -250,6 +251,7 @@ const DATA = [
       {id:"v14", l:2, t:"内部情報を知り得ても公開しない", n:"機密漏洩の損害賠償リスク"},
     ]},
     { g:"考え方", items:[
+      {id:"mind-nobashikata", l:1, mov:1, t:"ののコンでの物販事業の伸ばし方", n:""},
       {id:"v11", l:1, t:"会社は辞めない・専業化を急がない", n:"月利100を最低1年は継続、月50万円を抜いても全く支障がないか確認（専業になる模擬実験）"},
       {id:"v12", l:1, t:"物販は共同経営しない・一人でやる", n:"基本的に共同経営は絶対に揉める事を知っておく"},
       {id:"v13", l:2, t:"販路・仕入れ先・収益源を分散する", n:"卵を一つのカゴに盛らない"},
@@ -1233,11 +1235,12 @@ function render(){
       gt++; const done=!!state[it.id]; if(done)gdone++;
       const li=document.createElement("li"); li.className="item"+(done?" done":"");
       const dep = it.dep?`<span class="tag do">前提：${it.dep}</span>`:"";
+      const mov = it.mov?`<span class="tag mov">🎬 オンクラスに動画あり</span>`:"";
       const link = it.url?`<a class="ilink" href="${it.url}" target="_blank" rel="noopener">開く ↗</a>`:"";
       const lv = it.l?`<span class="lv">${"⭐".repeat(it.l)}</span>`:"";
       li.innerHTML=`<div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"
         stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div style="flex:1"><div class="title${it.hot?' st1':''}">${it.t}${lv}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}</div>${link}`;
+        <div style="flex:1"><div class="title${it.hot?' st1':''}">${it.t}${lv}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}${mov}</div>${link}`;
       li.onclick=()=>toggle(it);
       const a=li.querySelector(".ilink");
       if(a) a.onclick=e=>e.stopPropagation(); // リンククリックではチェックを切り替えない
