@@ -73,6 +73,7 @@
   li.done .title{color:var(--sub);text-decoration:line-through}
   .title{font-size:14px;font-weight:600}
   .title.st1{color:#d3384f}
+  .lvbtn.hotbtn{color:#d3384f}
   .note{font-size:12px;color:var(--sub);margin-top:1px}
   .tag{display:inline-block;font-size:10.5px;padding:1px 8px;border-radius:999px;margin-top:5px}
   .tag.watch{background:#eef1f5;color:#7a8696}
@@ -1222,12 +1223,13 @@ function render(){
   // ステージフィルタ（⭐＝入会直後／⭐⭐＝仕入れ開始期／⭐⭐⭐＝軌道に乗ってから）
   const fb=document.createElement("div"); fb.className="lvbar";
   fb.innerHTML=["すべて","⭐ 入会直後","⭐⭐ 仕入れ開始期","⭐⭐⭐ 軌道に乗ってから"]
-    .map((t,i)=>`<button class="lvbtn ${lvFilter===i?"on":""}" data-lv="${i}">${t}</button>`).join("");
+    .map((t,i)=>`<button class="lvbtn ${lvFilter===i?"on":""}" data-lv="${i}">${t}</button>`).join("")
+    +`<button class="lvbtn hotbtn ${lvFilter==="hot"?"on":""}" data-lv="hot">🔴 最優先</button>`;
   body.appendChild(fb);
-  fb.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{lvFilter=+b.dataset.lv;render();});
+  fb.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{lvFilter=b.dataset.lv==="hot"?"hot":+b.dataset.lv;render();});
   const rendered=[];
   c.groups.forEach(g=>{
-    const items=g.items.filter(it=>!lvFilter || it.l===lvFilter)
+    const items=g.items.filter(it=>lvFilter==="hot" ? it.hot : (!lvFilter || it.l===lvFilter))
       .slice().sort((a,b)=>(a.l||0)-(b.l||0)); // ⭐の少ない順（同レベル内は元の並び）
     if(items.length) rendered.push({g,items});
   });
