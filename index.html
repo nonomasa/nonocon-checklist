@@ -113,6 +113,7 @@
   .nmemh{font-size:13.5px;font-weight:700;cursor:pointer;user-select:none;padding:9px 12px;
     background:#fff;border:1px solid var(--line);border-radius:10px}
   .nmemh:hover{border-color:#cfd5dc}
+  .nhint{font-size:10.5px;color:#8a93a3;margin-top:4px;line-height:1.5}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -1104,7 +1105,8 @@ async function renderNums(){
     <div class="nrow3">
       <div><label class="glbl">目標月商（円）</label><input class="ginput" id="n_gsales" inputmode="numeric" placeholder="5000000" value="${V("gsales")}"></div>
       <div><label class="glbl">目標粗利（円）</label><input class="ginput" id="n_gprofit" inputmode="numeric" placeholder="1000000" value="${V("gprofit")}"></div>
-      <div><label class="glbl">その他経費（円・任意）</label><input class="ginput" id="n_expense" inputmode="numeric" placeholder="プライスター経費タブの月額計" value="${V("expense")}"></div>
+      <div><label class="glbl">その他経費（円）</label><input class="ginput" id="n_expense" inputmode="numeric" value="${meta.expense?V("expense"):"5390"}">
+      <div class="nhint">未入力時は大口登録料5,390円のみ自動計上。正確にするならプライスター「売上分析」のその他経費の額を転記（FBA保管料・配送料金込み）</div></div>
     </div></div>`;
 
   const junCells=j=>{
