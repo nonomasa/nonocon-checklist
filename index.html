@@ -134,6 +134,20 @@
   .nrtodo td{text-align:left;white-space:pre-wrap}
   .nrtodo td:first-child{white-space:nowrap}
   .nrgb{font-size:12.5px;line-height:1.7;margin:6px 0;white-space:pre-wrap}
+  .tdrow{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+  .tdchk{width:17px;height:17px;flex:none;accent-color:#0e9f6e;cursor:pointer}
+  .tdtext{flex:2;min-width:0}
+  .tdcmt{flex:3;min-width:0;font-size:12px}
+  .tdel{flex:none;width:24px;height:24px;border:1px solid var(--line);border-radius:6px;background:#fff;
+    color:#8a93a3;cursor:pointer;font-size:13px;line-height:1}
+  .tdel:hover{border-color:#dc2626;color:#dc2626}
+  .tdadd{font-size:11.5px;padding:3px 10px;border:1px dashed #c9cfd7;border-radius:999px;background:#fff;
+    color:#5a6472;cursor:pointer;margin-top:2px}
+  .tdadd:hover{border-color:#f97316;color:#f97316}
+  .rtdsec{margin-top:12px}
+  .rtdh{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:5px;display:flex;gap:10px;align-items:center}
+  .rtdrow{font-size:13px;line-height:1.8}
+  .rtdc{color:var(--sub);font-size:12px}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -269,7 +283,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-16 19:13</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-16 20:47</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1113,6 +1127,42 @@ async function parseZaiko(file){
           hasPrice:ci.price>=0, hasCost:ci.cost>=0};
 }
 
+/* todoチェックリスト（JSONで保存。旧フリーテキストは行分割で移行） */
+const TODO_SECS=[["todo","月全体","todoResult"],["todo1","上旬","todoR1"],["todo2","中旬","todoR2"],["todo3","下旬","todoR3"]];
+function parseTodos(v,legacyResult){
+  let items=[];
+  if(v){
+    try{ const a=JSON.parse(v); if(Array.isArray(a)) items=a.map(x=>({t:String(x.t||""),d:!!x.d,c:String(x.c||"")})); }
+    catch(e){ items=String(v).split(/\n/).map(t=>t.trim()).filter(Boolean).map(t=>({t:t.replace(/^[・\-\s]+/,""),d:false,c:""})); }
+  }
+  if(legacyResult&&String(legacyResult).trim()){
+    items.push({t:"（旧・結果メモ）",d:false,c:String(legacyResult).trim()});
+  }
+  return items;
+}
+function tdRowHtml(it){
+  it=it||{t:"",d:false,c:""};
+  return `<div class="tdrow"><input type="checkbox" class="tdchk" ${it.d?"checked":""} title="達成したらチェック">`+
+    `<input class="ginput tdtext" placeholder="todo" value="${escH(it.t)}">`+
+    `<input class="ginput tdcmt" placeholder="コメント（達成メモ・未達の理由）" value="${escH(it.c)}">`+
+    `<button type="button" class="tdel" title="削除">×</button></div>`;
+}
+function todoListHtml(sec,items){
+  return `<div class="tdlist" data-sec="${sec}">`+
+    (items.length?items:[{t:"",d:false,c:""}]).map(tdRowHtml).join("")+
+    `<button type="button" class="tdadd">＋ todoを追加</button></div>`;
+}
+function bindTdRow(row){ row.querySelector(".tdel").onclick=()=>row.remove(); }
+function collectTodos(sec){
+  const box=document.querySelector(`.tdlist[data-sec="${sec}"]`);
+  if(!box) return null;
+  return [...box.querySelectorAll(".tdrow")].map(r=>({
+    t:r.querySelector(".tdtext").value.trim(),
+    d:r.querySelector(".tdchk").checked,
+    c:r.querySelector(".tdcmt").value.trim()
+  })).filter(x=>x.t||x.c);
+}
+
 function numsFor(uid,ym){
   const out={};
   JUNS.forEach(j=>out[j]=null);
@@ -1167,13 +1217,17 @@ function numsReportHtml(uid,ym){
     if(exp) h+=`<div class="nhint">※表の粗利は経費控除前（その他経費 ${yen(exp)}円）</div>`;
   }
 
-  // todo（計画→結果）
-  const todoPairs=[["月全体",meta.todo,meta.todoResult],["上旬",meta.todo1,meta.todoR1],
-    ["中旬",meta.todo2,meta.todoR2],["下旬",meta.todo3,meta.todoR3]].filter(x=>x[1]||x[2]);
-  if(todoPairs.length){
-    h+=`<table class="ntbl nrtodo" style="margin-top:12px"><thead><tr><th></th><th>todo（計画）</th><th>結果</th></tr></thead><tbody>`+
-      todoPairs.map(x=>`<tr><td>${x[0]}</td><td>${escH(x[1]||"—")}</td><td>${escH(x[2]||"—")}</td></tr>`).join("")+
-      `</tbody></table>`;
+  // todoチェックリスト（✅達成／❌未達（旬終了後）／⬜進行中）
+  const secDone={"todo":junDone(ym,"下旬"),"todo1":junDone(ym,"上旬"),"todo2":junDone(ym,"中旬"),"todo3":junDone(ym,"下旬")};
+  const todoSecs=TODO_SECS.map(x=>({sec:x[0],label:x[1],items:parseTodos(meta[x[0]],meta[x[2]])})).filter(x=>x.items.length);
+  if(todoSecs.length){
+    h+=todoSecs.map(x=>{
+      const done=x.items.filter(i=>i.d).length;
+      const mark=i=>i.d?"✅":(secDone[x.sec]?"❌":"⬜");
+      return `<div class="rtdsec"><div class="rtdh">todo（${x.label}）<span class="gc">${done}/${x.items.length} 達成</span></div>`+
+        x.items.map(i=>`<div class="rtdrow">${mark(i)} ${escH(i.t)}${i.c?`<span class="rtdc"> — ${escH(i.c)}</span>`:""}</div>`).join("")+
+        `</div>`;
+    }).join("");
   }
 
   // 良かった／反省（旬カード）
@@ -1214,6 +1268,7 @@ async function renderNums(){
   if(document.getElementById("n_gsales")){
     numsDraft={};
     NKEYS.forEach(k=>{ const el=document.getElementById("n_"+k); if(el) numsDraft[k]=el.value; });
+    TODO_SECS.forEach(x=>{ const v=collectTodos(x[0]); if(v!==null) numsDraft[x[0]]=JSON.stringify(v); });
   }
   const meta=metaFor(me.sid,numsMonth)||{};
   const nm=numsFor(me.sid,numsMonth);
@@ -1253,26 +1308,29 @@ async function renderNums(){
     ${numsParsed?`<button class="gbtn" id="nnumSave" style="margin-top:10px">保存する</button>`:""}
   </div>`;
 
-  const junCard=(label,ti,ri,gi,bi)=>`
+  const itemsOf=sec=>{
+    const x=TODO_SECS.find(t=>t[0]===sec);
+    if(numsDraft&&numsDraft[sec]!==undefined) return parseTodos(numsDraft[sec],"");
+    return parseTodos(meta[sec],meta[x[2]]);
+  };
+  const junCard=(label,sec,gi,bi)=>`
     <div class="ncard">
       <div class="ncardh">${label}</div>
-      <label class="glbl">todo（計画）</label><textarea class="ginput" id="${ti}" rows="2">${V(ti.slice(2))}</textarea>
-      <label class="glbl">todo結果</label><textarea class="ginput" id="${ri}" rows="2">${V(ri.slice(2))}</textarea>
+      <label class="glbl">todo <span class="gpn">達成したら☑・コメントに達成メモや未達の理由</span></label>
+      ${todoListHtml(sec,itemsOf(sec))}
       <label class="glbl">良かったこと</label><textarea class="ginput" id="${gi}" rows="2">${V(gi.slice(2))}</textarea>
       <label class="glbl">反省点</label><textarea class="ginput" id="${bi}" rows="2">${V(bi.slice(2))}</textarea>
     </div>`;
   html+=`<div class="gpanel"><div class="gph">③ 行動目標・振り返り <span class="gpn">（書いた分だけ報告に載ります）</span></div>
     <div class="ncard nmonth-card">
       <div class="ncardh">月全体</div>
-      <div class="nrow2">
-        <div><label class="glbl">todo（計画）</label><textarea class="ginput" id="n_todo" rows="2" placeholder="例：・店舗160H">${V("todo")}</textarea></div>
-        <div><label class="glbl">todo結果</label><textarea class="ginput" id="n_todoResult" rows="2" placeholder="例：・店舗188H（117.5%）">${V("todoResult")}</textarea></div>
-      </div>
+      <label class="glbl">todo <span class="gpn">達成したら☑・コメントに達成メモや未達の理由</span></label>
+      ${todoListHtml("todo",itemsOf("todo"))}
     </div>
     <div class="nrow3 njun">
-      ${junCard("上旬（1〜10日）","n_todo1","n_todoR1","n_good1","n_bad1")}
-      ${junCard("中旬（11〜20日）","n_todo2","n_todoR2","n_good2","n_bad2")}
-      ${junCard("下旬（21日〜末）","n_todo3","n_todoR3","n_good3","n_bad3")}
+      ${junCard("上旬（1〜10日）","todo1","n_good1","n_bad1")}
+      ${junCard("中旬（11〜20日）","todo2","n_good2","n_bad2")}
+      ${junCard("下旬（21日〜末）","todo3","n_good3","n_bad3")}
     </div>
     <div class="ncsvrow" style="margin-top:14px"><button class="gbtn" id="nzaikoBtn">在庫CSVを取り込む</button><span class="gmsg" id="nzaikoMsg">FBAと自己発送の在庫CSVを2つまとめて選択（Ctrl/⌘＋クリック）→自動で合算</span></div>
     <div class="nrow3">
@@ -1295,6 +1353,10 @@ async function renderNums(){
 
   body.innerHTML=html;
 
+  body.querySelectorAll(".tdrow").forEach(bindTdRow);
+  body.querySelectorAll(".tdadd").forEach(b=>{
+    b.onclick=()=>{ b.insertAdjacentHTML("beforebegin",tdRowHtml()); bindTdRow(b.previousElementSibling); };
+  });
   document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;numsDraft=null;renderNums();};
   document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;numsDraft=null;renderNums();};
 
@@ -1334,6 +1396,7 @@ async function renderNums(){
       }
       const bodyData={action:"nsave",pass:PASS,uid:me.sid,name:me.name,ym:numsMonth,gradMonth:"",gradGoal:""};
       NKEYS.forEach(k=>{ bodyData[k]=g("n_"+k); });
+      TODO_SECS.forEach(x=>{ bodyData[x[0]]=JSON.stringify(collectTodos(x[0])||[]); bodyData[x[2]]=""; });
       const r2=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(bodyData)})).json();
       if(!r2||!r2.ok) throw (r2&&r2.error)||"入力内容の保存に失敗";
       NUMSALL=null; numsParsed=null; numsDraft=null;
