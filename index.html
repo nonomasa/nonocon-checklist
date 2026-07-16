@@ -283,7 +283,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-16 22:38</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-16 22:44</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1294,6 +1294,14 @@ function numsReportHtml(uid,ym){
   return h||'<div style="color:#c2c8d0;font-size:13px">まだ入力がありません</div>';
 }
 
+/* 未保存の入力値を退避（CSV取り込みなど同じ月内での再描画専用。月切り替えでは呼ばない） */
+function captureNumsDraft(){
+  if(!document.getElementById("n_gsales")) return;
+  numsDraft={};
+  NKEYS.forEach(k=>{ const el=document.getElementById("n_"+k); if(el) numsDraft[k]=el.value; });
+  TODO_SECS.forEach(x=>{ const v=collectTodos(x[0]); if(v!==null) numsDraft[x[0]]=JSON.stringify(v); });
+}
+
 async function renderNums(){
   const body=document.getElementById("body");
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと数字報告を使えます</div>'; return; }
@@ -1306,12 +1314,6 @@ async function renderNums(){
   if(GOALS===null){
     try{ const gd=await jsonp({action:"gall"}); GOALS={}; (gd.goals||[]).forEach(g=>{ (GOALS[g.uid]=GOALS[g.uid]||[]).push(g); }); }catch(e){ GOALS={}; }
     if(chap!==NUMS) return;
-  }
-  // 再描画で未保存の入力が消えないよう、画面にある値を退避
-  if(document.getElementById("n_gsales")){
-    numsDraft={};
-    NKEYS.forEach(k=>{ const el=document.getElementById("n_"+k); if(el) numsDraft[k]=el.value; });
-    TODO_SECS.forEach(x=>{ const v=collectTodos(x[0]); if(v!==null) numsDraft[x[0]]=JSON.stringify(v); });
   }
   const meta=metaFor(me.sid,numsMonth)||{};
   const nm=numsFor(me.sid,numsMonth);
@@ -1408,13 +1410,14 @@ async function renderNums(){
     inp.onchange=async()=>{
       const f=inp.files[0]; if(!f) return;
       const msg=document.getElementById("ncsvMsg"); msg.textContent="解析中…";
+      captureNumsDraft(); // 入力中の値が再描画で消えないように退避
       try{
         const byMonth=await parsePricetar(f);
         const skipped=byMonth.__skipped||0; delete byMonth.__skipped;
         const months=Object.keys(byMonth);
         let target=numsMonth;
         if(!byMonth[target]){
-          if(months.length===1){ target=months[0]; numsMonth=target; }
+          if(months.length===1){ target=months[0]; numsMonth=target; numsDraft=null; }
           else{ msg.textContent=`選択中の${numsMonth}のデータがCSVにありません（含まれる月：${months.join("、")}）`; return; }
         }
         numsParsed=byMonth[target];
