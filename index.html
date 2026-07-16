@@ -1147,7 +1147,7 @@ function numsReportHtml(uid,ym){
 
   // 在庫
   if(meta.stockCnt||meta.stockSales||meta.stockCost){
-    h+=`<div class="nrsum" style="margin-top:12px"><div class="nrsumi"><span>FBA在庫</span>`+
+    h+=`<div class="nrsum" style="margin-top:12px"><div class="nrsumi"><span>在庫</span>`+
       (meta.stockCnt?`<b>${yen(meta.stockCnt)}個</b>`:"")+
       (meta.stockSales?`　販売額 ${yen(meta.stockSales)}円`:"")+
       (meta.stockCost?`　仕入額 ${yen(meta.stockCost)}円`:"")+`</div></div>`;
@@ -1226,9 +1226,9 @@ async function renderNums(){
       ${junCard("中旬（11〜20日）","n_todo2","n_todoR2","n_good2","n_bad2")}
       ${junCard("下旬（21日〜末）","n_todo3","n_todoR3","n_good3","n_bad3")}
     </div>
-    <div class="ncsvrow" style="margin-top:14px"><button class="gbtn" id="nzaikoBtn">在庫CSVを取り込む</button><span class="gmsg" id="nzaikoMsg">プライスターの在庫CSVで下の3つを自動入力</span></div>
+    <div class="ncsvrow" style="margin-top:14px"><button class="gbtn" id="nzaikoBtn">在庫CSVを取り込む</button><span class="gmsg" id="nzaikoMsg">FBAと自己発送の在庫CSVを2つまとめて選択（Ctrl/⌘＋クリック）→自動で合算</span></div>
     <div class="nrow3">
-      <div><label class="glbl">FBA在庫数（個）</label><input class="ginput" id="n_stockCnt" inputmode="numeric" value="${V("stockCnt")}"></div>
+      <div><label class="glbl">在庫数（個・FBA＋自己発送）</label><input class="ginput" id="n_stockCnt" inputmode="numeric" value="${V("stockCnt")}"></div>
       <div><label class="glbl">在庫販売金額（円）</label><input class="ginput" id="n_stockSales" inputmode="numeric" value="${V("stockSales")}"></div>
       <div><label class="glbl">在庫仕入金額（円）</label><input class="ginput" id="n_stockCost" inputmode="numeric" value="${V("stockCost")}"></div>
     </div>
@@ -1287,16 +1287,21 @@ async function renderNums(){
   }
 
   document.getElementById("nzaikoBtn").onclick=()=>{
-    const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
+    const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv"; inp.multiple=true;
     inp.onchange=async()=>{
-      const f=inp.files[0]; if(!f) return;
+      const files=[...inp.files]; if(!files.length) return;
       const msg=document.getElementById("nzaikoMsg"); msg.textContent="解析中…";
       try{
-        const z=await parseZaiko(f);
-        document.getElementById("n_stockCnt").value=z.cnt;
-        if(z.hasPrice) document.getElementById("n_stockSales").value=z.sales;
-        if(z.hasCost) document.getElementById("n_stockCost").value=z.cost;
-        msg.textContent=`✅ 在庫${yen(z.cnt)}個`+(z.hasPrice?` / 販売額${yen(z.sales)}円`:"")+(z.hasCost?` / 仕入額${yen(z.cost)}円`:"")+"（下の保存ボタンで確定）";
+        let cnt=0,sales=0,cost=0,hasPrice=false,hasCost=false;
+        for(const f of files){
+          const z=await parseZaiko(f);
+          cnt+=z.cnt; sales+=z.sales; cost+=z.cost;
+          hasPrice=hasPrice||z.hasPrice; hasCost=hasCost||z.hasCost;
+        }
+        document.getElementById("n_stockCnt").value=cnt;
+        if(hasPrice) document.getElementById("n_stockSales").value=sales;
+        if(hasCost) document.getElementById("n_stockCost").value=cost;
+        msg.textContent=`✅ ${files.length}ファイル合算：在庫${yen(cnt)}個`+(hasPrice?` / 販売額${yen(sales)}円`:"")+(hasCost?` / 仕入額${yen(cost)}円`:"")+"（下の保存ボタンで確定）";
       }catch(e){ msg.textContent=String(e); }
     };
     inp.click();
