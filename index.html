@@ -1041,11 +1041,17 @@ async function parsePricetar(file){
   let skipped=0;
   for(let r=1;r<rows.length;r++){
     const raw=rows[r][ci.date]; if(!raw) continue;
-    // キャンセル注文は売れていないので集計しない（プライスターの売上分析と同じ扱い）
+    /* 集計から外す行（プライスターの売上分析と同じ扱い）
+       ・キャンセル＝売れていない
+       ・保留中(Pending)＝金額未確定。単価0で原価だけ計上され粗利が大きくマイナスになる
+         → 出荷されれば次回の取り込みでShippedとして正しく計上される */
     if(ci.status>=0){
       const st=String(rows[r][ci.status]||"").toLowerCase();
-      if(st.indexOf("cancel")>=0||st.indexOf("キャンセル")>=0){ skipped++; continue; }
+      if(st.indexOf("cancel")>=0||st.indexOf("キャンセル")>=0||
+         st.indexOf("pending")>=0||st.indexOf("保留")>=0){ skipped++; continue; }
     }
+    // 出荷状態の列がない形式でも、金額未確定（単価0で粗利マイナス）の行は除外
+    if(num(rows[r][ci.unit])===0 && num(rows[r][ci.profit])<0){ skipped++; continue; }
     const m=String(raw).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/); if(!m) continue;
     const ym=(+m[1])+"年"+(+m[2])+"月", day=+m[3];
     const jun=day<=10?"上旬":(day<=20?"中旬":"下旬");
@@ -1283,7 +1289,7 @@ async function renderNums(){
         }
         numsParsed=byMonth[target];
         await renderNums();
-        if(skipped){ const m2=document.getElementById("ncsvMsg"); if(m2) m2.textContent=`取り込み済み（キャンセル${skipped}件を除外）`; }
+        if(skipped){ const m2=document.getElementById("ncsvMsg"); if(m2) m2.textContent=`取り込み済み（キャンセル・保留中の${skipped}件を除外）`; }
       }catch(e){ msg.textContent=String(e); }
     };
     inp.click();
