@@ -1033,12 +1033,19 @@ async function parsePricetar(file){
   if(text.indexOf("注文日")<0) throw "プライスターの注文CSVではないようです（「注文日」列が見つかりません）";
   const rows=parseCSV(text);
   const head=rows[0];
-  const ci={date:head.indexOf("注文日"),unit:head.indexOf("単価"),qty:head.indexOf("売れた個数"),profit:head.indexOf("粗利益")};
+  const ci={date:head.indexOf("注文日"),unit:head.indexOf("単価"),qty:head.indexOf("売れた個数"),
+    profit:head.indexOf("粗利益"),status:head.indexOf("出荷状態")};
   if(ci.date<0||ci.unit<0||ci.qty<0||ci.profit<0) throw "必要な列（注文日・単価・売れた個数・粗利益）が見つかりません";
   const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
   const byMonth={};
+  let skipped=0;
   for(let r=1;r<rows.length;r++){
     const raw=rows[r][ci.date]; if(!raw) continue;
+    // キャンセル注文は売れていないので集計しない（プライスターの売上分析と同じ扱い）
+    if(ci.status>=0){
+      const st=String(rows[r][ci.status]||"").toLowerCase();
+      if(st.indexOf("cancel")>=0||st.indexOf("キャンセル")>=0){ skipped++; continue; }
+    }
     const m=String(raw).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/); if(!m) continue;
     const ym=(+m[1])+"年"+(+m[2])+"月", day=+m[3];
     const jun=day<=10?"上旬":(day<=20?"中旬":"下旬");
@@ -1048,6 +1055,7 @@ async function parsePricetar(file){
     o[jun].profit+=num(rows[r][ci.profit]);
     o[jun].cnt+=qty;
   }
+  byMonth.__skipped=skipped;
   return byMonth;
 }
 
@@ -1266,6 +1274,7 @@ async function renderNums(){
       const msg=document.getElementById("ncsvMsg"); msg.textContent="解析中…";
       try{
         const byMonth=await parsePricetar(f);
+        const skipped=byMonth.__skipped||0; delete byMonth.__skipped;
         const months=Object.keys(byMonth);
         let target=numsMonth;
         if(!byMonth[target]){
@@ -1273,7 +1282,8 @@ async function renderNums(){
           else{ msg.textContent=`選択中の${numsMonth}のデータがCSVにありません（含まれる月：${months.join("、")}）`; return; }
         }
         numsParsed=byMonth[target];
-        renderNums();
+        await renderNums();
+        if(skipped){ const m2=document.getElementById("ncsvMsg"); if(m2) m2.textContent=`取り込み済み（キャンセル${skipped}件を除外）`; }
       }catch(e){ msg.textContent=String(e); }
     };
     inp.click();
