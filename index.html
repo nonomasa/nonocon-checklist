@@ -1003,6 +1003,24 @@ const NKEYS=["gsales","gprofit","expense","todo","todoResult","todo1","todoR1","
 const JUNS=["上旬","中旬","下旬"];
 const yen=v=>(Math.round(Number(v)||0)).toLocaleString();
 function ymNow(){const d=new Date();return d.getFullYear()+"年"+(d.getMonth()+1)+"月";}
+/* その旬が終わっているか（今日基準）。終わっていない旬は数字が半端なので表示しない */
+function junDone(ym,jun){
+  const m=String(ym).match(/(\d+)年(\d+)月/); if(!m) return true;
+  const y=+m[1], mo=+m[2];
+  const now=new Date(), cy=now.getFullYear(), cm=now.getMonth()+1, cd=now.getDate();
+  if(y<cy||(y===cy&&mo<cm)) return true;   // 過去の月＝全旬確定
+  if(y>cy||(y===cy&&mo>cm)) return false;  // 未来の月
+  const last=new Date(y,mo,0).getDate();
+  const end={"上旬":10,"中旬":20,"下旬":last}[jun];
+  return cd>end;
+}
+function junWaitLabel(ym,jun){
+  const m=String(ym).match(/(\d+)年(\d+)月/);
+  const now=new Date(), cd=now.getDate();
+  const start={"上旬":1,"中旬":11,"下旬":21}[jun];
+  if(m && +m[2]===now.getMonth()+1 && +m[1]===now.getFullYear() && cd>=start) return "進行中（旬の終了後に集計）";
+  return "—";
+}
 function ymShift(ym,delta){const m=ym.match(/(\d+)年(\d+)月/);let y=+m[1],mo=+m[2]+delta;
   while(mo<1){mo+=12;y--;}while(mo>12){mo-=12;y++;}return y+"年"+mo+"月";}
 
@@ -1105,7 +1123,7 @@ function metaFor(uid,ym){
 function numsReportHtml(uid,ym){
   const nm=numsFor(uid,ym), meta=metaFor(uid,ym)||{};
   const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
-  const has=j=>nm[j]!==null;
+  const has=j=>nm[j]!==null&&junDone(ym,j); // 終わった旬だけを集計・表示
   const totS=JUNS.reduce((a,j)=>a+(has(j)?nm[j].sales:0),0);
   const totP=JUNS.reduce((a,j)=>a+(has(j)?nm[j].profit:0),0);
   const totC=JUNS.reduce((a,j)=>a+(has(j)?nm[j].cnt:0),0);
@@ -1135,6 +1153,7 @@ function numsReportHtml(uid,ym){
     const pct=(v,goal)=>goal?`<td class="npct">${(v/goal*100).toFixed(1)}%</td>`:`<td class="npct" style="color:#c2c8d0">—</td>`;
     h+=`<table class="ntbl" style="margin-top:8px"><thead><tr><th></th><th>売上</th><th>累計進捗率</th><th>粗利</th><th>累計進捗率</th><th>個数</th></tr></thead><tbody>`;
     JUNS.forEach(j=>{
+      if(!junDone(ym,j)){ h+=`<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">${junWaitLabel(ym,j)}</td></tr>`; return; }
       if(!has(j)){ h+=`<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">未取込</td></tr>`; return; }
       cs+=nm[j].sales; cp+=nm[j].profit;
       h+=`<tr><td>${j}</td><td>${yen(nm[j].sales)}円</td>${pct(cs,gS)}<td>${yen(nm[j].profit)}円</td>${pct(cp,gP)}<td>${yen(nm[j].cnt)}個</td></tr>`;
@@ -1210,14 +1229,16 @@ async function renderNums(){
   const srcOf=j=>numsParsed?numsParsed[j]:(nm[j]?{sales:nm[j].sales,profit:nm[j].profit,cnt:nm[j].cnt}:null);
   const pctTd=(v,goal)=>goal?`<td class="npct">${(v/goal*100).toFixed(1)}%</td>`:`<td class="npct" style="color:#c2c8d0">—</td>`;
   // 進捗率は「その旬までの累計 ÷ 月間目標」（上旬で33%・中旬で66%ペースなら月100%）
+  // 終わっていない旬は数字が半端なので表示しない（旬の終了後に自動で出る）
   let cumS=0,cumP=0;
   const junRow=j=>{
+    if(!junDone(numsMonth,j)) return `<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">${junWaitLabel(numsMonth,j)}</td></tr>`;
     const src=srcOf(j);
     if(!src) return `<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">未取込</td></tr>`;
     cumS+=src.sales; cumP+=src.profit;
     return `<tr><td>${j}</td><td>${yen(src.sales)}円</td>${pctTd(cumS,gS0)}<td>${yen(src.profit)}円</td>${pctTd(cumP,gP0)}<td>${yen(src.cnt)}個</td></tr>`;
   };
-  const tots=JUNS.reduce((a,j)=>{const x=srcOf(j);if(x){a.s+=x.sales;a.p+=x.profit;a.c+=x.cnt;a.any=true;}return a;},{s:0,p:0,c:0,any:false});
+  const tots=JUNS.filter(j=>junDone(numsMonth,j)).reduce((a,j)=>{const x=srcOf(j);if(x){a.s+=x.sales;a.p+=x.profit;a.c+=x.cnt;a.any=true;}return a;},{s:0,p:0,c:0,any:false});
   const totalRow=tots.any?`<tr class="ntotal"><td>合計</td><td>${yen(tots.s)}円</td>${pctTd(tots.s,gS0)}<td>${yen(tots.p)}円</td>${pctTd(tots.p,gP0)}<td>${yen(tots.c)}個</td></tr>`:"";
   html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
     <div class="ncsvrow"><button class="gbtn" id="ncsvBtn">CSVを選ぶ</button><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
