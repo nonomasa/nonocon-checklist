@@ -1211,8 +1211,9 @@ async function renderNums(){
 
   let memHas=[...new Set(((NUMSALL&&NUMSALL.nums)||[]).filter(n=>n.ym===numsMonth).map(n=>String(n.uid))
     .concat(((NUMSALL&&NUMSALL.metas)||[]).filter(m=>m.ym===numsMonth).map(m=>String(m.uid))))];
-  // 自分を先頭に（データが無くても自分の行は常に出す）
-  memHas=[String(me.sid)].concat(memHas.filter(u=>u!==String(me.sid)));
+  memHas=memHas.filter(u=>u!=="0"); // のの（マスタ）は報告しないので一覧に出さない
+  // 自分を先頭に（データが無くても自分の行は常に出す。ののは除く）
+  if(String(me.sid)!=="0") memHas=[String(me.sid)].concat(memHas.filter(u=>u!==String(me.sid)));
   const memName=u=>{const m=ROSTER.find(x=>String(x.sid)===u);return m?m.name:u;};
   html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
     memHas.map((u,i)=>
