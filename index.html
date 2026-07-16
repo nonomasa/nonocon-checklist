@@ -121,6 +121,16 @@
   .njun{align-items:start}
   .ntotal td{background:#fdf2e9;font-weight:800}
   .npct{color:#f97316;font-weight:700}
+  .nrbody{background:#fff;border:1px solid var(--line);border-top:none;border-radius:0 0 10px 10px;
+    padding:14px 16px;margin-top:-4px}
+  .nrgoal{background:#fdf6ec;border:1px solid #f3e3c8;border-radius:8px;padding:9px 12px;
+    font-size:12.5px;line-height:1.7;margin-bottom:10px}
+  .nrsum{display:flex;gap:24px;flex-wrap:wrap;font-size:13px}
+  .nrsumi span{color:var(--sub);font-size:11.5px;margin-right:6px}
+  .nrsumi b{font-size:15px}
+  .nrtodo td{text-align:left;white-space:pre-wrap}
+  .nrtodo td:first-child{white-space:nowrap}
+  .nrgb{font-size:12.5px;line-height:1.7;margin:6px 0;white-space:pre-wrap}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -1048,65 +1058,77 @@ function metaFor(uid,ym){
   return ((NUMSALL&&NUMSALL.metas)||[]).find(m=>String(m.uid)===String(uid)&&m.ym===ym)||null;
 }
 
-/* 旬報告テキスト生成 */
-function numsReportText(uid,ym){
+/* 旬報告の画面表示（HTML） */
+function numsReportHtml(uid,ym){
   const nm=numsFor(uid,ym), meta=metaFor(uid,ym)||{};
   const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
-  const L="━━━━━━━━━━━━━━━━";
   const has=j=>nm[j]!==null;
-  const s=j=>has(j)?nm[j].sales:0, pf=j=>has(j)?nm[j].profit:0;
-  const totS=JUNS.reduce((a,j)=>a+s(j),0), totP=JUNS.reduce((a,j)=>a+pf(j),0);
+  const totS=JUNS.reduce((a,j)=>a+(has(j)?nm[j].sales:0),0);
+  const totP=JUNS.reduce((a,j)=>a+(has(j)?nm[j].profit:0),0);
+  const totC=JUNS.reduce((a,j)=>a+(has(j)?nm[j].cnt:0),0);
   const gS=num(meta.gsales), gP=num(meta.gprofit), exp=num(meta.expense);
   const netP=totP-exp;
-  let t=`【${ym}の旬報告】\n`;
-  // メンバー目標（メンバー情報タブの入力）を先頭に
+  const anyNum=JUNS.some(has);
+  let h="";
+
+  // メンバー目標（メンバー情報タブの入力）
   const garr=(GOALS&&GOALS[String(uid)])||[];
   const g=garr.length?garr[garr.length-1]:null;
   if(g&&(g.num||g.after)){
-    t+=`${L}\n`;
-    if(g.num) t+=`卒業までに達成したい数字：\n・${g.num}\n`;
-    if(g.after) t+=`卒業後にやりたいこと：\n・${g.after}\n`;
+    h+=`<div class="nrgoal">`+
+      (g.num?`<div><span class="mdl">🎯 卒業までの数字</span>${escH(g.num)}</div>`:"")+
+      (g.after?`<div><span class="mdl">🚀 卒業後やりたい事</span>${escH(g.after)}</div>`:"")+`</div>`;
   }
-  t+=`${L}\n目標数字： ${gS?yen(gS)+"円":"未設定"}\n`;
-  t+=`　進捗数字： ${yen(totS)}円${gS?`（${(totS/gS*100).toFixed(1)}%）`:""}\n`;
-  JUNS.forEach(j=>{
-    if(gS) t+=`　目標${j}：${yen(gS/3)}円\n`;
-    t+=`　${j}進捗：${has(j)?yen(s(j))+"円":"未取込"}\n`;
-  });
-  t+=`${L}\n目標粗利額：${gP?yen(gP)+"円":"未設定"}\n`;
-  t+=`　進捗：${yen(netP)}円${gP?`（進捗：${(netP/gP*100).toFixed(1)}%）`:""}${totS?`（粗利率：${(netP/totS*100).toFixed(1)}%）`:""}\n`;
-  JUNS.forEach(j=>{
-    if(gP) t+=`　目標${j}：${yen(gP/3)}円\n`;
-    t+=`　${j}進捗：${has(j)?yen(pf(j))+"円":"未取込"}\n`;
-  });
-  if(exp) t+=`　※進捗はその他経費（${yen(exp)}円：月額登録料・FBA保管料等）控除後。旬別は控除前の値です。\n`;
+
+  // サマリー
+  h+=`<div class="nrsum">`+
+    `<div class="nrsumi"><span>月商</span><b>${yen(totS)}円</b>${gS?` / 目標 ${yen(gS)}円（<b class="npct">${(totS/gS*100).toFixed(1)}%</b>）`:""}</div>`+
+    `<div class="nrsumi"><span>粗利${exp?"（経費控除後）":""}</span><b>${yen(netP)}円</b>${gP?` / 目標 ${yen(gP)}円（<b class="npct">${(netP/gP*100).toFixed(1)}%</b>）`:""}${totS?`　粗利率 ${(netP/totS*100).toFixed(1)}%`:""}</div>`+
+    `</div>`;
+
+  // 旬別テーブル（累計進捗率）
+  if(anyNum){
+    let cs=0,cp=0;
+    const pct=(v,goal)=>goal?`<td class="npct">${(v/goal*100).toFixed(1)}%</td>`:`<td class="npct" style="color:#c2c8d0">—</td>`;
+    h+=`<table class="ntbl" style="margin-top:8px"><thead><tr><th></th><th>売上</th><th>累計進捗率</th><th>粗利</th><th>累計進捗率</th><th>個数</th></tr></thead><tbody>`;
+    JUNS.forEach(j=>{
+      if(!has(j)){ h+=`<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">未取込</td></tr>`; return; }
+      cs+=nm[j].sales; cp+=nm[j].profit;
+      h+=`<tr><td>${j}</td><td>${yen(nm[j].sales)}円</td>${pct(cs,gS)}<td>${yen(nm[j].profit)}円</td>${pct(cp,gP)}<td>${yen(nm[j].cnt)}個</td></tr>`;
+    });
+    h+=`<tr class="ntotal"><td>合計</td><td>${yen(totS)}円</td>${pct(totS,gS)}<td>${yen(totP)}円</td>${pct(totP,gP)}<td>${yen(totC)}個</td></tr>`;
+    h+=`</tbody></table>`;
+    if(exp) h+=`<div class="nhint">※表の粗利は経費控除前（その他経費 ${yen(exp)}円）</div>`;
+  }
+
   // todo（計画→結果）
   const todoPairs=[["月全体",meta.todo,meta.todoResult],["上旬",meta.todo1,meta.todoR1],
-    ["中旬",meta.todo2,meta.todoR2],["下旬",meta.todo3,meta.todoR3]];
-  if(todoPairs.some(x=>x[1]||x[2])){
-    t+=`${L}\ntodo（計画 → 結果）\n`;
-    todoPairs.forEach(x=>{
-      if(!x[1]&&!x[2]) return;
-      t+=`【${x[0]}】\n`;
-      if(x[1]) t+=`　計画：${x[1]}\n`;
-      if(x[2]) t+=`　結果：${x[2]}\n`;
-    });
+    ["中旬",meta.todo2,meta.todoR2],["下旬",meta.todo3,meta.todoR3]].filter(x=>x[1]||x[2]);
+  if(todoPairs.length){
+    h+=`<table class="ntbl nrtodo" style="margin-top:12px"><thead><tr><th></th><th>todo（計画）</th><th>結果</th></tr></thead><tbody>`+
+      todoPairs.map(x=>`<tr><td>${x[0]}</td><td>${escH(x[1]||"—")}</td><td>${escH(x[2]||"—")}</td></tr>`).join("")+
+      `</tbody></table>`;
   }
-  if(meta.good1||meta.good2||meta.good3){
-    t+=`${L}\n＜良かったこと＞\n`;
-    [["上旬",meta.good1],["中旬",meta.good2],["下旬",meta.good3]].forEach(x=>{ if(x[1])t+=`【${x[0]}】\n${x[1]}\n`; });
+
+  // 良かった／反省（旬カード）
+  const gb=[["上旬",meta.good1,meta.bad1],["中旬",meta.good2,meta.bad2],["下旬",meta.good3,meta.bad3]]
+    .filter(x=>x[1]||x[2]);
+  if(gb.length){
+    h+=`<div class="nrow3 njun" style="margin-top:12px">`+gb.map(x=>
+      `<div class="ncard"><div class="ncardh">${x[0]}</div>`+
+      (x[1]?`<div class="nrgb">😊 ${escH(x[1])}</div>`:"")+
+      (x[2]?`<div class="nrgb">🤔 ${escH(x[2])}</div>`:"")+`</div>`).join("")+`</div>`;
   }
-  if(meta.bad1||meta.bad2||meta.bad3){
-    t+=`${L}\n＜反省点＞\n`;
-    [["上旬",meta.bad1],["中旬",meta.bad2],["下旬",meta.bad3]].forEach(x=>{ if(x[1])t+=`【${x[0]}】\n${x[1]}\n`; });
-  }
+
+  // 在庫
   if(meta.stockCnt||meta.stockSales||meta.stockCost){
-    t+=`${L}\n在庫額（FBA在庫）\n`;
-    if(meta.stockCnt) t+=`　在庫数：${yen(meta.stockCnt)}個\n`;
-    if(meta.stockSales) t+=`　販売金額：${yen(meta.stockSales)}円\n`;
-    if(meta.stockCost) t+=`　仕入金額：${yen(meta.stockCost)}円\n`;
+    h+=`<div class="nrsum" style="margin-top:12px"><div class="nrsumi"><span>FBA在庫</span>`+
+      (meta.stockCnt?`<b>${yen(meta.stockCnt)}個</b>`:"")+
+      (meta.stockSales?`　販売額 ${yen(meta.stockSales)}円`:"")+
+      (meta.stockCost?`　仕入額 ${yen(meta.stockCost)}円`:"")+`</div></div>`;
   }
-  return t;
+
+  return h||'<div style="color:#c2c8d0;font-size:13px">まだ入力がありません</div>';
 }
 
 async function renderNums(){
@@ -1194,7 +1216,7 @@ async function renderNums(){
   const memName=u=>{const m=ROSTER.find(x=>String(x.sid)===u);return m?m.name:u;};
   html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
     memHas.map((u,i)=>
-      `<div class="nmem"><div class="nmemh" data-uid="${u}">▶ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}</div><pre class="nprev" style="display:none" data-body="${u}"></pre></div>`).join("")+`</div>`;
+      `<div class="nmem"><div class="nmemh" data-uid="${u}">▶ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}</div><div class="nrbody" style="display:none" data-body="${u}"></div></div>`).join("")+`</div>`;
 
   body.innerHTML=html;
 
@@ -1260,11 +1282,11 @@ async function renderNums(){
 
   body.querySelectorAll(".nmemh").forEach(h=>{
     h.onclick=()=>{
-      const pre=body.querySelector(`pre[data-body="${h.dataset.uid}"]`);
-      const open=pre.style.display!=="none";
-      pre.style.display=open?"none":"";
-      h.textContent=(open?"▶ ":"▼ ")+h.textContent.slice(2);
-      if(!open) pre.textContent=numsReportText(h.dataset.uid,numsMonth);
+      const el=body.querySelector(`div.nrbody[data-body="${h.dataset.uid}"]`);
+      const open=el.style.display!=="none";
+      el.style.display=open?"none":"";
+      h.innerHTML=(open?"▶ ":"▼ ")+h.innerHTML.slice(2);
+      if(!open) el.innerHTML=numsReportHtml(h.dataset.uid,numsMonth);
     };
   });
 }
