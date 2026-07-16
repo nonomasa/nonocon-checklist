@@ -1184,14 +1184,14 @@ async function renderNums(){
     <div style="margin-top:12px"><button class="gbtn" id="nmetaSave">目標と入力内容を保存する</button><span class="gmsg" id="nmetaMsg"></span></div>
   </div>`;
 
-  const memHas=[...new Set(((NUMSALL&&NUMSALL.nums)||[]).filter(n=>n.ym===numsMonth).map(n=>String(n.uid))
-    .concat(((NUMSALL&&NUMSALL.metas)||[]).filter(m=>m.ym===numsMonth).map(m=>String(m.uid))))]
-    .filter(u=>u!==String(me.sid));
+  let memHas=[...new Set(((NUMSALL&&NUMSALL.nums)||[]).filter(n=>n.ym===numsMonth).map(n=>String(n.uid))
+    .concat(((NUMSALL&&NUMSALL.metas)||[]).filter(m=>m.ym===numsMonth).map(m=>String(m.uid))))];
+  // 自分を先頭に（データが無くても自分の行は常に出す）
+  memHas=[String(me.sid)].concat(memHas.filter(u=>u!==String(me.sid)));
   const memName=u=>{const m=ROSTER.find(x=>String(x.sid)===u);return m?m.name:u;};
   html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
-    (memHas.length?memHas.map(u=>
-      `<div class="nmem"><div class="nmemh" data-uid="${u}">▶ ${escH(memName(u))}</div><pre class="nprev" style="display:none" data-body="${u}"></pre></div>`).join("")
-      :'<div style="color:#c2c8d0;font-size:13px">まだ誰も報告していません</div>')+`</div>`;
+    memHas.map((u,i)=>
+      `<div class="nmem"><div class="nmemh" data-uid="${u}">▶ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}</div><pre class="nprev" style="display:none" data-body="${u}"></pre></div>`).join("")+`</div>`;
 
   body.innerHTML=html;
 
