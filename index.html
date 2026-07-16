@@ -96,6 +96,13 @@
   .kpdflink{font-size:11.5px;color:#2563eb;text-decoration:none;white-space:nowrap}
   .kup{font-size:10.5px;padding:2px 9px;border:1px dashed #c9cfd7;border-radius:999px;background:#fff;color:#5a6472;cursor:pointer;white-space:nowrap}
   .kup:hover{border-color:#f97316;color:#f97316}
+  .kpanel{max-height:78vh}
+  .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
+  .kcell{color:#c2c8d0}
+  .kcell.kc-ok{background:#eafaf2;color:#0e9f6e;font-weight:700}
+  .kcell.kc-warn{background:#fef3e2;color:#d97706;font-weight:700}
+  .kcell.kc-blue{background:#eaf1ff;color:#2563eb;font-weight:700}
+  .kcell a{text-decoration:none}
   /* ブランド解除表：優先度＋ブランド列を左固定 */
   .kpanel th:nth-child(1),.kpanel td:nth-child(1){position:sticky;left:0;z-index:1;background:#fff;
     min-width:74px;max-width:74px;border-right:none}
@@ -1192,28 +1199,43 @@ async function fillKaijo(){
   }catch(e){ box.textContent="読み込みに失敗しました。通信環境を確認してください"; return; }
   const cnt=document.getElementById("kaijoCnt");
   if(cnt){ const done=Object.values(kaijoState).filter(v=>v&&v!=="未確認").length; cnt.textContent=`確認済み ${done}/${BRANDS.length}`; }
-  const others={};
-  (ALLKAIJO||[]).forEach(r=>{
-    if(String(r.uid)===String(me.sid)) return;
-    if((!r.status||r.status==="未確認")&&!r.pdf) return;
-    (others[r.brand]=others[r.brand]||[]).push(r);
+  const stMap={};
+  (ALLKAIJO||[]).forEach(r=>{ (stMap[String(r.uid)]=stMap[String(r.uid)]||{})[r.brand]=r; });
+  const chipCls=st=>st==="制限なし"?"kc-ok":(st==="要承認"?"kc-warn":(String(st).indexOf("解除")>=0?"kc-blue":""));
+  // 列＝自分以外のメンバー（番号順）。ヘッダーは苗字（被りは名前1文字を追加）
+  const mems=[...ROSTER].filter(m=>String(m.sid)!==String(me.sid)).sort((a,b)=>{
+    const na=parseInt(a.sid,10), nb=parseInt(b.sid,10);
+    if(isNaN(na)&&isNaN(nb))return 0; if(isNaN(na))return 1; if(isNaN(nb))return -1; return na-nb;
   });
-  const chipCls=st=>st==="制限なし"?"kc-ok":(st==="要承認"?"kc-warn":(String(st).indexOf("解除")>=0?"kc-blue":"kc-gray"));
-  let html='<div class="apanel mpanel kpanel"><table><thead><tr><th>優先度</th><th>ブランド</th><th>状態</th><th>みんなの状況</th></tr></thead><tbody>';
+  const sei=n=>String(n||"").trim().split(/[\s　]+/)[0];
+  const seiCount={};
+  mems.forEach(m=>{ seiCount[sei(m.name)]=(seiCount[sei(m.name)]||0)+1; });
+  const memLabel=m=>{
+    const s0=sei(m.name);
+    if(seiCount[s0]<=1) return s0;
+    const mei=String(m.name||"").trim().split(/[\s　]+/)[1]||"";
+    return s0+mei.slice(0,1);
+  };
+  let html='<div class="apanel mpanel kpanel"><table><thead><tr><th>優先度</th><th>ブランド</th><th>状態</th>'
+    +mems.map(m=>`<th class="kmem">${memLabel(m)}</th>`).join("")+'</tr></thead><tbody>';
   BRANDS.forEach(b=>{
     const st=kaijoState[b.brand]||"未確認";
     const opts=KSTATUS.map(o=>`<option ${o===st?"selected":""}>${o}</option>`).join("");
     const brandEsc=b.brand.replace(/"/g,"&quot;");
     const asin=b.asin?` <a href="https://www.amazon.co.jp/dp/${encodeURIComponent(b.asin)}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;text-decoration:none">確認↗</a>`+
       `<div class="kasin"><span>${b.asin}</span><button class="kcopy" data-asin="${b.asin}" title="ASINをコピー">コピー</button></div>`:"";
-    const myPdf=kaijoPdf[b.brand]?` <a class="kpdflink" href="${kaijoPdf[b.brand]}" target="_blank" rel="noopener">📄 自分のPDF</a>`:"";
-    const chips=(others[b.brand]||[]).map(r=>
-      `<span class="kchip ${chipCls(r.status)}">${r.name||r.uid}：${r.status||"—"}${r.pdf?` <a href="${r.pdf}" target="_blank" rel="noopener" title="解除PDFを見る">📄</a>`:""}</span>`).join("");
+    const myPdf=kaijoPdf[b.brand]?` <a class="kpdflink" href="${kaijoPdf[b.brand]}" target="_blank" rel="noopener">📄</a>`:"";
+    const cells=mems.map(m=>{
+      const r=stMap[String(m.sid)]&&stMap[String(m.sid)][b.brand];
+      const stx=r&&r.status&&r.status!=="未確認"?r.status:"";
+      const pdf=r&&r.pdf?` <a href="${r.pdf}" target="_blank" rel="noopener" title="解除PDFを見る">📄</a>`:"";
+      return `<td class="kcell ${stx?chipCls(stx):""}" title="${memLabel(m)}：${stx||"未確認"}">${stx}${pdf}</td>`;
+    }).join("");
     html+=`<tr><td style="font-size:12px;color:#6b7686">${b.pri}</td>`+
       `<td class="pname">${b.brand}${asin}</td>`+
       `<td><select class="ksel" data-brand="${brandEsc}" style="padding:6px 10px;border:1px solid #e3e6ea;border-radius:8px;font-size:12.5px">${opts}</select>`+
-      `<div class="kpdfrow">${myPdf}<button class="kup" data-brand="${brandEsc}">＋PDF添付</button></div></td>`+
-      `<td class="kothers">${chips||'<span style="color:#c2c8d0;font-size:12px">—</span>'}</td></tr>`;
+      `<div class="kpdfrow">${myPdf}<button class="kup" data-brand="${brandEsc}">＋PDF</button></div></td>`+
+      cells+`</tr>`;
   });
   html+='</tbody></table></div>';
   box.innerHTML=html;
