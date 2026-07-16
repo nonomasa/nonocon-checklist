@@ -1048,6 +1048,31 @@ async function parsePricetar(file){
   return byMonth;
 }
 
+/* プライスター在庫CSVの解析（列名の揺れに対応） */
+async function parseZaiko(file){
+  const buf=await file.arrayBuffer();
+  let text="";
+  try{ text=new TextDecoder("shift_jis").decode(buf); }catch(e){}
+  if(!/在庫/.test(text)){ text=new TextDecoder("utf-8").decode(buf); }
+  const rows=parseCSV(text);
+  if(rows.length<2) throw "データ行がありません";
+  const head=rows[0].map(h=>String(h).trim());
+  const find=cands=>{ for(const c of cands){ const i=head.indexOf(c); if(i>=0) return i; }
+    for(const c of cands){ const i=head.findIndex(h=>h.indexOf(c)>=0); if(i>=0) return i; } return -1; };
+  const ci={stock:find(["在庫数","在庫"]),price:find(["出品価格","販売価格","価格"]),cost:find(["仕入れ価格","仕入価格","仕入れ値","原価"])};
+  if(ci.stock<0) throw "在庫数の列が見つかりません（このCSVの列名をののに教えてください）";
+  const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+  let cnt=0,sales=0,cost=0;
+  for(let r=1;r<rows.length;r++){
+    const st=num(rows[r][ci.stock]); if(!st) continue;
+    cnt+=st;
+    if(ci.price>=0) sales+=num(rows[r][ci.price])*st;
+    if(ci.cost>=0) cost+=num(rows[r][ci.cost])*st;
+  }
+  return {cnt:cnt, sales:Math.round(sales), cost:Math.round(cost),
+          hasPrice:ci.price>=0, hasCost:ci.cost>=0};
+}
+
 function numsFor(uid,ym){
   const out={};
   JUNS.forEach(j=>out[j]=null);
@@ -1201,7 +1226,8 @@ async function renderNums(){
       ${junCard("中旬（11〜20日）","n_todo2","n_todoR2","n_good2","n_bad2")}
       ${junCard("下旬（21日〜末）","n_todo3","n_todoR3","n_good3","n_bad3")}
     </div>
-    <div class="nrow3" style="margin-top:12px">
+    <div class="ncsvrow" style="margin-top:14px"><button class="gbtn" id="nzaikoBtn">在庫CSVを取り込む</button><span class="gmsg" id="nzaikoMsg">プライスターの在庫CSVで下の3つを自動入力</span></div>
+    <div class="nrow3">
       <div><label class="glbl">FBA在庫数（個）</label><input class="ginput" id="n_stockCnt" inputmode="numeric" value="${V("stockCnt")}"></div>
       <div><label class="glbl">在庫販売金額（円）</label><input class="ginput" id="n_stockSales" inputmode="numeric" value="${V("stockSales")}"></div>
       <div><label class="glbl">在庫仕入金額（円）</label><input class="ginput" id="n_stockCost" inputmode="numeric" value="${V("stockCost")}"></div>
@@ -1260,6 +1286,21 @@ async function renderNums(){
     };
   }
 
+  document.getElementById("nzaikoBtn").onclick=()=>{
+    const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
+    inp.onchange=async()=>{
+      const f=inp.files[0]; if(!f) return;
+      const msg=document.getElementById("nzaikoMsg"); msg.textContent="解析中…";
+      try{
+        const z=await parseZaiko(f);
+        document.getElementById("n_stockCnt").value=z.cnt;
+        if(z.hasPrice) document.getElementById("n_stockSales").value=z.sales;
+        if(z.hasCost) document.getElementById("n_stockCost").value=z.cost;
+        msg.textContent=`✅ 在庫${yen(z.cnt)}個`+(z.hasPrice?` / 販売額${yen(z.sales)}円`:"")+(z.hasCost?` / 仕入額${yen(z.cost)}円`:"")+"（下の保存ボタンで確定）";
+      }catch(e){ msg.textContent=String(e); }
+    };
+    inp.click();
+  };
   document.getElementById("nmetaSave").onclick=async()=>{
     const btn=document.getElementById("nmetaSave"), msg=document.getElementById("nmetaMsg");
     btn.disabled=true; msg.textContent="保存中…";
