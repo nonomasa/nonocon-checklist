@@ -114,6 +114,8 @@
     background:#fff;border:1px solid var(--line);border-radius:10px}
   .nmemh:hover{border-color:#cfd5dc}
   .nhint{font-size:10.5px;color:#8a93a3;margin-top:4px;line-height:1.5}
+  .vertag{text-align:center;font-size:10.5px;color:#b6bdc7;margin:26px 0 10px}
+  .vertag a{color:#b6bdc7}
   .ncard{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
   .ncardh{font-size:12.5px;font-weight:800;margin-bottom:4px;color:#3d4654;
     border-left:4px solid var(--accent);padding-left:8px}
@@ -266,6 +268,7 @@
     </div>
   </div>
   <div id="body"></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-16 18:53</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1816,6 +1819,11 @@ function render(){
   document.getElementById("chapName").textContent=`「${c.ch}」章`;
   document.getElementById("ringFg").style.strokeDashoffset=144.5*(1-pct/100);
 }
+
+document.getElementById("vreload").onclick=e=>{
+  e.preventDefault();
+  location.replace(location.pathname+"?v="+Date.now()+location.hash); // キャッシュを避けて読み直す
+};
 
 if(location.hash==="#admin" && ADMIN_KEY) chap=ADMIN; // 管理者はそのまま管理タブへ
 initIdent();
