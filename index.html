@@ -80,6 +80,11 @@
   .tag.do{background:#fff0e8;color:#c5663c}
   .tag.mov{background:#e8f1fd;color:#3b74c4;display:inline-flex;align-items:center;gap:3px;padding:2px 9px}
   .tag.mov img{height:11px;display:block}
+  .kasin{font-size:11.5px;color:#6b7686;font-weight:400;margin-top:3px;display:flex;align-items:center;gap:6px}
+  .kasin span{font-family:ui-monospace,Menlo,monospace;letter-spacing:.3px}
+  .kcopy{font-size:10.5px;padding:1px 8px;border:1px solid #d7dce2;border-radius:999px;background:#fff;
+    color:#5a6472;cursor:pointer}
+  .kcopy:hover{border-color:#f97316;color:#f97316}
   .lv{font-size:10px;margin-left:6px;vertical-align:middle;white-space:nowrap}
   tr.mdetail td{font-size:13px;color:var(--sub);padding:10px 14px 12px;line-height:1.7}
   tr.mdetail .mdl{display:inline-block;font-size:11px;font-weight:700;color:#8a93a3;margin-right:8px;min-width:76px}
@@ -1170,13 +1175,30 @@ async function fillKaijo(){
   BRANDS.forEach(b=>{
     const st=kaijoState[b.brand]||"未確認";
     const opts=KSTATUS.map(o=>`<option ${o===st?"selected":""}>${o}</option>`).join("");
-    const asin=b.asin?` <a href="https://www.amazon.co.jp/dp/${encodeURIComponent(b.asin)}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;text-decoration:none">確認↗</a>`:"";
+    const asin=b.asin?` <a href="https://www.amazon.co.jp/dp/${encodeURIComponent(b.asin)}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb;text-decoration:none">確認↗</a>`+
+      `<div class="kasin"><span>${b.asin}</span><button class="kcopy" data-asin="${b.asin}" title="ASINをコピー">コピー</button></div>`:"";
     html+=`<tr><td style="font-size:12px;color:#6b7686">${b.pri}</td>`+
       `<td class="pname">${b.brand}${asin}</td>`+
       `<td><select class="ksel" data-brand="${b.brand.replace(/"/g,"&quot;")}" style="padding:6px 10px;border:1px solid #e3e6ea;border-radius:8px;font-size:12.5px">${opts}</select></td></tr>`;
   });
   html+='</tbody></table></div>';
   box.innerHTML=html;
+  box.querySelectorAll(".kcopy").forEach(btn=>{
+    btn.onclick=()=>{
+      const asin=btn.dataset.asin;
+      const ok=()=>{ btn.textContent="✅ コピー済"; setTimeout(()=>{btn.textContent="コピー";},1200); };
+      const fallback=()=>{
+        const ta=document.createElement("textarea"); ta.value=asin;
+        ta.style.position="fixed"; ta.style.opacity="0";
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); ok(); }catch(e){ prompt("手動でコピーしてください", asin); }
+        document.body.removeChild(ta);
+      };
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(asin).then(ok).catch(fallback);
+      } else fallback();
+    };
+  });
   box.querySelectorAll(".ksel").forEach(sel=>{
     kselColor(sel);
     sel.onchange=()=>{
