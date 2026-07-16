@@ -92,6 +92,7 @@
   .kc-warn{background:#fef3e2;color:#d97706}
   .kc-blue{background:#eaf1ff;color:#2563eb}
   .kc-gray{background:#eef1f5;color:#6b7686}
+  .kcell.kc-pend,.kc-pend{background:#f4effd;color:#7c3aed;font-weight:700}
   .kpdfrow{margin-top:5px;display:flex;align-items:center;gap:8px}
   .kpdflink{font-size:11.5px;color:#2563eb;text-decoration:none;white-space:nowrap}
   .kup{font-size:10.5px;padding:2px 9px;border:1px dashed #c9cfd7;border-radius:999px;background:#fff;color:#5a6472;cursor:pointer;white-space:nowrap}
@@ -268,7 +269,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-16 18:53</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-16 19:13</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -659,7 +660,7 @@ let kaijoState = {};      // 自分の状態 {brand: status}
 let kaijoPdf = {};        // 自分のPDF {brand: url}
 let ALLKAIJO = null;      // 全員の解除状況
 let kaijoLoaded = false;
-const KSTATUS = ["未確認","制限なし","要承認","SD解除","楽天解除","ヨド解除","ビック解除","アマ解除","卸解除","その他解除"];
+const KSTATUS = ["未確認","制限なし","要承認","Ama申請中①","Ama申請中②","Ama申請中③","Ama申請中それ以上","SD解除","楽天解除","ヨド解除","ビック解除","アマ解除","卸解除","その他解除"];
 
 /* 受講生用の合言葉（正誤はサーバー側で照合。HTMLには書かれていない） */
 const PASS_KEY = "nonocon_pass";
@@ -1610,6 +1611,7 @@ function kselColor(sel){
   let bg="#eef1f5", fg="#6b7686";
   if(v==="制限なし"){bg="#eafaf2";fg="#0e9f6e";}
   else if(v==="要承認"){bg="#fef3e2";fg="#d97706";}
+  else if(v.indexOf("申請中")>=0){bg="#f4effd";fg="#7c3aed";}
   else if(v.indexOf("解除")>=0){bg="#eaf1ff";fg="#2563eb";}
   sel.style.background=bg; sel.style.color=fg; sel.style.fontWeight="700";
 }
@@ -1634,7 +1636,7 @@ async function fillKaijo(){
   if(cnt){ const done=Object.values(kaijoState).filter(v=>v&&v!=="未確認").length; cnt.textContent=`確認済み ${done}/${BRANDS.length}`; }
   const stMap={};
   (ALLKAIJO||[]).forEach(r=>{ (stMap[String(r.uid)]=stMap[String(r.uid)]||{})[r.brand]=r; });
-  const chipCls=st=>st==="制限なし"?"kc-ok":(st==="要承認"?"kc-warn":(String(st).indexOf("解除")>=0?"kc-blue":""));
+  const chipCls=st=>st==="制限なし"?"kc-ok":(st==="要承認"?"kc-warn":(String(st).indexOf("申請中")>=0?"kc-pend":(String(st).indexOf("解除")>=0?"kc-blue":"")));
   // 列＝自分以外のメンバー（番号順）。ヘッダーは苗字（被りは名前1文字を追加）
   const mems=[...ROSTER].filter(m=>String(m.sid)!==String(me.sid)).sort((a,b)=>{
     const na=parseInt(a.sid,10), nb=parseInt(b.sid,10);
