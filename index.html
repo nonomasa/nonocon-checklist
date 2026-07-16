@@ -95,6 +95,24 @@
   .kpdfrow{margin-top:5px;display:flex;align-items:center;gap:8px}
   .kpdflink{font-size:11.5px;color:#2563eb;text-decoration:none;white-space:nowrap}
   .kup{font-size:10.5px;padding:2px 9px;border:1px dashed #c9cfd7;border-radius:999px;background:#fff;color:#5a6472;cursor:pointer;white-space:nowrap}
+  .nbar{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+  .nmonth{font-size:17px;font-weight:800}
+  .nnav{font:inherit;font-size:13px;padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
+  .nnav:hover{border-color:#f97316;color:#f97316}
+  .nrow2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .nrow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .ncsvrow{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .ntbl{border-collapse:collapse;font-size:13px;min-width:340px}
+  .ntbl th,.ntbl td{border:1px solid var(--line);padding:7px 14px;text-align:right}
+  .ntbl th:first-child,.ntbl td:first-child{text-align:left;background:#f6f8fa;font-weight:700}
+  .ntbl th{background:#eef1f5;color:var(--sub);font-weight:600}
+  .nprev{background:#f6f8fa;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+    font-size:12.5px;line-height:1.75;white-space:pre-wrap;word-break:break-all;margin:6px 0 12px;
+    font-family:inherit;max-height:420px;overflow:auto}
+  .nmem{margin-bottom:8px}
+  .nmemh{font-size:13.5px;font-weight:700;cursor:pointer;user-select:none;padding:9px 12px;
+    background:#fff;border:1px solid var(--line);border-radius:10px}
+  .nmemh:hover{border-color:#cfd5dc}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -772,10 +790,11 @@ function chapStats(ci){
   DATA[ci].groups.forEach(g=>g.items.forEach(it=>{t++; if(state[it.id])d++;}));
   return {t,d};
 }
-const BRAND   = DATA.length;   // ブランド解除タブ
-const PALL    = DATA.length+1; // みんなの進捗タブ
-const MEMBERS = DATA.length+2; // メンバー情報タブ
-const ADMIN   = DATA.length+3; // 管理タブ（キー保持者のみ表示）
+const NUMS    = DATA.length;   // 数字報告タブ
+const BRAND   = DATA.length+1; // ブランド解除タブ
+const PALL    = DATA.length+2; // みんなの進捗タブ
+const MEMBERS = DATA.length+3; // メンバー情報タブ
+const ADMIN   = DATA.length+4; // 管理タブ（キー保持者のみ表示）
 let pallCache = null;          // みんなの進捗のキャッシュ
 let adminStepSel = "";         // 管理：ステップ別ビューで選択中のステップID
 let lvFilter = 0;              // ステージフィルタ（0=すべて, 1〜3=⭐の数）
@@ -802,6 +821,11 @@ function renderTabs(){
     b.onclick=()=>{chap=ci;render();};
     el.appendChild(b);
   });
+  const nb=document.createElement("button");
+  nb.className="tab"+(chap===NUMS?" on":"");
+  nb.innerHTML=`数字報告`;
+  nb.onclick=()=>{chap=NUMS;render();};
+  el.appendChild(nb);
   const kb=document.createElement("button");
   kb.className="tab"+(chap===BRAND?" on":"");
   kb.innerHTML=`ブランド解除`;
@@ -949,6 +973,265 @@ async function renderAdmin(){
         }).join("")}</div></div>`;
     }
   }
+}
+
+/* ---------- 数字報告タブ ---------- */
+let NUMSALL=null;          // {nums:[], metas:[]}
+let numsMonth=null;        // 表示中の年月 "2026年7月"
+let numsParsed=null;       // CSV解析結果 {上旬:{sales,profit,cnt},...}
+const JUNS=["上旬","中旬","下旬"];
+const yen=v=>(Math.round(Number(v)||0)).toLocaleString();
+function ymNow(){const d=new Date();return d.getFullYear()+"年"+(d.getMonth()+1)+"月";}
+function ymShift(ym,delta){const m=ym.match(/(\d+)年(\d+)月/);let y=+m[1],mo=+m[2]+delta;
+  while(mo<1){mo+=12;y--;}while(mo>12){mo-=12;y++;}return y+"年"+mo+"月";}
+
+/* RFC4180風の簡易CSVパーサ（引用符内のカンマ・改行対応） */
+function parseCSV(text){
+  const rows=[];let row=[],cell="",inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else inQ=false; }
+      else cell+=c;
+    }else{
+      if(c==='"') inQ=true;
+      else if(c===','){row.push(cell);cell="";}
+      else if(c==='\n'){row.push(cell);rows.push(row);row=[];cell="";}
+      else if(c!=='\r') cell+=c;
+    }
+  }
+  if(cell!==""||row.length){row.push(cell);rows.push(row);}
+  return rows;
+}
+
+async function parsePricetar(file){
+  const buf=await file.arrayBuffer();
+  let text="";
+  try{ text=new TextDecoder("shift_jis").decode(buf); }catch(e){}
+  if(text.indexOf("注文日")<0){ text=new TextDecoder("utf-8").decode(buf); }
+  if(text.indexOf("注文日")<0) throw "プライスターの注文CSVではないようです（「注文日」列が見つかりません）";
+  const rows=parseCSV(text);
+  const head=rows[0];
+  const ci={date:head.indexOf("注文日"),unit:head.indexOf("単価"),qty:head.indexOf("売れた個数"),profit:head.indexOf("粗利益")};
+  if(ci.date<0||ci.unit<0||ci.qty<0||ci.profit<0) throw "必要な列（注文日・単価・売れた個数・粗利益）が見つかりません";
+  const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+  const byMonth={};
+  for(let r=1;r<rows.length;r++){
+    const raw=rows[r][ci.date]; if(!raw) continue;
+    const m=String(raw).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/); if(!m) continue;
+    const ym=(+m[1])+"年"+(+m[2])+"月", day=+m[3];
+    const jun=day<=10?"上旬":(day<=20?"中旬":"下旬");
+    const qty=num(rows[r][ci.qty])||1;
+    const o=byMonth[ym]=byMonth[ym]||{"上旬":{sales:0,profit:0,cnt:0},"中旬":{sales:0,profit:0,cnt:0},"下旬":{sales:0,profit:0,cnt:0}};
+    o[jun].sales+=num(rows[r][ci.unit])*qty;
+    o[jun].profit+=num(rows[r][ci.profit]);
+    o[jun].cnt+=qty;
+  }
+  return byMonth;
+}
+
+function numsFor(uid,ym){
+  const out={};
+  JUNS.forEach(j=>out[j]=null);
+  ((NUMSALL&&NUMSALL.nums)||[]).forEach(n=>{ if(String(n.uid)===String(uid)&&n.ym===ym) out[n.jun]=n; });
+  return out;
+}
+function metaFor(uid,ym){
+  return ((NUMSALL&&NUMSALL.metas)||[]).find(m=>String(m.uid)===String(uid)&&m.ym===ym)||null;
+}
+
+/* 旬報告テキスト生成 */
+function numsReportText(uid,ym){
+  const nm=numsFor(uid,ym), meta=metaFor(uid,ym)||{};
+  const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+  const L="━━━━━━━━━━━━━━━━";
+  const has=j=>nm[j]!==null;
+  const s=j=>has(j)?nm[j].sales:0, pf=j=>has(j)?nm[j].profit:0;
+  const totS=JUNS.reduce((a,j)=>a+s(j),0), totP=JUNS.reduce((a,j)=>a+pf(j),0);
+  const gS=num(meta.gsales), gP=num(meta.gprofit), exp=num(meta.expense);
+  const netP=totP-exp;
+  let t=`【${ym}の旬報告】\n`;
+  if(meta.gradMonth||meta.gradGoal){
+    t+=`${L}\n卒業目標月：\n・${meta.gradMonth||"未定"}\nそれまでに達成すること：\n・${meta.gradGoal||"—"}\n`;
+  }
+  t+=`${L}\n目標数字： ${gS?yen(gS)+"円":"未設定"}\n`;
+  t+=`　進捗数字： ${yen(totS)}円${gS?`（${(totS/gS*100).toFixed(1)}%）`:""}\n`;
+  JUNS.forEach(j=>{
+    if(gS) t+=`　目標${j}：${yen(gS/3)}円\n`;
+    t+=`　${j}進捗：${has(j)?yen(s(j))+"円":"未取込"}\n`;
+  });
+  t+=`${L}\n目標粗利額：${gP?yen(gP)+"円":"未設定"}\n`;
+  t+=`　進捗：${yen(netP)}円${gP?`（進捗：${(netP/gP*100).toFixed(1)}%）`:""}${totS?`（粗利率：${(netP/totS*100).toFixed(1)}%）`:""}\n`;
+  JUNS.forEach(j=>{
+    if(gP) t+=`　目標${j}：${yen(gP/3)}円\n`;
+    t+=`　${j}進捗：${has(j)?yen(pf(j))+"円":"未取込"}\n`;
+  });
+  if(exp) t+=`　※進捗はその他経費（${yen(exp)}円：月額登録料・FBA保管料等）控除後。旬別は控除前の値です。\n`;
+  if(meta.todo) t+=`${L}\n全体todo\n${meta.todo}\n`;
+  if(meta.todoResult) t+=`${L}\ntodo実績\n${meta.todoResult}\n`;
+  if(meta.good1||meta.good2||meta.good3){
+    t+=`${L}\n＜良かったこと＞\n`;
+    [["上旬",meta.good1],["中旬",meta.good2],["下旬",meta.good3]].forEach(x=>{ if(x[1])t+=`【${x[0]}】\n${x[1]}\n`; });
+  }
+  if(meta.bad1||meta.bad2||meta.bad3){
+    t+=`${L}\n＜反省点＞\n`;
+    [["上旬",meta.bad1],["中旬",meta.bad2],["下旬",meta.bad3]].forEach(x=>{ if(x[1])t+=`【${x[0]}】\n${x[1]}\n`; });
+  }
+  if(meta.stockCnt||meta.stockSales||meta.stockCost){
+    t+=`${L}\n在庫額（FBA在庫）\n`;
+    if(meta.stockCnt) t+=`　在庫数：${yen(meta.stockCnt)}個\n`;
+    if(meta.stockSales) t+=`　販売金額：${yen(meta.stockSales)}円\n`;
+    if(meta.stockCost) t+=`　仕入金額：${yen(meta.stockCost)}円\n`;
+  }
+  return t;
+}
+
+async function renderNums(){
+  const body=document.getElementById("body");
+  if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと数字報告を使えます</div>'; return; }
+  if(!numsMonth) numsMonth=ymNow();
+  if(NUMSALL===null){
+    body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
+    try{ NUMSALL=await jsonp({action:"nall"});}catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; NUMSALL=null; return; }
+    if(chap!==NUMS) return;
+  }
+  const meta=metaFor(me.sid,numsMonth)||{};
+  const nm=numsFor(me.sid,numsMonth);
+  const V=k=>escH(meta[k]||"");
+  let html=`<div class="nbar"><button class="nnav" id="nprev0">◀</button><span class="nmonth">${numsMonth}</span><button class="nnav" id="nnext0">▶</button></div>`;
+
+  html+=`<div class="gpanel"><div class="gph">① 今月の目標</div>
+    <div class="nrow3">
+      <div><label class="glbl">目標月商（円）</label><input class="ginput" id="n_gsales" inputmode="numeric" placeholder="5000000" value="${V("gsales")}"></div>
+      <div><label class="glbl">目標粗利（円）</label><input class="ginput" id="n_gprofit" inputmode="numeric" placeholder="1000000" value="${V("gprofit")}"></div>
+      <div><label class="glbl">その他経費（円・任意）</label><input class="ginput" id="n_expense" inputmode="numeric" placeholder="プライスター経費タブの月額計" value="${V("expense")}"></div>
+    </div></div>`;
+
+  const junCells=j=>{
+    const src=numsParsed?numsParsed[j]:(nm[j]?{sales:nm[j].sales,profit:nm[j].profit,cnt:nm[j].cnt}:null);
+    return src?`<td>${yen(src.sales)}円</td><td>${yen(src.profit)}円</td><td>${yen(src.cnt)}個</td>`:`<td colspan="3" style="color:#c2c8d0">未取込</td>`;
+  };
+  html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
+    <div class="ncsvrow"><button class="gbtn" id="ncsvBtn">CSVを選ぶ</button><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
+    <table class="ntbl"><thead><tr><th></th><th>売上</th><th>粗利</th><th>個数</th></tr></thead><tbody>
+      ${JUNS.map(j=>`<tr><td>${j}</td>${junCells(j)}</tr>`).join("")}
+    </tbody></table>
+    ${numsParsed?`<button class="gbtn" id="nnumSave" style="margin-top:10px">この数字を保存する</button>`:""}
+  </div>`;
+
+  html+=`<div class="gpanel"><div class="gph">③ 行動目標・振り返り <span class="gpn">（書いた分だけ報告に載ります）</span></div>
+    <div class="nrow2">
+      <div><label class="glbl">卒業目標月</label><input class="ginput" id="n_gradMonth" placeholder="例：2027年7月" value="${V("gradMonth")}"></div>
+      <div><label class="glbl">それまでに達成すること</label><input class="ginput" id="n_gradGoal" placeholder="例：店舗での100万粗利の実績" value="${V("gradGoal")}"></div>
+    </div>
+    <label class="glbl">全体todo</label><textarea class="ginput" id="n_todo" rows="2" placeholder="例：・店舗160H">${V("todo")}</textarea>
+    <label class="glbl">todo実績</label><textarea class="ginput" id="n_todoResult" rows="2" placeholder="例：・店舗188H（117.5%）">${V("todoResult")}</textarea>
+    <label class="glbl">良かったこと（上旬）</label><textarea class="ginput" id="n_good1" rows="2">${V("good1")}</textarea>
+    <label class="glbl">良かったこと（中旬）</label><textarea class="ginput" id="n_good2" rows="2">${V("good2")}</textarea>
+    <label class="glbl">良かったこと（下旬）</label><textarea class="ginput" id="n_good3" rows="2">${V("good3")}</textarea>
+    <label class="glbl">反省点（上旬）</label><textarea class="ginput" id="n_bad1" rows="2">${V("bad1")}</textarea>
+    <label class="glbl">反省点（中旬）</label><textarea class="ginput" id="n_bad2" rows="2">${V("bad2")}</textarea>
+    <label class="glbl">反省点（下旬）</label><textarea class="ginput" id="n_bad3" rows="2">${V("bad3")}</textarea>
+    <div class="nrow3">
+      <div><label class="glbl">FBA在庫数（個）</label><input class="ginput" id="n_stockCnt" inputmode="numeric" value="${V("stockCnt")}"></div>
+      <div><label class="glbl">在庫販売金額（円）</label><input class="ginput" id="n_stockSales" inputmode="numeric" value="${V("stockSales")}"></div>
+      <div><label class="glbl">在庫仕入金額（円）</label><input class="ginput" id="n_stockCost" inputmode="numeric" value="${V("stockCost")}"></div>
+    </div>
+    <div style="margin-top:12px"><button class="gbtn" id="nmetaSave">目標と入力内容を保存する</button><span class="gmsg" id="nmetaMsg"></span></div>
+  </div>`;
+
+  html+=`<div class="gpanel"><div class="gph">④ 旬報告プレビュー <span class="gpn">（保存済みの内容から生成）</span></div>
+    <pre class="nprev" id="nprevText">${escH(numsReportText(me.sid,numsMonth))}</pre>
+    <button class="gbtn" id="ncopyBtn">報告テキストをコピー</button><span class="gmsg" id="ncopyMsg"></span>
+  </div>`;
+
+  const memHas=[...new Set(((NUMSALL&&NUMSALL.nums)||[]).filter(n=>n.ym===numsMonth).map(n=>String(n.uid))
+    .concat(((NUMSALL&&NUMSALL.metas)||[]).filter(m=>m.ym===numsMonth).map(m=>String(m.uid))))]
+    .filter(u=>u!==String(me.sid));
+  const memName=u=>{const m=ROSTER.find(x=>String(x.sid)===u);return m?m.name:u;};
+  html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
+    (memHas.length?memHas.map(u=>
+      `<div class="nmem"><div class="nmemh" data-uid="${u}">▶ ${escH(memName(u))}</div><pre class="nprev" style="display:none" data-body="${u}"></pre></div>`).join("")
+      :'<div style="color:#c2c8d0;font-size:13px">まだ誰も報告していません</div>')+`</div>`;
+
+  body.innerHTML=html;
+
+  document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;renderNums();};
+  document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;renderNums();};
+
+  document.getElementById("ncsvBtn").onclick=()=>{
+    const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
+    inp.onchange=async()=>{
+      const f=inp.files[0]; if(!f) return;
+      const msg=document.getElementById("ncsvMsg"); msg.textContent="解析中…";
+      try{
+        const byMonth=await parsePricetar(f);
+        const months=Object.keys(byMonth);
+        let target=numsMonth;
+        if(!byMonth[target]){
+          if(months.length===1){ target=months[0]; numsMonth=target; }
+          else{ msg.textContent=`選択中の${numsMonth}のデータがCSVにありません（含まれる月：${months.join("、")}）`; return; }
+        }
+        numsParsed=byMonth[target];
+        renderNums();
+      }catch(e){ msg.textContent=String(e); }
+    };
+    inp.click();
+  };
+
+  const saveBtn=document.getElementById("nnumSave");
+  if(saveBtn){
+    saveBtn.onclick=async()=>{
+      saveBtn.textContent="保存中…"; saveBtn.disabled=true;
+      const rows=JUNS.map(j=>({jun:j,sales:Math.round(numsParsed[j].sales),profit:Math.round(numsParsed[j].profit),cnt:numsParsed[j].cnt}));
+      try{
+        const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({action:"nnum",pass:PASS,uid:me.sid,name:me.name,ym:numsMonth,rows:rows})});
+        const d=await res.json();
+        if(d&&d.ok){ NUMSALL=null; numsParsed=null; renderNums(); return; }
+        alert("保存に失敗しました："+(d&&d.error||"不明"));
+      }catch(e){ alert("保存に失敗しました。通信環境を確認してください"); }
+      saveBtn.textContent="この数字を保存する"; saveBtn.disabled=false;
+    };
+  }
+
+  document.getElementById("nmetaSave").onclick=async()=>{
+    const btn=document.getElementById("nmetaSave"), msg=document.getElementById("nmetaMsg");
+    btn.disabled=true; msg.textContent="保存中…";
+    const g=id=>document.getElementById(id).value.trim();
+    const bodyData={action:"nsave",pass:PASS,uid:me.sid,name:me.name,ym:numsMonth,
+      gsales:g("n_gsales"),gprofit:g("n_gprofit"),expense:g("n_expense"),
+      gradMonth:g("n_gradMonth"),gradGoal:g("n_gradGoal"),todo:g("n_todo"),todoResult:g("n_todoResult"),
+      good1:g("n_good1"),good2:g("n_good2"),good3:g("n_good3"),
+      bad1:g("n_bad1"),bad2:g("n_bad2"),bad3:g("n_bad3"),
+      stockCnt:g("n_stockCnt"),stockSales:g("n_stockSales"),stockCost:g("n_stockCost")};
+    try{
+      const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(bodyData)});
+      const d=await res.json();
+      if(d&&d.ok){ NUMSALL=null; renderNums(); return; }
+      msg.textContent="保存に失敗しました";
+    }catch(e){ msg.textContent="通信エラー"; }
+    btn.disabled=false;
+  };
+
+  document.getElementById("ncopyBtn").onclick=()=>{
+    const txt=numsReportText(me.sid,numsMonth);
+    const msg=document.getElementById("ncopyMsg");
+    const ok=()=>{msg.textContent="✅ コピーしました。Discordに貼り付けてください";};
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(ok).catch(()=>{prompt("手動でコピーしてください",txt);});
+    } else prompt("手動でコピーしてください",txt);
+  };
+
+  body.querySelectorAll(".nmemh").forEach(h=>{
+    h.onclick=()=>{
+      const pre=body.querySelector(`pre[data-body="${h.dataset.uid}"]`);
+      const open=pre.style.display!=="none";
+      pre.style.display=open?"none":"";
+      h.textContent=(open?"▶ ":"▼ ")+h.textContent.slice(2);
+      if(!open) pre.textContent=numsReportText(h.dataset.uid,numsMonth);
+    };
+  });
 }
 
 let GOALS=null, GOALS_LOADING=false, goalPanelOpen=null; // null=自動（未入力なら開く）
@@ -1305,6 +1588,11 @@ function render(){
   if(chap < DATA.length && chapterHidden(chap)) chap = 0;
   renderTabs();
   const pc=document.querySelector(".progress-card");
+  if(chap===NUMS){
+    pc.style.display="none";
+    renderNums();
+    return;
+  }
   if(chap===BRAND){
     pc.style.display="none";
     const body0=document.getElementById("body"); body0.innerHTML="";
