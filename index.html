@@ -1048,22 +1048,23 @@ async function parsePricetar(file){
   return byMonth;
 }
 
-/* プライスター在庫CSVの解析（列名の揺れに対応） */
+/* プライスター在庫CSVの解析（editUploadProduct形式：number/price/cost。="…"形式や日本語列名にも対応） */
 async function parseZaiko(file){
   const buf=await file.arrayBuffer();
   let text="";
   try{ text=new TextDecoder("shift_jis").decode(buf); }catch(e){}
-  if(!/在庫/.test(text)){ text=new TextDecoder("utf-8").decode(buf); }
+  if(!/number|在庫/.test(text)){ text=new TextDecoder("utf-8").decode(buf); }
   const rows=parseCSV(text);
   if(rows.length<2) throw "データ行がありません";
-  const head=rows[0].map(h=>String(h).trim());
+  const head=rows[0].map(h=>String(h).trim().toLowerCase());
   const find=cands=>{ for(const c of cands){ const i=head.indexOf(c); if(i>=0) return i; }
     for(const c of cands){ const i=head.findIndex(h=>h.indexOf(c)>=0); if(i>=0) return i; } return -1; };
-  const ci={stock:find(["在庫数","在庫"]),price:find(["出品価格","販売価格","価格"]),cost:find(["仕入れ価格","仕入価格","仕入れ値","原価"])};
-  if(ci.stock<0) throw "在庫数の列が見つかりません（このCSVの列名をののに教えてください）";
-  const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+  const ci={stock:find(["number","在庫数","在庫"]),price:find(["price","出品価格","販売価格"]),cost:find(["cost","仕入れ価格","仕入価格","原価"])};
+  if(ci.stock<0) throw "在庫数（number）の列が見つかりません。プライスターの「現在庫のダウンロード」のCSVを選んでください";
+  const num=x=>{const v=parseFloat(String(x).replace(/^="?|"$/g,"").replace(/,/g,""));return isNaN(v)?0:v;};
   let cnt=0,sales=0,cost=0;
   for(let r=1;r<rows.length;r++){
+    if(rows[r].length<=ci.stock) continue;
     const st=num(rows[r][ci.stock]); if(!st) continue;
     cnt+=st;
     if(ci.price>=0) sales+=num(rows[r][ci.price])*st;
