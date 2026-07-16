@@ -283,7 +283,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-16 20:47</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-16 20:56</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -899,7 +899,8 @@ async function renderAdmin(){
     catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">通信エラー</div>'; return; }
     if(d.error){
       localStorage.removeItem("nonocon_admin_key"); ADMIN_KEY=""; adminCache=null;
-      alert("管理キーが無効です"); chap=0; render(); return;
+      body.innerHTML='<div style="text-align:center;color:#c2554d;padding:40px">管理キーが無効です。#admin を付けたURLで開き直してキーを入力してください</div>';
+      return;
     }
     adminCache = d;
     if(chap!==ADMIN) return; // 読み込み中に他タブへ移動した場合
@@ -970,19 +971,30 @@ async function renderAdmin(){
       <td>${badge}</td></tr>`;
   });
   // ステップ別ビュー用のセレクト（章ごとにまとめる）
-  let stepOpts='<option value="">— ステップを選択 —</option>';
-  A_CHAPTERS.forEach(c=>{
-    stepOpts+=`<optgroup label="${c.ch}">`+
-      c.steps.map(([id,label])=>`<option value="${id}" ${adminStepSel===id?"selected":""}>${label}</option>`).join("")+
-      '</optgroup>';
-  });
+  // 章→ステップの2段選択（全項目を1つのプルダウンに入れない）
+  const selChapOf=adminStepSel?(A_CHAPTERS.find(c=>c.steps.some(x=>x[0]===adminStepSel))||null):null;
+  const chapOpts='<option value="">— 章を選択 —</option>'+
+    A_CHAPTERS.map((c,i)=>`<option value="${i}" ${selChapOf===c?"selected":""}>${c.ch}（${c.steps.length}）</option>`).join("");
+  const stepOptsFor=(ci,kw)=>{
+    if(ci===""||ci===null) return '<option value="">— まず章を選んでください —</option>';
+    const c=A_CHAPTERS[+ci]; if(!c) return "";
+    const k=(kw||"").trim();
+    const list=c.steps.filter(x=>!k||x[1].indexOf(k)>=0);
+    return '<option value="">— ステップを選択 —</option>'+
+      list.map(x=>`<option value="${x[0]}" ${adminStepSel===x[0]?"selected":""}>${x[1]}</option>`).join("");
+  };
+  const initChap=selChapOf?A_CHAPTERS.indexOf(selChapOf):"";
   html+=`</tbody></table></div>
     <div class="ahint">行をクリックすると、その受講生のステップ詳細が下に表示されます</div>
     <div id="adetail"></div>
     <div class="adetail" style="display:block;margin-top:16px">
       <h3>📋 ステップ別の完了状況</h3>
-      <select class="ssel" id="stepSel">${stepOpts}</select>
-      <div id="stepResult" class="ahint" style="margin:4px 0 0">ステップを選ぶと、完了した人／未完了の人が表示されます</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select class="ssel" id="chapSel" style="max-width:220px">${chapOpts}</select>
+        <input class="ssel" id="stepKw" placeholder="キーワードで絞り込み" style="max-width:180px" value="">
+        <select class="ssel" id="stepSel" style="max-width:420px">${stepOptsFor(initChap,"")}</select>
+      </div>
+      <div id="stepResult" class="ahint" style="margin:4px 0 0">章を選ぶ→ステップを選ぶと、完了した人／未完了の人が表示されます</div>
     </div>
     <button class="abtn" id="kmatrixBtn" style="margin-top:14px">🔓 ブランド解除マトリクスを表示</button>
     <div id="kmatrixBox"></div>`;
@@ -990,6 +1002,13 @@ async function renderAdmin(){
 
   document.getElementById("areload").onclick=()=>{adminCache=null;renderAdmin();};
   document.getElementById("kmatrixBtn").onclick=renderKaijoMatrix;
+  const refreshSteps=()=>{
+    const ci=document.getElementById("chapSel").value;
+    const kw=document.getElementById("stepKw").value;
+    document.getElementById("stepSel").innerHTML=stepOptsFor(ci,kw);
+  };
+  document.getElementById("chapSel").onchange=refreshSteps;
+  document.getElementById("stepKw").oninput=refreshSteps;
   document.getElementById("stepSel").onchange=e=>{adminStepSel=e.target.value;renderStepView();};
   if(adminStepSel) renderStepView();
   body.querySelectorAll("tbody tr").forEach(tr=>{
