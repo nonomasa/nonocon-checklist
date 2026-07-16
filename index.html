@@ -1139,16 +1139,19 @@ async function renderNums(){
   const gS0=numv(meta.gsales), gP0=numv(meta.gprofit);
   const srcOf=j=>numsParsed?numsParsed[j]:(nm[j]?{sales:nm[j].sales,profit:nm[j].profit,cnt:nm[j].cnt}:null);
   const pctTd=(v,goal)=>goal?`<td class="npct">${(v/goal*100).toFixed(1)}%</td>`:`<td class="npct" style="color:#c2c8d0">—</td>`;
+  // 進捗率は「その旬までの累計 ÷ 月間目標」（上旬で33%・中旬で66%ペースなら月100%）
+  let cumS=0,cumP=0;
   const junRow=j=>{
     const src=srcOf(j);
     if(!src) return `<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">未取込</td></tr>`;
-    return `<tr><td>${j}</td><td>${yen(src.sales)}円</td>${pctTd(src.sales,gS0/3)}<td>${yen(src.profit)}円</td>${pctTd(src.profit,gP0/3)}<td>${yen(src.cnt)}個</td></tr>`;
+    cumS+=src.sales; cumP+=src.profit;
+    return `<tr><td>${j}</td><td>${yen(src.sales)}円</td>${pctTd(cumS,gS0)}<td>${yen(src.profit)}円</td>${pctTd(cumP,gP0)}<td>${yen(src.cnt)}個</td></tr>`;
   };
   const tots=JUNS.reduce((a,j)=>{const x=srcOf(j);if(x){a.s+=x.sales;a.p+=x.profit;a.c+=x.cnt;a.any=true;}return a;},{s:0,p:0,c:0,any:false});
   const totalRow=tots.any?`<tr class="ntotal"><td>合計</td><td>${yen(tots.s)}円</td>${pctTd(tots.s,gS0)}<td>${yen(tots.p)}円</td>${pctTd(tots.p,gP0)}<td>${yen(tots.c)}個</td></tr>`:"";
   html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
     <div class="ncsvrow"><button class="gbtn" id="ncsvBtn">CSVを選ぶ</button><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
-    <table class="ntbl"><thead><tr><th></th><th>売上</th><th>進捗率</th><th>粗利</th><th>進捗率</th><th>個数</th></tr></thead><tbody>
+    <table class="ntbl"><thead><tr><th></th><th>売上</th><th>累計進捗率</th><th>粗利</th><th>累計進捗率</th><th>個数</th></tr></thead><tbody>
       ${JUNS.map(junRow).join("")}${totalRow}
     </tbody></table>
     <div class="nhint">※表の粗利はその他経費の控除前。控除後の月間利益は「みんなの報告」の本文に反映されます</div>
