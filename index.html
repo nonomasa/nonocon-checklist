@@ -114,6 +114,13 @@
     background:#fff;border:1px solid var(--line);border-radius:10px}
   .nmemh:hover{border-color:#cfd5dc}
   .nhint{font-size:10.5px;color:#8a93a3;margin-top:4px;line-height:1.5}
+  .ncard{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .ncardh{font-size:12.5px;font-weight:800;margin-bottom:4px;color:#3d4654;
+    border-left:4px solid var(--accent);padding-left:8px}
+  .nmonth-card{margin-bottom:12px}
+  .njun{align-items:start}
+  .ntotal td{background:#fdf2e9;font-weight:800}
+  .npct{color:#f97316;font-weight:700}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -1052,8 +1059,13 @@ function numsReportText(uid,ym){
   const gS=num(meta.gsales), gP=num(meta.gprofit), exp=num(meta.expense);
   const netP=totP-exp;
   let t=`【${ym}の旬報告】\n`;
-  if(meta.gradMonth||meta.gradGoal){
-    t+=`${L}\n卒業目標月：\n・${meta.gradMonth||"未定"}\nそれまでに達成すること：\n・${meta.gradGoal||"—"}\n`;
+  // メンバー目標（メンバー情報タブの入力）を先頭に
+  const garr=(GOALS&&GOALS[String(uid)])||[];
+  const g=garr.length?garr[garr.length-1]:null;
+  if(g&&(g.num||g.after)){
+    t+=`${L}\n`;
+    if(g.num) t+=`卒業までに達成したい数字：\n・${g.num}\n`;
+    if(g.after) t+=`卒業後にやりたいこと：\n・${g.after}\n`;
   }
   t+=`${L}\n目標数字： ${gS?yen(gS)+"円":"未設定"}\n`;
   t+=`　進捗数字： ${yen(totS)}円${gS?`（${(totS/gS*100).toFixed(1)}%）`:""}\n`;
@@ -1068,8 +1080,18 @@ function numsReportText(uid,ym){
     t+=`　${j}進捗：${has(j)?yen(pf(j))+"円":"未取込"}\n`;
   });
   if(exp) t+=`　※進捗はその他経費（${yen(exp)}円：月額登録料・FBA保管料等）控除後。旬別は控除前の値です。\n`;
-  if(meta.todo) t+=`${L}\n全体todo\n${meta.todo}\n`;
-  if(meta.todoResult) t+=`${L}\ntodo実績\n${meta.todoResult}\n`;
+  // todo（計画→結果）
+  const todoPairs=[["月全体",meta.todo,meta.todoResult],["上旬",meta.todo1,meta.todoR1],
+    ["中旬",meta.todo2,meta.todoR2],["下旬",meta.todo3,meta.todoR3]];
+  if(todoPairs.some(x=>x[1]||x[2])){
+    t+=`${L}\ntodo（計画 → 結果）\n`;
+    todoPairs.forEach(x=>{
+      if(!x[1]&&!x[2]) return;
+      t+=`【${x[0]}】\n`;
+      if(x[1]) t+=`　計画：${x[1]}\n`;
+      if(x[2]) t+=`　結果：${x[2]}\n`;
+    });
+  }
   if(meta.good1||meta.good2||meta.good3){
     t+=`${L}\n＜良かったこと＞\n`;
     [["上旬",meta.good1],["中旬",meta.good2],["下旬",meta.good3]].forEach(x=>{ if(x[1])t+=`【${x[0]}】\n${x[1]}\n`; });
@@ -1096,6 +1118,10 @@ async function renderNums(){
     try{ NUMSALL=await jsonp({action:"nall"});}catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; NUMSALL=null; return; }
     if(chap!==NUMS) return;
   }
+  if(GOALS===null){
+    try{ const gd=await jsonp({action:"gall"}); GOALS={}; (gd.goals||[]).forEach(g=>{ (GOALS[g.uid]=GOALS[g.uid]||[]).push(g); }); }catch(e){ GOALS={}; }
+    if(chap!==NUMS) return;
+  }
   const meta=metaFor(me.sid,numsMonth)||{};
   const nm=numsFor(me.sid,numsMonth);
   const V=k=>escH(meta[k]||"");
@@ -1109,42 +1135,53 @@ async function renderNums(){
       <div class="nhint">未入力時は大口登録料5,390円のみ自動計上。正確にするならプライスター「売上分析」のその他経費の額を転記（FBA保管料・配送料金込み）</div></div>
     </div></div>`;
 
-  const junCells=j=>{
-    const src=numsParsed?numsParsed[j]:(nm[j]?{sales:nm[j].sales,profit:nm[j].profit,cnt:nm[j].cnt}:null);
-    return src?`<td>${yen(src.sales)}円</td><td>${yen(src.profit)}円</td><td>${yen(src.cnt)}個</td>`:`<td colspan="3" style="color:#c2c8d0">未取込</td>`;
+  const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+  const gS0=numv(meta.gsales), gP0=numv(meta.gprofit);
+  const srcOf=j=>numsParsed?numsParsed[j]:(nm[j]?{sales:nm[j].sales,profit:nm[j].profit,cnt:nm[j].cnt}:null);
+  const pctTd=(v,goal)=>goal?`<td class="npct">${(v/goal*100).toFixed(1)}%</td>`:`<td class="npct" style="color:#c2c8d0">—</td>`;
+  const junRow=j=>{
+    const src=srcOf(j);
+    if(!src) return `<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">未取込</td></tr>`;
+    return `<tr><td>${j}</td><td>${yen(src.sales)}円</td>${pctTd(src.sales,gS0/3)}<td>${yen(src.profit)}円</td>${pctTd(src.profit,gP0/3)}<td>${yen(src.cnt)}個</td></tr>`;
   };
+  const tots=JUNS.reduce((a,j)=>{const x=srcOf(j);if(x){a.s+=x.sales;a.p+=x.profit;a.c+=x.cnt;a.any=true;}return a;},{s:0,p:0,c:0,any:false});
+  const totalRow=tots.any?`<tr class="ntotal"><td>合計</td><td>${yen(tots.s)}円</td>${pctTd(tots.s,gS0)}<td>${yen(tots.p)}円</td>${pctTd(tots.p,gP0)}<td>${yen(tots.c)}個</td></tr>`:"";
   html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
     <div class="ncsvrow"><button class="gbtn" id="ncsvBtn">CSVを選ぶ</button><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
-    <table class="ntbl"><thead><tr><th></th><th>売上</th><th>粗利</th><th>個数</th></tr></thead><tbody>
-      ${JUNS.map(j=>`<tr><td>${j}</td>${junCells(j)}</tr>`).join("")}
+    <table class="ntbl"><thead><tr><th></th><th>売上</th><th>進捗率</th><th>粗利</th><th>進捗率</th><th>個数</th></tr></thead><tbody>
+      ${JUNS.map(junRow).join("")}${totalRow}
     </tbody></table>
+    <div class="nhint">※表の粗利はその他経費の控除前。控除後の月間利益は「みんなの報告」の本文に反映されます</div>
     ${numsParsed?`<button class="gbtn" id="nnumSave" style="margin-top:10px">この数字を保存する</button>`:""}
   </div>`;
 
+  const junCard=(label,ti,ri,gi,bi)=>`
+    <div class="ncard">
+      <div class="ncardh">${label}</div>
+      <label class="glbl">todo（計画）</label><textarea class="ginput" id="${ti}" rows="2">${V(ti.slice(2))}</textarea>
+      <label class="glbl">todo結果</label><textarea class="ginput" id="${ri}" rows="2">${V(ri.slice(2))}</textarea>
+      <label class="glbl">良かったこと</label><textarea class="ginput" id="${gi}" rows="2">${V(gi.slice(2))}</textarea>
+      <label class="glbl">反省点</label><textarea class="ginput" id="${bi}" rows="2">${V(bi.slice(2))}</textarea>
+    </div>`;
   html+=`<div class="gpanel"><div class="gph">③ 行動目標・振り返り <span class="gpn">（書いた分だけ報告に載ります）</span></div>
-    <div class="nrow2">
-      <div><label class="glbl">卒業目標月</label><input class="ginput" id="n_gradMonth" placeholder="例：2027年7月" value="${V("gradMonth")}"></div>
-      <div><label class="glbl">それまでに達成すること</label><input class="ginput" id="n_gradGoal" placeholder="例：店舗での100万粗利の実績" value="${V("gradGoal")}"></div>
+    <div class="ncard nmonth-card">
+      <div class="ncardh">月全体</div>
+      <div class="nrow2">
+        <div><label class="glbl">todo（計画）</label><textarea class="ginput" id="n_todo" rows="2" placeholder="例：・店舗160H">${V("todo")}</textarea></div>
+        <div><label class="glbl">todo結果</label><textarea class="ginput" id="n_todoResult" rows="2" placeholder="例：・店舗188H（117.5%）">${V("todoResult")}</textarea></div>
+      </div>
     </div>
-    <label class="glbl">全体todo</label><textarea class="ginput" id="n_todo" rows="2" placeholder="例：・店舗160H">${V("todo")}</textarea>
-    <label class="glbl">todo実績</label><textarea class="ginput" id="n_todoResult" rows="2" placeholder="例：・店舗188H（117.5%）">${V("todoResult")}</textarea>
-    <label class="glbl">良かったこと（上旬）</label><textarea class="ginput" id="n_good1" rows="2">${V("good1")}</textarea>
-    <label class="glbl">良かったこと（中旬）</label><textarea class="ginput" id="n_good2" rows="2">${V("good2")}</textarea>
-    <label class="glbl">良かったこと（下旬）</label><textarea class="ginput" id="n_good3" rows="2">${V("good3")}</textarea>
-    <label class="glbl">反省点（上旬）</label><textarea class="ginput" id="n_bad1" rows="2">${V("bad1")}</textarea>
-    <label class="glbl">反省点（中旬）</label><textarea class="ginput" id="n_bad2" rows="2">${V("bad2")}</textarea>
-    <label class="glbl">反省点（下旬）</label><textarea class="ginput" id="n_bad3" rows="2">${V("bad3")}</textarea>
-    <div class="nrow3">
+    <div class="nrow3 njun">
+      ${junCard("上旬（1〜10日）","n_todo1","n_todoR1","n_good1","n_bad1")}
+      ${junCard("中旬（11〜20日）","n_todo2","n_todoR2","n_good2","n_bad2")}
+      ${junCard("下旬（21日〜末）","n_todo3","n_todoR3","n_good3","n_bad3")}
+    </div>
+    <div class="nrow3" style="margin-top:12px">
       <div><label class="glbl">FBA在庫数（個）</label><input class="ginput" id="n_stockCnt" inputmode="numeric" value="${V("stockCnt")}"></div>
       <div><label class="glbl">在庫販売金額（円）</label><input class="ginput" id="n_stockSales" inputmode="numeric" value="${V("stockSales")}"></div>
       <div><label class="glbl">在庫仕入金額（円）</label><input class="ginput" id="n_stockCost" inputmode="numeric" value="${V("stockCost")}"></div>
     </div>
     <div style="margin-top:12px"><button class="gbtn" id="nmetaSave">目標と入力内容を保存する</button><span class="gmsg" id="nmetaMsg"></span></div>
-  </div>`;
-
-  html+=`<div class="gpanel"><div class="gph">④ 旬報告プレビュー <span class="gpn">（保存済みの内容から生成）</span></div>
-    <pre class="nprev" id="nprevText">${escH(numsReportText(me.sid,numsMonth))}</pre>
-    <button class="gbtn" id="ncopyBtn">報告テキストをコピー</button><span class="gmsg" id="ncopyMsg"></span>
   </div>`;
 
   const memHas=[...new Set(((NUMSALL&&NUMSALL.nums)||[]).filter(n=>n.ym===numsMonth).map(n=>String(n.uid))
@@ -1203,7 +1240,9 @@ async function renderNums(){
     const g=id=>document.getElementById(id).value.trim();
     const bodyData={action:"nsave",pass:PASS,uid:me.sid,name:me.name,ym:numsMonth,
       gsales:g("n_gsales"),gprofit:g("n_gprofit"),expense:g("n_expense"),
-      gradMonth:g("n_gradMonth"),gradGoal:g("n_gradGoal"),todo:g("n_todo"),todoResult:g("n_todoResult"),
+      gradMonth:"",gradGoal:"",todo:g("n_todo"),todoResult:g("n_todoResult"),
+      todo1:g("n_todo1"),todoR1:g("n_todoR1"),todo2:g("n_todo2"),todoR2:g("n_todoR2"),
+      todo3:g("n_todo3"),todoR3:g("n_todoR3"),
       good1:g("n_good1"),good2:g("n_good2"),good3:g("n_good3"),
       bad1:g("n_bad1"),bad2:g("n_bad2"),bad3:g("n_bad3"),
       stockCnt:g("n_stockCnt"),stockSales:g("n_stockSales"),stockCost:g("n_stockCost")};
@@ -1214,15 +1253,6 @@ async function renderNums(){
       msg.textContent="保存に失敗しました";
     }catch(e){ msg.textContent="通信エラー"; }
     btn.disabled=false;
-  };
-
-  document.getElementById("ncopyBtn").onclick=()=>{
-    const txt=numsReportText(me.sid,numsMonth);
-    const msg=document.getElementById("ncopyMsg");
-    const ok=()=>{msg.textContent="✅ コピーしました。Discordに貼り付けてください";};
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).then(ok).catch(()=>{prompt("手動でコピーしてください",txt);});
-    } else prompt("手動でコピーしてください",txt);
   };
 
   body.querySelectorAll(".nmemh").forEach(h=>{
