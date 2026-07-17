@@ -163,6 +163,11 @@
   .drrow{display:grid;grid-template-columns:96px 64px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
   .drrow .ginput{padding:6px 7px;font-size:12px}
+  .dmemwrap{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px}
+  .dmchip{font-size:12px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;
+    color:#5a6472;cursor:pointer;user-select:none}
+  .dmchip:hover{border-color:#cfd5dc}
+  .dmchip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -298,7 +303,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 00:07</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 00:11</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1474,8 +1479,10 @@ async function renderDoko(){
     <div class="nrow3">
       <div><label class="glbl">日付</label><input class="ginput" type="date" id="d_date" value="${editing?escH(editing.date):""}"></div>
       <div><label class="glbl">場所・ルート名</label><input class="ginput" id="d_place" placeholder="例：吉祥寺〜世田谷 家電ルート" value="${editing?escH(editing.place):""}"></div>
-      <div><label class="glbl">参加メンバー</label><input class="ginput" id="d_members" placeholder="例：藤田・北野（募集中もOK）" value="${editing?escH(editing.members):escH(me.name)}"></div>
+      <div><label class="glbl">メンバー補足（任意）</label><input class="ginput" id="d_members_extra" placeholder="例：あと1名募集" value=""></div>
     </div>
+    <label class="glbl">参加メンバー <span class="gpn">（タップで選択）</span></label>
+    <div class="dmemwrap" id="d_members_box"></div>
     <label class="glbl">メモ（任意）</label><input class="ginput" id="d_memo" placeholder="例：10時にドンキ◯◯店集合／あと1名募集" value="${editing?escH(editing.memo):""}">
     <label class="glbl" style="margin-top:10px">ルート表 <span class="gpn">（任意。◎=マスト ○=できれば △=時間があれば。終わった後に実際(分)・見込利益を入れると記録になります）</span></label>
     <div class="droutewrap"><div id="d_route">${(editRoute.length?editRoute:[]).map(drRowHtml).join("")}</div>
@@ -1489,6 +1496,22 @@ async function renderDoko(){
   <div class="gpanel"><div class="gph">過去の同行（${past.length}件）</div>${listHtml(past)}</div>`;
   body.innerHTML=html;
 
+  // 参加メンバーのチップ（現役メンバーから選択）
+  (function(){
+    const box=document.getElementById("d_members_box");
+    const mems=[...ROSTER].sort((a,b)=>{
+      const na=parseInt(a.sid,10), nb=parseInt(b.sid,10);
+      if(isNaN(na)&&isNaN(nb))return 0; if(isNaN(na))return 1; if(isNaN(nb))return -1; return na-nb;
+    });
+    const cur=editing?String(editing.members||"").split(/[・、,\s／]+/).filter(Boolean):[me.name];
+    const known=new Set(mems.map(m=>m.name));
+    box.innerHTML=mems.map(m=>
+      `<span class="dmchip ${cur.includes(m.name)?"on":""}" data-name="${escH(m.name)}">${escH(m.name.replace(/^-/,""))}</span>`).join("");
+    box.querySelectorAll(".dmchip").forEach(c=>{ c.onclick=()=>c.classList.toggle("on"); });
+    // 名簿にない文字列（募集中など）は補足欄へ
+    const extra=cur.filter(x=>!known.has(x)).join("・");
+    if(extra) document.getElementById("d_members_extra").value=extra;
+  })();
   document.querySelectorAll("#d_route .drrow").forEach(bindDrRow);
   refreshRouteTimes();
   document.getElementById("draddBtn").onclick=()=>{
@@ -1517,7 +1540,13 @@ async function renderDoko(){
     btn.disabled=true; msg.textContent="保存中…";
     try{
       const payload={action:"dsave",pass:PASS,uid:me.sid,name:me.name,date:date,
-        place:place,members:document.getElementById("d_members").value.trim(),
+        place:place,
+        members:(()=>{
+          const names=[...document.querySelectorAll("#d_members_box .dmchip.on")].map(c=>c.dataset.name);
+          const ex=document.getElementById("d_members_extra").value.trim();
+          if(ex) names.push(ex);
+          return names.join("・");
+        })(),
         memo:document.getElementById("d_memo").value.trim(),
         route:JSON.stringify(collectRoute())};
       if(dokoEditId) payload.id=dokoEditId;
