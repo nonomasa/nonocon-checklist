@@ -315,7 +315,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 01:48</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 01:54</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1551,7 +1551,7 @@ async function renderDoko(){
       const na=parseInt(a.sid,10), nb=parseInt(b.sid,10);
       if(isNaN(na)&&isNaN(nb))return 0; if(isNaN(na))return 1; if(isNaN(nb))return -1; return na-nb;
     });
-    const cur=editing?String(editing.members||"").split(/[・、,\s／]+/).filter(Boolean):[me.name];
+    const cur=editing?String(editing.members||"").split(/[・、,／]+/).map(x=>x.trim()).filter(Boolean):[me.name];
     const known=new Set(mems.map(m=>m.name));
     box.innerHTML=mems.map(m=>
       `<span class="dmchip ${cur.includes(m.name)?"on":""}" data-name="${escH(m.name)}">${escH(m.name.replace(/^-/,""))}</span>`).join("");
