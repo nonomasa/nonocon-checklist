@@ -160,7 +160,7 @@
   .droutebox{margin-top:10px;overflow-x:auto}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .droutewrap{overflow-x:auto}
-  .drrow{display:grid;grid-template-columns:92px 92px 52px minmax(160px,1.5fr) minmax(90px,1fr) 64px 64px 84px 26px;
+  .drrow{display:grid;grid-template-columns:96px 52px minmax(160px,1.5fr) minmax(90px,1fr) 64px 64px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
   .drrow .ginput{padding:6px 7px;font-size:12px}
   .kup:hover{border-color:#f97316;color:#f97316}
@@ -298,7 +298,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-17 23:49</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 00:02</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1334,8 +1334,7 @@ function drRowHtml(it){
   it=it||{s:"",e:"",m:"",n:"",k:"",p:"",a:"",r:""};
   const mOpts=["","◎","○","△"].map(o=>`<option ${o===(it.m||"")?"selected":""}>${o}</option>`).join("");
   return `<div class="drrow">
-    <input class="ginput drs" type="time" value="${escH(it.s)}" title="開始">
-    <input class="ginput dre" type="time" value="${escH(it.e)}" title="終了">
+    <input class="ginput drs" type="time" value="${escH(it.s)}" title="開始時刻">
     <select class="ginput drm" title="マスト">${mOpts}</select>
     <input class="ginput drn" placeholder="店名・場所名" value="${escH(it.n)}">
     <input class="ginput drk" placeholder="種類" value="${escH(it.k)}">
@@ -1350,20 +1349,27 @@ function collectRoute(){
   const box=document.getElementById("d_route");
   if(!box) return [];
   return [...box.querySelectorAll(".drrow")].map(r=>({
-    s:r.querySelector(".drs").value, e:r.querySelector(".dre").value,
+    s:r.querySelector(".drs").value,
     m:r.querySelector(".drm").value, n:r.querySelector(".drn").value.trim(),
     k:r.querySelector(".drk").value.trim(), p:r.querySelector(".drp").value.trim(),
     a:r.querySelector(".dra").value.trim(), r:r.querySelector(".drr").value.trim()
   })).filter(x=>x.n);
+}
+function addMinutes(hm,min){
+  const m=String(hm).match(/^(\d{1,2}):(\d{2})$/); if(!m||!min) return "";
+  const t=(+m[1])*60+(+m[2])+Math.round(min);
+  return ("0"+Math.floor(t/60)%24).slice(-2)+":"+("0"+t%60).slice(-2);
 }
 function routeTableHtml(route){
   if(!route.length) return "";
   const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
   const tp=route.reduce((a,x)=>a+num(x.p),0), ta=route.reduce((a,x)=>a+num(x.a),0), tr=route.reduce((a,x)=>a+num(x.r),0);
   return `<table class="ntbl drtbl"><thead><tr><th>時間</th><th>マスト</th><th>店名・場所名</th><th>種類</th><th>予定(分)</th><th>実際(分)</th><th>見込利益(円)</th></tr></thead><tbody>`+
-    route.map(x=>`<tr><td style="white-space:nowrap">${escH(x.s)}${x.e?`〜${escH(x.e)}`:""}</td>`+
+    route.map(x=>{
+      const end=x.e||addMinutes(x.s,num(x.a)||num(x.p));
+      return `<tr><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
       `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${escH(x.n)}</td><td style="text-align:left">${escH(x.k)}</td>`+
-      `<td>${x.p?escH(x.p):""}</td><td>${x.a?escH(x.a):""}</td><td>${x.r?yen(x.r)+"円":""}</td></tr>`).join("")+
+      `<td>${x.p?escH(x.p):""}</td><td>${x.a?escH(x.a):""}</td><td>${x.r?yen(x.r)+"円":""}</td></tr>`;}).join("")+
     `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${ta||""}</td><td>${tr?yen(tr)+"円":""}</td></tr>`+
     `</tbody></table>`;
 }
