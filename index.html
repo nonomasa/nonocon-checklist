@@ -160,7 +160,7 @@
   .droutebox{margin-top:10px;overflow-x:auto}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .droutewrap{overflow-x:auto}
-  .drrow{display:grid;grid-template-columns:96px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 64px 84px 26px;
+  .drrow{display:grid;grid-template-columns:96px 64px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
   .drrow .ginput{padding:6px 7px;font-size:12px}
   .kup:hover{border-color:#f97316;color:#f97316}
@@ -298,7 +298,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 00:05</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 00:07</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1364,19 +1364,39 @@ function drRowHtml(it){
   const mOpts=["","◎","○","△"].map(o=>`<option ${o===(it.m||"")?"selected":""}>${o}</option>`).join("");
   const chSel=it.ch===""&&it.n?"__free__":(it.ch||"");
   return `<div class="drrow">
-    <input class="ginput drs" type="time" value="${escH(it.s)}" title="開始時刻">
+    <input class="ginput drs" type="time" min="09:00" max="22:00" value="${escH(it.s)}" title="開始時刻（9:00〜22:00）">
+    <input class="ginput drp" inputmode="numeric" placeholder="予定分" value="${escH(it.p)}" title="滞在予定（分）">
     <select class="ginput drm" title="マスト">${mOpts}</select>
     <select class="ginput drc" title="チェーン">${drChainOpts(chSel)}</select>
     <input class="ginput drn" placeholder="支店名・場所（例：吉祥寺店）" value="${escH(it.n)}">
     <input class="ginput drk" placeholder="種類（自動）" value="${escH(it.k)}">
-    <input class="ginput drp" inputmode="numeric" placeholder="予定分" value="${escH(it.p)}">
     <input class="ginput dra" inputmode="numeric" placeholder="実際分" value="${escH(it.a)}">
     <input class="ginput drr" inputmode="numeric" placeholder="見込利益" value="${escH(it.r)}">
     <button type="button" class="tdel drdel" title="削除">×</button>
   </div>`;
 }
+/* 各行の開始時刻の下限＝前の店の終了時刻（開始＋予定分）。全体は9:00〜22:00 */
+function refreshRouteTimes(){
+  const box=document.getElementById("d_route");
+  if(!box) return;
+  let prevEnd="";
+  [...box.querySelectorAll(".drrow")].forEach(row=>{
+    const inp=row.querySelector(".drs");
+    const lower=(prevEnd&&prevEnd>"09:00")?prevEnd:"09:00";
+    inp.min=lower;
+    if(inp.value){
+      if(inp.value<lower) inp.value=lower;
+      if(inp.value>"22:00") inp.value="22:00";
+    }
+    const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+    const end=addMinutes(inp.value,num(row.querySelector(".drp").value));
+    if(end) prevEnd=end;
+  });
+}
 function bindDrRow(row){
-  row.querySelector(".drdel").onclick=()=>row.remove();
+  row.querySelector(".drdel").onclick=()=>{ row.remove(); refreshRouteTimes(); };
+  row.querySelector(".drs").onchange=refreshRouteTimes;
+  row.querySelector(".drp").oninput=refreshRouteTimes;
   row.querySelector(".drc").onchange=e=>{
     const found=DR_CHAINS.find(x=>x[0]===e.target.value);
     if(found) row.querySelector(".drk").value=found[1];
@@ -1470,10 +1490,21 @@ async function renderDoko(){
   body.innerHTML=html;
 
   document.querySelectorAll("#d_route .drrow").forEach(bindDrRow);
+  refreshRouteTimes();
   document.getElementById("draddBtn").onclick=()=>{
     const box=document.getElementById("d_route");
-    box.insertAdjacentHTML("beforeend",drRowHtml());
+    // 前の店の終了時刻（開始＋予定分）を新しい行の開始時刻に自動セット
+    let preset="";
+    const rowsNow=box.querySelectorAll(".drrow");
+    if(rowsNow.length){
+      const last=rowsNow[rowsNow.length-1];
+      const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+      preset=addMinutes(last.querySelector(".drs").value,num(last.querySelector(".drp").value));
+      if(preset>"22:00") preset="22:00";
+    }
+    box.insertAdjacentHTML("beforeend",drRowHtml({s:preset}));
     bindDrRow(box.lastElementChild);
+    refreshRouteTimes();
   };
   if(document.getElementById("dcancelBtn")){
     document.getElementById("dcancelBtn").onclick=()=>{ dokoEditId=null; renderDoko(); };
