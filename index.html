@@ -160,7 +160,7 @@
   .droutebox{margin-top:10px;overflow-x:auto}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .droutewrap{overflow-x:auto}
-  .drrow{display:grid;grid-template-columns:96px 52px minmax(160px,1.5fr) minmax(90px,1fr) 64px 64px 84px 26px;
+  .drrow{display:grid;grid-template-columns:96px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 64px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
   .drrow .ginput{padding:6px 7px;font-size:12px}
   .kup:hover{border-color:#f97316;color:#f97316}
@@ -298,7 +298,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 00:02</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 00:05</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1330,30 +1330,73 @@ function parseRoute(v){
   try{ const a=JSON.parse(v); if(Array.isArray(a)) return a; }catch(e){}
   return [];
 }
+const DR_CHAINS=[
+  ["ヤマダデンキ","家電量販"],["ケーズデンキ","家電量販"],["エディオン","家電量販"],["ジョーシン","家電量販"],
+  ["ビックカメラ","家電量販"],["コジマ","家電量販"],["ソフマップ","家電量販"],["ヨドバシカメラ","家電量販"],
+  ["ベスト電器","家電量販"],["ノジマ","家電量販"],["PCデポ","家電量販"],["100満ボルト","家電量販"],
+  ["ドン・キホーテ","ディスカウント"],["MEGAドン・キホーテ","ディスカウント"],["ミスターマックス","ディスカウント"],
+  ["ダイレックス","ディスカウント"],["トライアル","ディスカウント"],["コストコ","ディスカウント"],["ルミエール","ディスカウント"],
+  ["カインズ","ホームセンター"],["コーナン","ホームセンター"],["DCM","ホームセンター"],["コメリ","ホームセンター"],
+  ["ナフコ","ホームセンター"],["ビバホーム","ホームセンター"],["ロイヤルホームセンター","ホームセンター"],
+  ["グッデイ","ホームセンター"],["ハンズマン","ホームセンター"],["ムサシ","ホームセンター"],
+  ["スーパースポーツゼビオ","スポーツ"],["スポーツデポ","スポーツ"],["アルペン","スポーツ"],["ヒマラヤ","スポーツ"],
+  ["スポーツオーソリティ","スポーツ"],["ヴィクトリア","スポーツ"],
+  ["トイザらス","おもちゃ"],["西松屋","子供用品"],["バースデイ","子供用品"],["アカチャンホンポ","子供用品"],
+  ["マツモトキヨシ","ドラッグ"],["コスモス","ドラッグ"],["ウエルシア","ドラッグ"],["スギ薬局","ドラッグ"],
+  ["セカンドストリート","リサイクル"],["ハードオフ","リサイクル"],["トレジャーファクトリー","リサイクル"],["ブックオフ","リサイクル"],
+  ["オートバックス","カー用品"],["イエローハット","カー用品"],
+  ["イオン","総合スーパー"],["イトーヨーカドー","総合スーパー"],
+  ["しまむら","衣料"],["ワークマン","衣料"],
+  ["キャスティング","釣具"],["ポイント（釣具）","釣具"],
+  ["ロフト","雑貨"],["ハンズ","雑貨"]
+];
+function drChainOpts(sel){
+  const byKind={};
+  DR_CHAINS.forEach(x=>{ (byKind[x[1]]=byKind[x[1]]||[]).push(x[0]); });
+  let h='<option value="">チェーンを選択</option><option value="__free__" '+(sel==="__free__"?"selected":"")+'>その他（自由入力）</option>';
+  Object.keys(byKind).forEach(k=>{
+    h+=`<optgroup label="${k}">`+byKind[k].map(c=>`<option ${c===sel?"selected":""}>${c}</option>`).join("")+`</optgroup>`;
+  });
+  return h;
+}
 function drRowHtml(it){
-  it=it||{s:"",e:"",m:"",n:"",k:"",p:"",a:"",r:""};
+  it=it||{s:"",e:"",m:"",ch:"",n:"",k:"",p:"",a:"",r:""};
   const mOpts=["","◎","○","△"].map(o=>`<option ${o===(it.m||"")?"selected":""}>${o}</option>`).join("");
+  const chSel=it.ch===""&&it.n?"__free__":(it.ch||"");
   return `<div class="drrow">
     <input class="ginput drs" type="time" value="${escH(it.s)}" title="開始時刻">
     <select class="ginput drm" title="マスト">${mOpts}</select>
-    <input class="ginput drn" placeholder="店名・場所名" value="${escH(it.n)}">
-    <input class="ginput drk" placeholder="種類" value="${escH(it.k)}">
+    <select class="ginput drc" title="チェーン">${drChainOpts(chSel)}</select>
+    <input class="ginput drn" placeholder="支店名・場所（例：吉祥寺店）" value="${escH(it.n)}">
+    <input class="ginput drk" placeholder="種類（自動）" value="${escH(it.k)}">
     <input class="ginput drp" inputmode="numeric" placeholder="予定分" value="${escH(it.p)}">
     <input class="ginput dra" inputmode="numeric" placeholder="実際分" value="${escH(it.a)}">
     <input class="ginput drr" inputmode="numeric" placeholder="見込利益" value="${escH(it.r)}">
     <button type="button" class="tdel drdel" title="削除">×</button>
   </div>`;
 }
-function bindDrRow(row){ row.querySelector(".drdel").onclick=()=>row.remove(); }
+function bindDrRow(row){
+  row.querySelector(".drdel").onclick=()=>row.remove();
+  row.querySelector(".drc").onchange=e=>{
+    const found=DR_CHAINS.find(x=>x[0]===e.target.value);
+    if(found) row.querySelector(".drk").value=found[1];
+    else if(e.target.value==="") row.querySelector(".drk").value="";
+  };
+}
 function collectRoute(){
   const box=document.getElementById("d_route");
   if(!box) return [];
-  return [...box.querySelectorAll(".drrow")].map(r=>({
-    s:r.querySelector(".drs").value,
-    m:r.querySelector(".drm").value, n:r.querySelector(".drn").value.trim(),
-    k:r.querySelector(".drk").value.trim(), p:r.querySelector(".drp").value.trim(),
-    a:r.querySelector(".dra").value.trim(), r:r.querySelector(".drr").value.trim()
-  })).filter(x=>x.n);
+  return [...box.querySelectorAll(".drrow")].map(r=>{
+    const cv=r.querySelector(".drc").value;
+    return {
+      s:r.querySelector(".drs").value,
+      m:r.querySelector(".drm").value,
+      ch:(cv==="__free__"||cv==="")?"":cv,
+      n:r.querySelector(".drn").value.trim(),
+      k:r.querySelector(".drk").value.trim(), p:r.querySelector(".drp").value.trim(),
+      a:r.querySelector(".dra").value.trim(), r:r.querySelector(".drr").value.trim()
+    };
+  }).filter(x=>x.ch||x.n);
 }
 function addMinutes(hm,min){
   const m=String(hm).match(/^(\d{1,2}):(\d{2})$/); if(!m||!min) return "";
@@ -1367,8 +1410,9 @@ function routeTableHtml(route){
   return `<table class="ntbl drtbl"><thead><tr><th>時間</th><th>マスト</th><th>店名・場所名</th><th>種類</th><th>予定(分)</th><th>実際(分)</th><th>見込利益(円)</th></tr></thead><tbody>`+
     route.map(x=>{
       const end=x.e||addMinutes(x.s,num(x.a)||num(x.p));
+      const nm=(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
       return `<tr><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
-      `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${escH(x.n)}</td><td style="text-align:left">${escH(x.k)}</td>`+
+      `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${escH(nm)}</td><td style="text-align:left">${escH(x.k)}</td>`+
       `<td>${x.p?escH(x.p):""}</td><td>${x.a?escH(x.a):""}</td><td>${x.r?yen(x.r)+"円":""}</td></tr>`;}).join("")+
     `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${ta||""}</td><td>${tr?yen(tr)+"円":""}</td></tr>`+
     `</tbody></table>`;
