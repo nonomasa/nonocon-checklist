@@ -160,7 +160,7 @@
   .droutebox{margin-top:10px;overflow-x:auto}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .droutewrap{overflow-x:auto}
-  .drrow{display:grid;grid-template-columns:118px 64px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
+  .drrow{display:grid;grid-template-columns:118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
   .drrow .ginput{padding:6px 7px;font-size:12px}
   .dmemwrap{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px}
@@ -171,6 +171,8 @@
   .drtime{display:flex;align-items:center;gap:2px}
   .drtime select{padding:6px 4px;font-size:12px}
   .drcolon{color:var(--sub)}
+  .drend{font-size:12px;color:var(--sub);align-self:center;white-space:nowrap}
+  .drk[readonly]{background:#eef1f5;color:#6b7686;pointer-events:none}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -306,7 +308,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 01:26</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 01:34</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1396,13 +1398,18 @@ function drRowHtml(it){
   it=it||{s:"",e:"",m:"",ch:"",n:"",k:"",p:"",a:"",r:""};
   const mOpts=["","◎","○","△"].map(o=>`<option ${o===(it.m||"")?"selected":""}>${o}</option>`).join("");
   const chSel=it.ch===""&&it.n?"__free__":(it.ch||"");
+  const pOpts=['<option value="">予定分数</option>']
+    .concat(["15","30","60","120"].concat((it.p&&!["15","30","60","120"].includes(String(it.p)))?[String(it.p)]:[])
+      .map(v=>`<option ${String(it.p)===v?"selected":""}>${v}</option>`)).join("");
+  const chainKnown=!!DR_CHAINS.find(x=>x[0]===(it.ch||""));
   return `<div class="drrow">
     ${drTimeSelects(it.s)}
-    <input class="ginput drp" inputmode="numeric" placeholder="予定分" value="${escH(it.p)}" title="滞在予定（分）">
+    <select class="ginput drp" title="予定分数">${pOpts}</select>
+    <span class="drend"></span>
     <select class="ginput drm" title="マスト">${mOpts}</select>
     <select class="ginput drc" title="チェーン">${drChainOpts(chSel)}</select>
     <input class="ginput drn" placeholder="支店名・場所（例：吉祥寺店）" value="${escH(it.n)}">
-    <input class="ginput drk" placeholder="種類（自動）" value="${escH(it.k)}">
+    <input class="ginput drk" placeholder="種類（自動）" value="${escH(it.k)}" ${chainKnown?"readonly":""}>
     <input class="ginput dra" inputmode="numeric" placeholder="実際分" value="${escH(it.a)}">
     <input class="ginput drr" inputmode="numeric" placeholder="見込利益" value="${escH(it.r)}">
     <button type="button" class="tdel drdel" title="削除">×</button>
@@ -1419,6 +1426,7 @@ function refreshRouteTimes(){
     if(cur&&cur<lower) setDrTime(row,lower); // 前の店の終了時刻より前は選べない
     const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
     const end=addMinutes(getDrTime(row),num(row.querySelector(".drp").value));
+    row.querySelector(".drend").textContent=end?("〜"+end):"";
     if(end) prevEnd=end;
   });
 }
@@ -1426,11 +1434,12 @@ function bindDrRow(row){
   row.querySelector(".drdel").onclick=()=>{ row.remove(); refreshRouteTimes(); };
   row.querySelector(".drsh").onchange=refreshRouteTimes;
   row.querySelector(".drsm").onchange=refreshRouteTimes;
-  row.querySelector(".drp").oninput=refreshRouteTimes;
+  row.querySelector(".drp").onchange=refreshRouteTimes;
   row.querySelector(".drc").onchange=e=>{
     const found=DR_CHAINS.find(x=>x[0]===e.target.value);
-    if(found) row.querySelector(".drk").value=found[1];
-    else if(e.target.value==="") row.querySelector(".drk").value="";
+    const k=row.querySelector(".drk");
+    if(found){ k.value=found[1]; k.readOnly=true; }
+    else{ k.readOnly=false; if(e.target.value==="") k.value=""; }
   };
 }
 function collectRoute(){
