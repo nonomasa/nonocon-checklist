@@ -160,7 +160,7 @@
   .droutebox{margin-top:10px;overflow-x:auto}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .droutewrap{overflow-x:auto}
-  .drrow{display:grid;grid-template-columns:96px 64px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
+  .drrow{display:grid;grid-template-columns:118px 64px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
   .drrow .ginput{padding:6px 7px;font-size:12px}
   .dmemwrap{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px}
@@ -168,6 +168,9 @@
     color:#5a6472;cursor:pointer;user-select:none}
   .dmchip:hover{border-color:#cfd5dc}
   .dmchip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .drtime{display:flex;align-items:center;gap:2px}
+  .drtime select{padding:6px 4px;font-size:12px}
+  .drcolon{color:var(--sub)}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -303,7 +306,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 00:11</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 01:26</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1364,12 +1367,37 @@ function drChainOpts(sel){
   });
   return h;
 }
+function drTimeSelects(val){
+  const m=String(val||"").match(/^(\d{1,2}):(\d{2})$/);
+  const hh=m?("0"+(+m[1])).slice(-2):"", mm=m?m[2]:"";
+  let h='<select class="ginput drsh" title="時"><option value="">--</option>';
+  for(let x=9;x<=21;x++){const v=("0"+x).slice(-2);h+=`<option ${v===hh?"selected":""}>${v}</option>`;}
+  h+='</select><span class="drcolon">:</span><select class="ginput drsm" title="分">';
+  for(let x=0;x<60;x+=5){const v=("0"+x).slice(-2);h+=`<option ${v===(mm||"00")?"selected":""}>${v}</option>`;}
+  h+='</select>';
+  return `<span class="drtime">${h}</span>`;
+}
+function getDrTime(row){
+  const h=row.querySelector(".drsh").value;
+  if(!h) return "";
+  return h+":"+row.querySelector(".drsm").value;
+}
+function setDrTime(row,val){
+  const m=String(val||"").match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return;
+  let hh=+m[1], mm=Math.ceil((+m[2])/5)*5;
+  if(mm>=60){ mm=0; hh++; }
+  if(hh>21){ hh=21; mm=55; }
+  if(hh<9){ hh=9; mm=0; }
+  row.querySelector(".drsh").value=("0"+hh).slice(-2);
+  row.querySelector(".drsm").value=("0"+mm).slice(-2);
+}
 function drRowHtml(it){
   it=it||{s:"",e:"",m:"",ch:"",n:"",k:"",p:"",a:"",r:""};
   const mOpts=["","◎","○","△"].map(o=>`<option ${o===(it.m||"")?"selected":""}>${o}</option>`).join("");
   const chSel=it.ch===""&&it.n?"__free__":(it.ch||"");
   return `<div class="drrow">
-    <input class="ginput drs" type="time" min="09:00" max="22:00" value="${escH(it.s)}" title="開始時刻（9:00〜22:00）">
+    ${drTimeSelects(it.s)}
     <input class="ginput drp" inputmode="numeric" placeholder="予定分" value="${escH(it.p)}" title="滞在予定（分）">
     <select class="ginput drm" title="マスト">${mOpts}</select>
     <select class="ginput drc" title="チェーン">${drChainOpts(chSel)}</select>
@@ -1386,21 +1414,18 @@ function refreshRouteTimes(){
   if(!box) return;
   let prevEnd="";
   [...box.querySelectorAll(".drrow")].forEach(row=>{
-    const inp=row.querySelector(".drs");
     const lower=(prevEnd&&prevEnd>"09:00")?prevEnd:"09:00";
-    inp.min=lower;
-    if(inp.value){
-      if(inp.value<lower) inp.value=lower;
-      if(inp.value>"22:00") inp.value="22:00";
-    }
+    const cur=getDrTime(row);
+    if(cur&&cur<lower) setDrTime(row,lower); // 前の店の終了時刻より前は選べない
     const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
-    const end=addMinutes(inp.value,num(row.querySelector(".drp").value));
+    const end=addMinutes(getDrTime(row),num(row.querySelector(".drp").value));
     if(end) prevEnd=end;
   });
 }
 function bindDrRow(row){
   row.querySelector(".drdel").onclick=()=>{ row.remove(); refreshRouteTimes(); };
-  row.querySelector(".drs").onchange=refreshRouteTimes;
+  row.querySelector(".drsh").onchange=refreshRouteTimes;
+  row.querySelector(".drsm").onchange=refreshRouteTimes;
   row.querySelector(".drp").oninput=refreshRouteTimes;
   row.querySelector(".drc").onchange=e=>{
     const found=DR_CHAINS.find(x=>x[0]===e.target.value);
@@ -1414,7 +1439,7 @@ function collectRoute(){
   return [...box.querySelectorAll(".drrow")].map(r=>{
     const cv=r.querySelector(".drc").value;
     return {
-      s:r.querySelector(".drs").value,
+      s:getDrTime(r),
       m:r.querySelector(".drm").value,
       ch:(cv==="__free__"||cv==="")?"":cv,
       n:r.querySelector(".drn").value.trim(),
@@ -1522,11 +1547,11 @@ async function renderDoko(){
     if(rowsNow.length){
       const last=rowsNow[rowsNow.length-1];
       const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
-      preset=addMinutes(last.querySelector(".drs").value,num(last.querySelector(".drp").value));
-      if(preset>"22:00") preset="22:00";
+      preset=addMinutes(getDrTime(last),num(last.querySelector(".drp").value));
     }
     box.insertAdjacentHTML("beforeend",drRowHtml({s:preset}));
     bindDrRow(box.lastElementChild);
+    if(preset) setDrTime(box.lastElementChild,preset);
     refreshRouteTimes();
   };
   if(document.getElementById("dcancelBtn")){
