@@ -160,7 +160,7 @@
   .droutebox{margin-top:10px;overflow-x:auto}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .droutewrap{overflow-x:auto}
-  .drrow{display:grid;grid-template-columns:118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
+  .drrow{display:grid;grid-template-columns:26px 118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
   .drrow .ginput{padding:6px 7px;font-size:12px}
   .dmemwrap{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px}
@@ -172,6 +172,13 @@
   .drtime select{padding:6px 4px;font-size:12px}
   .drcolon{color:var(--sub)}
   .drend{font-size:12px;color:var(--sub);align-self:center;white-space:nowrap}
+  .drin{width:24px;height:30px;align-self:center;border:1px dashed #c9cfd7;border-radius:6px;background:#fff;
+    color:#c2c8d0;cursor:pointer;font-size:12px;line-height:1}
+  .drin:hover{border-color:#f97316;color:#f97316}
+  .drin.on{border-style:solid;border-color:#f97316;background:#fff4ec;color:#f97316;font-weight:700}
+  .drrow.in{margin-left:30px}
+  .drin-nm{padding-left:16px;color:#3d4654}
+  tr.drin-row td{background:#fbfcfe}
   .drk[readonly]{background:#eef1f5;color:#6b7686;pointer-events:none}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
@@ -308,7 +315,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 01:45</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 01:48</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1402,7 +1409,8 @@ function drRowHtml(it){
     .concat(["15","30","60","90","120"].concat((it.p&&!["15","30","60","90","120"].includes(String(it.p)))?[String(it.p)]:[])
       .map(v=>`<option ${String(it.p)===v?"selected":""}>${v}</option>`)).join("");
   const chainKnown=!!DR_CHAINS.find(x=>x[0]===(it.ch||""));
-  return `<div class="drrow">
+  return `<div class="drrow${it.in?" in":""}">
+    <button type="button" class="drin ${it.in?"on":""}" title="モール内の店舗（押すと1階層下がる）">└</button>
     ${drTimeSelects(it.s)}
     <select class="ginput drp" title="予定分数">${pOpts}</select>
     <span class="drend"></span>
@@ -1432,6 +1440,10 @@ function refreshRouteTimes(){
 }
 function bindDrRow(row){
   row.querySelector(".drdel").onclick=()=>{ row.remove(); refreshRouteTimes(); };
+  row.querySelector(".drin").onclick=e=>{
+    row.classList.toggle("in");
+    e.target.classList.toggle("on");
+  };
   row.querySelector(".drsh").onchange=refreshRouteTimes;
   row.querySelector(".drsm").onchange=refreshRouteTimes;
   row.querySelector(".drp").onchange=refreshRouteTimes;
@@ -1449,6 +1461,7 @@ function collectRoute(){
     const cv=r.querySelector(".drc").value;
     return {
       s:getDrTime(r),
+      in:r.classList.contains("in")?1:0,
       m:r.querySelector(".drm").value,
       ch:(cv==="__free__"||cv==="")?"":cv,
       n:r.querySelector(".drn").value.trim(),
@@ -1470,8 +1483,9 @@ function routeTableHtml(route){
     route.map(x=>{
       const end=x.e||addMinutes(x.s,num(x.a)||num(x.p));
       const nm=(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
-      return `<tr><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
-      `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${escH(nm)}</td><td style="text-align:left">${escH(x.k)}</td>`+
+      const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
+      return `<tr${x.in?' class="drin-row"':""}><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
+      `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}</td><td style="text-align:left">${escH(x.k)}</td>`+
       `<td>${x.p?escH(x.p):""}</td><td>${x.a?escH(x.a):""}</td><td>${x.r?yen(x.r)+"円":""}</td></tr>`;}).join("")+
     `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${ta||""}</td><td>${tr?yen(tr)+"円":""}</td></tr>`+
     `</tbody></table>`;
