@@ -148,6 +148,9 @@
   .rtdh{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:5px;display:flex;gap:10px;align-items:center}
   .rtdrow{font-size:13px;line-height:1.8}
   .rtdc{color:var(--sub);font-size:12px}
+  .ddel{font-size:11px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;
+    color:#8a93a3;cursor:pointer}
+  .ddel:hover{border-color:#dc2626;color:#dc2626}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -283,7 +286,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-16 22:44</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-17 23:26</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -851,10 +854,11 @@ function chapStats(ci){
   return {t,d};
 }
 const NUMS    = DATA.length;   // 数字報告タブ
-const BRAND   = DATA.length+1; // ブランド解除タブ
-const PALL    = DATA.length+2; // みんなの進捗タブ
-const MEMBERS = DATA.length+3; // メンバー情報タブ
-const ADMIN   = DATA.length+4; // 管理タブ（キー保持者のみ表示）
+const DOKO    = DATA.length+1; // 店舗同行タブ
+const BRAND   = DATA.length+2; // ブランド解除タブ
+const PALL    = DATA.length+3; // みんなの進捗タブ
+const MEMBERS = DATA.length+4; // メンバー情報タブ
+const ADMIN   = DATA.length+5; // 管理タブ（キー保持者のみ表示）
 let pallCache = null;          // みんなの進捗のキャッシュ
 let adminStepSel = "";         // 管理：ステップ別ビューで選択中のステップID
 let lvFilter = 0;              // ステージフィルタ（0=すべて, 1〜3=⭐の数）
@@ -886,6 +890,11 @@ function renderTabs(){
   nb.innerHTML=`数字報告`;
   nb.onclick=()=>{chap=NUMS;render();};
   el.appendChild(nb);
+  const db=document.createElement("button");
+  db.className="tab"+(chap===DOKO?" on":"");
+  db.innerHTML=`店舗同行`;
+  db.onclick=()=>{chap=DOKO;render();};
+  el.appendChild(db);
   const kb=document.createElement("button");
   kb.className="tab"+(chap===BRAND?" on":"");
   kb.innerHTML=`ブランド解除`;
@@ -1292,6 +1301,82 @@ function numsReportHtml(uid,ym){
   }
 
   return h||'<div style="color:#c2c8d0;font-size:13px">まだ入力がありません</div>';
+}
+
+/* ---------- 店舗同行タブ ---------- */
+let DOKOALL=null;
+function dokoDateLabel(ds){
+  const m=String(ds).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return escH(ds);
+  const d=new Date(+m[1],+m[2]-1,+m[3]);
+  const w=["日","月","火","水","木","金","土"][d.getDay()];
+  return `${+m[2]}/${+m[3]}（${w}）`;
+}
+async function renderDoko(){
+  const body=document.getElementById("body");
+  if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと同行の登録・閲覧ができます</div>'; return; }
+  if(DOKOALL===null){
+    body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
+    try{ const d=await jsonp({action:"dall"}); DOKOALL=(d&&d.rows)||[]; }
+    catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; DOKOALL=null; return; }
+    if(chap!==DOKO) return;
+  }
+  const today=new Date(); today.setHours(0,0,0,0);
+  const rows=[...DOKOALL].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const future=rows.filter(r=>{const d=new Date(r.date); return !isNaN(d)&&d>=today;});
+  const past=rows.filter(r=>{const d=new Date(r.date); return isNaN(d)||d<today;}).reverse();
+  const rowHtml=r=>`<tr>
+    <td style="white-space:nowrap;font-weight:700">${dokoDateLabel(r.date)}</td>
+    <td>${escH(r.place)}</td>
+    <td>${escH(r.members)||"—"}</td>
+    <td style="color:var(--sub)">${escH(r.memo)||""}</td>
+    <td>${String(r.uid)===String(me.sid)||ADMIN_KEY?`<button class="ddel" data-id="${r.id}">削除</button>`:""}</td></tr>`;
+  const tbl=list=>list.length?`<div class="apanel mpanel"><table>
+      <thead><tr><th>日付</th><th>場所・ルート</th><th>参加メンバー</th><th>メモ</th><th></th></tr></thead>
+      <tbody>${list.map(rowHtml).join("")}</tbody></table></div>`
+    :'<div style="color:#c2c8d0;font-size:13px;padding:6px 2px">まだ登録がありません</div>';
+  let html=`<div class="gpanel"><div class="gph">🚗 同行を登録 <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。メンバーのエリアはメンバー情報タブで）</span></div>
+    <div class="nrow3">
+      <div><label class="glbl">日付</label><input class="ginput" type="date" id="d_date"></div>
+      <div><label class="glbl">場所・ルート</label><input class="ginput" id="d_place" placeholder="例：福岡市内 家電量販店ルート"></div>
+      <div><label class="glbl">参加メンバー</label><input class="ginput" id="d_members" placeholder="例：藤田・北野（募集中もOK）" value="${escH(me.name)}"></div>
+    </div>
+    <label class="glbl">メモ（任意）</label><input class="ginput" id="d_memo" placeholder="例：10時にドンキ◯◯店集合／あと1名募集">
+    <div style="margin-top:10px"><button class="gbtn" id="dsaveBtn">登録する</button><span class="gmsg" id="dmsg"></span></div>
+  </div>
+  <div class="gpanel"><div class="gph">これからの同行（${future.length}件）</div>${tbl(future)}</div>
+  <div class="gpanel"><div class="gph">過去の同行（${past.length}件）</div>${tbl(past)}</div>`;
+  body.innerHTML=html;
+
+  document.getElementById("dsaveBtn").onclick=async()=>{
+    const btn=document.getElementById("dsaveBtn"), msg=document.getElementById("dmsg");
+    const date=document.getElementById("d_date").value;
+    const place=document.getElementById("d_place").value.trim();
+    if(!date||!place){ msg.textContent="日付と場所を入れてください"; return; }
+    btn.disabled=true; msg.textContent="登録中…";
+    try{
+      const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"dsave",pass:PASS,uid:me.sid,name:me.name,date:date,
+          place:place,members:document.getElementById("d_members").value.trim(),
+          memo:document.getElementById("d_memo").value.trim()})})).json();
+      if(d&&d.ok){ DOKOALL=null; renderDoko(); return; }
+      msg.textContent="登録に失敗しました："+(d&&d.error||"不明");
+    }catch(e){ msg.textContent="通信エラー"; }
+    btn.disabled=false;
+  };
+  body.querySelectorAll(".ddel").forEach(b=>{
+    b.onclick=async()=>{
+      if(!confirm("この同行予定を削除しますか？")) return;
+      b.disabled=true;
+      try{
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({action:"ddel",pass:PASS,uid:me.sid,key:ADMIN_KEY||"",id:b.dataset.id})})).json();
+        if(d&&d.ok){ DOKOALL=null; renderDoko(); return; }
+        alert(d&&d.error||"削除に失敗しました");
+      }catch(e){ alert("通信エラー"); }
+      b.disabled=false;
+    };
+  });
 }
 
 /* 未保存の入力値を退避（CSV取り込みなど同じ月内での再描画専用。月切り替えでは呼ばない） */
@@ -1851,6 +1936,11 @@ function render(){
   if(chap===NUMS){
     pc.style.display="none";
     renderNums();
+    return;
+  }
+  if(chap===DOKO){
+    pc.style.display="none";
+    renderDoko();
     return;
   }
   if(chap===BRAND){
