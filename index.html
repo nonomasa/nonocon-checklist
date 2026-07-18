@@ -157,6 +157,7 @@
   .ddate{font-weight:800;white-space:nowrap}
   .dplace{font-weight:600}
   .dmeta{font-size:12.5px;color:var(--sub);margin-top:4px}
+  .dwho{font-size:10.5px;color:#b6bdc7;margin-top:3px}
   .droutebox{margin-top:10px;overflow-x:auto}
   .drevbox{margin-top:10px;background:#fafbfc;border:1px solid var(--line);border-radius:8px;
     padding:12px 14px;font-size:12.5px;line-height:1.8;white-space:pre-wrap}
@@ -321,7 +322,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 09:34</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 09:36</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1578,6 +1579,7 @@ async function renderDoko(){
         ${(mine||ADMIN_KEY)?`<button class="ddel" data-id="${r.id}">削除</button>`:""}
       </div>
       <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　📝 ${escH(r.memo)}`:""}</div>
+      <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
       ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${routeTableHtml(route)}</div>`:""}
       ${r.review?`<div class="drevbox" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
     </div>`;
@@ -2353,7 +2355,7 @@ document.getElementById("vreload").onclick=e=>{
   location.replace(location.pathname+"?v="+Date.now()+location.hash); // キャッシュを避けて読み直す
 };
 
-if(location.hash==="#admin" && ADMIN_KEY) chap=ADMIN; // 管理者はそのまま管理タブへ
+// リロード時は常に準備タブから（#adminは管理キー入力のトリガーとしてだけ使う）
 initIdent();
 </script>
 </body>
