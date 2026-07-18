@@ -158,6 +158,8 @@
   .dplace{font-weight:600}
   .dmeta{font-size:12.5px;color:var(--sub);margin-top:4px}
   .droutebox{margin-top:10px;overflow-x:auto}
+  .drevbox{margin-top:10px;background:#fafbfc;border:1px solid var(--line);border-radius:8px;
+    padding:12px 14px;font-size:12.5px;line-height:1.8;white-space:pre-wrap}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .droutewrap{overflow-x:auto}
   .drrow{display:grid;grid-template-columns:26px 118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
@@ -315,7 +317,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 08:35</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 09:22</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1512,12 +1514,14 @@ async function renderDoko(){
         <span class="ddate">${dokoDateLabel(r.date)}</span>
         <span class="dplace">${escH(r.place)}</span>
         ${route.length?`<button class="dtoggle" data-id="${r.id}">🗺 ルート表（${route.length}店舗）▼</button>`:""}
+        ${r.review?`<button class="dtoggle drev" data-rev="${r.id}">📖 振り返り ▼</button>`:""}
         <span style="flex:1"></span>
         <button class="dedit" data-id="${r.id}">編集</button>
         ${(mine||ADMIN_KEY)?`<button class="ddel" data-id="${r.id}">削除</button>`:""}
       </div>
       <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　📝 ${escH(r.memo)}`:""}</div>
       ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${routeTableHtml(route)}</div>`:""}
+      ${r.review?`<div class="drevbox" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
     </div>`;
   };
   const listHtml=list=>list.length?list.map(entryHtml).join("")
@@ -1532,6 +1536,7 @@ async function renderDoko(){
     <label class="glbl">参加メンバー <span class="gpn">（タップで選択）</span></label>
     <div class="dmemwrap" id="d_members_box"></div>
     <label class="glbl">メモ（任意）</label><input class="ginput" id="d_memo" placeholder="例：10時にドンキ◯◯店集合／あと1名募集" value="${editing?escH(editing.memo):""}">
+    <label class="glbl">振り返り（同行後に記入）</label><textarea class="ginput" id="d_review" rows="3" placeholder="同行のまとめ・学び・良かったこと/反省点など">${editing?escH(editing.review||""):""}</textarea>
     <label class="glbl" style="margin-top:10px">ルート表 <span class="gpn">（任意。◎=マスト ○=できれば △=時間があれば。終わった後に実際(分)・見込利益を入れると記録になります）</span></label>
     <div class="droutewrap"><div id="d_route">${(editRoute.length?editRoute:[]).map(drRowHtml).join("")}</div>
     <button type="button" class="tdadd" id="draddBtn">＋ 店舗を追加</button></div>
@@ -1596,6 +1601,7 @@ async function renderDoko(){
           return names.join("・");
         })(),
         memo:document.getElementById("d_memo").value.trim(),
+        review:document.getElementById("d_review").value.trim(),
         route:JSON.stringify(collectRoute())};
       if(dokoEditId) payload.id=dokoEditId;
       const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
@@ -1607,7 +1613,9 @@ async function renderDoko(){
   };
   body.querySelectorAll(".dtoggle").forEach(b=>{
     b.onclick=()=>{
-      const el=body.querySelector(`div[data-route="${b.dataset.id}"]`);
+      const el=b.classList.contains("drev")
+        ? body.querySelector(`div[data-revbody="${b.dataset.rev}"]`)
+        : body.querySelector(`div[data-route="${b.dataset.id}"]`);
       const open=el.style.display!=="none";
       el.style.display=open?"none":"";
       b.textContent=b.textContent.replace(open?"▲":"▼",open?"▼":"▲");
