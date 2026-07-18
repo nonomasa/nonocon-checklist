@@ -160,6 +160,10 @@
   .droutebox{margin-top:10px;overflow-x:auto}
   .drevbox{margin-top:10px;background:#fafbfc;border:1px solid var(--line);border-radius:8px;
     padding:12px 14px;font-size:12.5px;line-height:1.8;white-space:pre-wrap}
+  .dmatome{font-size:13px;line-height:1.8;margin-top:10px}
+  .dmatome h4{font-size:13px;margin:14px 0 6px;color:#3d4654;border-left:4px solid var(--accent);padding-left:8px}
+  .dmatome ul{padding-left:20px;margin:0}
+  .dmatome li{margin-bottom:3px}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .droutewrap{overflow-x:auto}
   .drrow{display:grid;grid-template-columns:26px 118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
@@ -317,7 +321,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-18 09:29</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-18 09:34</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1335,6 +1339,59 @@ function numsReportHtml(uid,ym){
 }
 
 /* ---------- 店舗同行タブ ---------- */
+const DOKO_MATOME=`
+<div class="dmatome">
+<h4>🔑 何度も出てくる最重要ポイント</h4>
+<ul>
+<li><b>動線は全部歩く</b>— 見ないものを決めない。JANがある物は全て仕入れ対象、端・棚上・棚下・エンドまで</li>
+<li><b>商品知識と相場観が全て</b>— 相場感がつくとビーム回数が減る→滞在短縮→店舗数増→利益増</li>
+<li><b>小型軽量（低価格FBA）を積極活用</b>— 1,000円以下は約66円引き、750円未満は手数料5%。ライバルがスルーする分を拾う</li>
+<li><b>空売り／テスト販売は1点から</b>— 1個→売れたら5個→リピート積み。縦積みは他店・他販路も確認</li>
+<li><b>利益率20%以上が基準・回転良ければ下回りOK</b>— 利確が正義（1年後の3,000円より1ヶ月後の320円）</li>
+<li><b>店舗数を稼ぐ</b>— 1店舗5,000円×20店舗で10万。1店舗に固執せず淡々と、一喜一憂しない</li>
+<li><b>店舗の癖を見極める</b>— ワゴン集約型か棚に割引散在型かで回り方を変える。来訪日をマップに記録</li>
+<li><b>判断を言語化して反復</b>— 売れていない商品は仕入れない。同行中は録音必須、迷ったら相談</li>
+</ul>
+<h4>リサーチ・店内の回り方</h4>
+<ul>
+<li>ゴールデンゾーン（目線の高さ）は現行品。利益商品は端・棚上・棚下・値札なしに多い</li>
+<li>通常札もザッと見て相場感を鍛え「一角だけ高い＝人気メーカー」等の違和感に気づく</li>
+<li>似た商品が並ぶ棚は大きさ・容量で価格を捉え、外れ値だけ検索＝全頭と同じ効果（水筒・HDD・ケーブル）</li>
+<li>レジ落ち確認：古い紙値札・更新日をチェック、アプリで価格確認、店員に「いくらですか」（聞きすぎ注意）</li>
+<li>客の前でピコピコしない（客からも通報されうる）。写真は消音アプリで</li>
+<li>JANが13桁ない時は頭に0を足す／読めない時はGoogleレンズ・型番検索</li>
+</ul>
+<h4>仕入れ判断</h4>
+<ul>
+<li>Keepa波形は3ヶ月・1年・全体で見る。ランキング変動・出品者増減・カート付近の在庫数</li>
+<li>廃盤の先の波形を予測（現行C20なら前はB20→廃盤で値上がりの可能性）。ポテンシャルで判断</li>
+<li>Amazonが切れた/直近で切れた場合、ミニマムで利益が出るなら自己配でチャレンジOK</li>
+<li>複数買いされる商品は自己配（縦に詰める）、単発薄利はFBAだと保管・廃棄料で赤字リスク</li>
+<li>知財が飛びそうなコスメ系は1個→FBAで様子見、問題なければ数を入れる</li>
+<li>回転の悪い低額商品はメルカリまとめ売り／リサイクルショップも選択肢</li>
+</ul>
+<h4>チェーン・売場別の気づき</h4>
+<ul>
+<li><b>ドンキ</b>：2始まりバーコードは店舗独自＝利益の可能性大。布・靴下・アダルト・酒も見る。店舗ごとに価格が違う</li>
+<li><b>ヤマダ</b>：廃盤ゲー。最高級10万/高級5万/普通3万でグレード把握。プリンター・レゴは寝かせ候補</li>
+<li><b>ケーズ</b>：緑札＝廃盤、赤札＝最終価格で全頭。季節家電が強い。市場クラッシャーになるな</li>
+<li><b>コジマ</b>：紙札の価格はあてにならない。必ずビックカメラアプリで確認</li>
+<li><b>コストコ</b>：セット品内のJANも見る、日にち限定値引きが熱い、平日にマーケ担当へ挨拶</li>
+<li><b>トイザらス</b>：末尾8=廃盤・7=セール・6=最終価格。LEGOは製造年で寝かせ、トミカ/リカちゃんは番号被り＝片方廃盤</li>
+<li><b>TSUTAYA/書店</b>：カレンダー・手帳は1月が狙い目、雑誌バックナンバー80%オフ全頭</li>
+<li><b>スポーツ系</b>：50%オフ中心、靴はサイズ1点物・30%以上。ゴルフはドライバー5万/ウッド3万/アイアン2万/パター2万</li>
+</ul>
+<h4>出品・販路・その他</h4>
+<ul>
+<li>自己配はダンボールに伝票直貼りでOK。長物・細物は安い送料枠を狙う</li>
+<li>一度売れるとSEO有利。縦積みは最初安く売って徐々に値上げも手</li>
+<li>Amazonに拘らずメルカリ等で売れるなら仕入れ対象。CDは出品不可・DVDは可</li>
+<li>高単価家電は返品・資金圧迫リスクを避け、大手の買取店活用も選択肢</li>
+<li>カメラ本体は保証印でAmazon不可。一般/管理医療機器は要許可</li>
+</ul>
+</div>`;
+
+
 let DOKOALL=null;
 let dokoEditId=null;   // 編集中の同行ID（nullなら新規）
 function dokoDateLabel(ds){
@@ -1528,7 +1585,9 @@ async function renderDoko(){
   const listHtml=list=>list.length?list.map(entryHtml).join("")
     :'<div style="color:#c2c8d0;font-size:13px;padding:6px 2px">まだ登録がありません</div>';
   const editRoute=editing?parseRoute(editing.route):[];
-  let html=`<div class="gpanel"><div class="gph">${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
+  let html=`<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">▶</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
+    <div id="dmatomeB" style="display:none">${DOKO_MATOME}</div></div>`;
+  html+=`<div class="gpanel"><div class="gph">${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
     <div class="nrow3">
       <div><label class="glbl">日付</label><input class="ginput" type="date" id="d_date" value="${editing?escH(editing.date):""}"></div>
       <div><label class="glbl">場所・ルート名</label><input class="ginput" id="d_place" placeholder="例：吉祥寺〜世田谷 家電ルート" value="${editing?escH(editing.place):""}"></div>
@@ -1566,6 +1625,12 @@ async function renderDoko(){
     const extra=cur.filter(x=>!known.has(x)).join("・");
     if(extra) document.getElementById("d_members_extra").value=extra;
   })();
+  document.getElementById("dmatomeT").onclick=()=>{
+    const b=document.getElementById("dmatomeB");
+    const open=b.style.display!=="none";
+    b.style.display=open?"none":"";
+    document.querySelector("#dmatomeT .caret").textContent=open?"▶":"▼";
+  };
   document.querySelectorAll("#d_route .drrow").forEach(bindDrRow);
   refreshRouteTimes();
   document.getElementById("draddBtn").onclick=()=>{
