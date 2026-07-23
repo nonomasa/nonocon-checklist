@@ -322,7 +322,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-23 14:44</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-23 20:09</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1106,7 +1106,7 @@ let NUMSALL=null;          // {nums:[], metas:[]}
 let numsMonth=null;        // 表示中の年月 "2026年7月"
 let numsParsed=null;       // CSV解析結果 {上旬:{sales,profit,cnt},...}
 let numsDraft=null;        // 未保存の入力値（再描画で消えないように保持）
-const NKEYS=["gsales","gprofit","expense","todo","todoResult","todo1","todoR1","todo2","todoR2",
+const NKEYS=["gsales","gprofit","expense","gsales2","gprofit2","todo","todoResult","todo1","todoR1","todo2","todoR2",
   "todo3","todoR3","good1","good2","good3","bad1","bad2","bad3","stockCnt","stockSales","stockCost"];
 const JUNS=["上旬","中旬","下旬"];
 const yen=v=>(Math.round(Number(v)||0)).toLocaleString();
@@ -1271,7 +1271,9 @@ function numsReportHtml(uid,ym){
   const totS=JUNS.reduce((a,j)=>a+(has(j)?nm[j].sales:0),0);
   const totP=JUNS.reduce((a,j)=>a+(has(j)?nm[j].profit:0),0);
   const totC=JUNS.reduce((a,j)=>a+(has(j)?nm[j].cnt:0),0);
-  const gS=num(meta.gsales), gP=num(meta.gprofit), exp=num(meta.expense);
+  const gS1=num(meta.gsales), gP1=num(meta.gprofit), exp=num(meta.expense);
+  const gS2=num(meta.gsales2), gP2=num(meta.gprofit2);
+  const gS=gS2||gS1, gP=gP2||gP1; // 進捗率は修正目標があればそちら基準
   const netP=totP-exp;
   const anyNum=JUNS.some(has);
   let h="";
@@ -1286,9 +1288,13 @@ function numsReportHtml(uid,ym){
   }
 
   // サマリー
+  const gsLabel=gS2?` / 当初 ${yen(gS1)}円（${gS1?(totS/gS1*100).toFixed(1):0}%）→ <b>修正 ${yen(gS2)}円（<b class="npct">${(totS/gS2*100).toFixed(1)}%</b>）</b>`
+    :(gS1?` / 目標 ${yen(gS1)}円（<b class="npct">${(totS/gS1*100).toFixed(1)}%</b>）`:"");
+  const gpLabel=gP2?` / 当初 ${yen(gP1)}円（${gP1?(netP/gP1*100).toFixed(1):0}%）→ <b>修正 ${yen(gP2)}円（<b class="npct">${(netP/gP2*100).toFixed(1)}%</b>）</b>`
+    :(gP1?` / 目標 ${yen(gP1)}円（<b class="npct">${(netP/gP1*100).toFixed(1)}%</b>）`:"");
   h+=`<div class="nrsum">`+
-    `<div class="nrsumi"><span>月商</span><b>${yen(totS)}円</b>${gS?` / 目標 ${yen(gS)}円（<b class="npct">${(totS/gS*100).toFixed(1)}%</b>）`:""}</div>`+
-    `<div class="nrsumi"><span>粗利${exp?"（経費控除後）":""}</span><b>${yen(netP)}円</b>${gP?` / 目標 ${yen(gP)}円（<b class="npct">${(netP/gP*100).toFixed(1)}%</b>）`:""}${totS?`　粗利率 ${(netP/totS*100).toFixed(1)}%`:""}</div>`+
+    `<div class="nrsumi"><span>月商</span><b>${yen(totS)}円</b>${gsLabel}</div>`+
+    `<div class="nrsumi"><span>粗利${exp?"（経費控除後）":""}</span><b>${yen(netP)}円</b>${gpLabel}${totS?`　粗利率 ${(netP/totS*100).toFixed(1)}%`:""}</div>`+
     `</div>`;
 
   // 旬別テーブル（累計進捗率）
@@ -1741,10 +1747,16 @@ async function renderNums(){
       <div><label class="glbl">目標粗利（円）</label><input class="ginput" id="n_gprofit" inputmode="numeric" placeholder="1000000" value="${V("gprofit")}"></div>
       <div><label class="glbl">その他経費（円）</label><input class="ginput" id="n_expense" inputmode="numeric" value="${(numsDraft&&numsDraft.expense!==undefined)?V("expense"):(meta.expense?V("expense"):"5390")}">
       <div class="nhint">未入力時は大口登録料5,390円のみ自動計上。正確にするならプライスター「売上分析」のその他経費の額を転記（FBA保管料・配送料金込み）</div></div>
+    </div>
+    <div class="nrow3" style="margin-top:10px">
+      <div><label class="glbl">修正目標月商（円・任意）</label><input class="ginput" id="n_gsales2" inputmode="numeric" placeholder="旬の途中で見直したら入力" value="${V("gsales2")}"></div>
+      <div><label class="glbl">修正目標粗利（円・任意）</label><input class="ginput" id="n_gprofit2" inputmode="numeric" placeholder="当初目標は残ります" value="${V("gprofit2")}"></div>
+      <div><div class="nhint" style="margin-top:22px">上旬・中旬で数字がズレた時の立て直し用。入力すると進捗率は修正目標ベースになり、当初目標も並記されます</div></div>
     </div></div>`;
 
   const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
-  const gS0=numv(meta.gsales), gP0=numv(meta.gprofit);
+  const gS1=numv(meta.gsales), gP1=numv(meta.gprofit);
+  const gS0=numv(meta.gsales2)||gS1, gP0=numv(meta.gprofit2)||gP1; // 修正目標があれば優先
   const srcOf=j=>numsParsed?numsParsed[j]:(nm[j]?{sales:nm[j].sales,profit:nm[j].profit,cnt:nm[j].cnt}:null);
   const pctTd=(v,goal)=>goal?`<td class="npct">${(v/goal*100).toFixed(1)}%</td>`:`<td class="npct" style="color:#c2c8d0">—</td>`;
   // 進捗率は「その旬までの累計 ÷ 月間目標」（上旬で33%・中旬で66%ペースなら月100%）
@@ -1764,7 +1776,7 @@ async function renderNums(){
     <table class="ntbl"><thead><tr><th></th><th>売上</th><th>累計進捗率</th><th>粗利</th><th>累計進捗率</th><th>個数</th></tr></thead><tbody>
       ${JUNS.map(junRow).join("")}${totalRow}
     </tbody></table>
-    <div class="nhint">※表の粗利はその他経費の控除前。控除後の月間利益は「みんなの報告」の本文に反映されます</div>
+    <div class="nhint">※表の粗利はその他経費の控除前。控除後の月間利益は「みんなの報告」の本文に反映されます${(numv(meta.gsales2)||numv(meta.gprofit2))?`<br>※進捗率は修正目標ベース（当初目標：月商${yen(gS1)}円／粗利${yen(gP1)}円）`:""}</div>
     ${numsParsed?`<button class="gbtn" id="nnumSave" style="margin-top:10px">保存する</button>`:""}
   </div>`;
 
