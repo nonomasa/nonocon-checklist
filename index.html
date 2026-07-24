@@ -185,6 +185,7 @@
   .drlegend{font-size:10.5px;color:#8a93a3;margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
   .dr-chg-legend{color:#2563eb;font-weight:700}
   .dr-skip-legend{color:#b6bdc7;text-decoration:line-through}
+  .dr-old{color:#b6bdc7;text-decoration:line-through;font-weight:400}
   .droutewrap{overflow-x:auto}
   .drrow{display:grid;grid-template-columns:26px 118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
@@ -341,7 +342,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 14:45</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 14:56</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1628,16 +1629,25 @@ function routeMergedHtml(actual, plan){
     let cls="", mustCell=escH(x.m||"");
     if(kind==="added"){ cls="dr-add"; mustCell=`<span class="dr-touban">当</span>`; }
     else if(kind==="skipped"){ cls="dr-skip"; }
-    // 変更セル判定（計画と実際で時刻/予定分が違えばそのセルだけ青）
-    const chg=(a,b)=>(p0&&kind==="kept"&&String(a)!==String(b))?"dr-chg":"";
-    const timeChg=p0&&kind==="kept"&&(x.s!==p0.s||drNum(x.p)!==drNum(p0.p))?"dr-chg":"";
-    const pChg=p0&&kind==="kept"&&drNum(x.p)!==drNum(p0.p)?"dr-chg":"";
+    // 時間セル：変更なら元の時間帯を取り消し線で残す
+    const timeStr=`${escH(x.s)}${end?`〜${escH(end)}`:""}`;
+    let timeCell=timeStr, timeChg="";
+    if(p0&&kind==="kept"){
+      const pEnd=addMinutes(p0.s,drNum(p0.p));
+      const pStr=`${escH(p0.s)}${pEnd?`〜${escH(pEnd)}`:""}`;
+      if(pStr!==timeStr){ timeChg="dr-chg"; timeCell=`<span class="dr-old">${pStr}</span><br>${timeStr}`; }
+    }
+    // 予定分セル：変更なら元の分を取り消し線で残す
+    let pCell=x.p?escH(x.p):"", pChg="";
+    if(p0&&kind==="kept"&&drNum(x.p)!==drNum(p0.p)){
+      pChg="dr-chg"; pCell=`<span class="dr-old">${escH(p0.p)}</span> ${x.p?escH(x.p):""}`;
+    }
     body+=`<tr class="${cls}${x.in?" drin-row":""}">`+
-      `<td style="white-space:nowrap" class="${timeChg}">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
+      `<td style="white-space:nowrap" class="${timeChg}">${timeCell}</td>`+
       `<td style="text-align:center">${mustCell}</td>`+
       `<td style="text-align:left">${nmCell}</td>`+
       `<td style="text-align:left">${escH(x.k)}</td>`+
-      `<td class="${pChg}">${x.p?escH(x.p):""}</td>`+
+      `<td class="${pChg}">${pCell}</td>`+
       `<td>${x.r?yen(x.r)+"円":""}</td></tr>`;
   });
   return `<table class="ntbl drtbl"><thead><tr><th>時間</th><th>マスト</th><th>店名・場所名</th><th>種類</th><th>予定(分)</th><th>見込利益(円)</th></tr></thead><tbody>`+
