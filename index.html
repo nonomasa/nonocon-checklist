@@ -333,7 +333,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 14:04</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 14:07</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1414,6 +1414,7 @@ const DOKO_MATOME=`
 
 let DOKOALL=null;
 let dokoEditId=null;   // 編集中の同行ID（nullなら新規）
+let dokoOpen={form:false, future:true, past:true}; // 各セクションの開閉
 function dokoDateLabel(ds){
   const m=String(ds).match(/(\d{4})-(\d{2})-(\d{2})/);
   if(!m) return escH(ds);
@@ -1638,7 +1639,9 @@ async function renderDoko(){
   const editRoute=editing?parseRoute(editing.route):[];
   let html=`<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">▶</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
     <div id="dmatomeB" style="display:none">${DOKO_MATOME}</div></div>`;
-  html+=`<div class="gpanel"><div class="gph">${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
+  const formOpen=editing?true:dokoOpen.form;
+  html+=`<div class="gpanel"><div class="gph gtoggle" id="dformT"><span class="caret">${formOpen?"▼":"▶"}</span> ${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
+    <div id="dformB" style="${formOpen?"":"display:none"}">
     <div class="nrow3">
       <div><label class="glbl">日付</label><input class="ginput" type="date" id="d_date" value="${editing?escH(editing.date):""}"></div>
       <div><label class="glbl">場所・ルート名</label><input class="ginput" id="d_place" placeholder="例：吉祥寺〜世田谷 家電ルート" value="${editing?escH(editing.place):""}"></div>
@@ -1655,9 +1658,10 @@ async function renderDoko(){
       <button class="gbtn" id="dsaveBtn">${editing?"更新する":"登録する"}</button>
       ${editing?`<button class="gbtn" id="dcancelBtn" style="background:#8a93a3">編集をやめる</button>`:""}
       <span class="gmsg" id="dmsg"></span></div>
+    </div>
   </div>
-  <div class="gpanel"><div class="gph">これからの同行（${future.length}件）</div>${listHtml(future)}</div>
-  <div class="gpanel"><div class="gph">過去の同行（${past.length}件）</div>${listHtml(past)}</div>`;
+  <div class="gpanel"><div class="gph gtoggle" id="dfutureT"><span class="caret">${dokoOpen.future?"▼":"▶"}</span> これからの同行（${future.length}件）</div><div id="dfutureB" style="${dokoOpen.future?"":"display:none"}">${listHtml(future)}</div></div>
+  <div class="gpanel"><div class="gph gtoggle" id="dpastT"><span class="caret">${dokoOpen.past?"▼":"▶"}</span> 過去の同行（${past.length}件）</div><div id="dpastB" style="${dokoOpen.past?"":"display:none"}">${listHtml(past)}</div></div>`;
   body.innerHTML=html;
 
   // 参加メンバーのチップ（現役メンバーから選択）
@@ -1676,12 +1680,21 @@ async function renderDoko(){
     const extra=cur.filter(x=>!known.has(x)).join("・");
     if(extra) document.getElementById("d_members_extra").value=extra;
   })();
-  document.getElementById("dmatomeT").onclick=()=>{
-    const b=document.getElementById("dmatomeB");
-    const open=b.style.display!=="none";
-    b.style.display=open?"none":"";
-    document.querySelector("#dmatomeT .caret").textContent=open?"▶":"▼";
+  const secToggle=(tid,bid,key)=>{
+    const t=document.getElementById(tid);
+    if(!t) return;
+    t.onclick=()=>{
+      const b=document.getElementById(bid);
+      const open=b.style.display!=="none";
+      b.style.display=open?"none":"";
+      t.querySelector(".caret").textContent=open?"▶":"▼";
+      if(key) dokoOpen[key]=!open;
+    };
   };
+  secToggle("dmatomeT","dmatomeB",null);
+  secToggle("dformT","dformB","form");
+  secToggle("dfutureT","dfutureB","future");
+  secToggle("dpastT","dpastB","past");
   document.querySelectorAll("#d_route .drrow").forEach(bindDrRow);
   refreshRouteTimes();
   document.getElementById("draddBtn").onclick=()=>{
