@@ -197,7 +197,7 @@
   .drrow.in{margin-left:30px}
   .drin-nm{padding-left:16px;color:#3d4654}
   tr.drin-row td{background:#fbfcfe}
-  .drk[readonly]{background:#eef1f5;color:#6b7686;pointer-events:none}
+  .drk[disabled]{background:#eef1f5;color:#6b7686}
   .kup:hover{border-color:#f97316;color:#f97316}
   .kpanel{max-height:78vh}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
@@ -333,7 +333,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 14:34</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 14:40</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1450,6 +1450,15 @@ const DR_CHAINS=[
   ["島村楽器","楽器/音楽"],["山野楽器","楽器/音楽"],["イシバシ楽器","楽器/音楽"],["タワーレコード","楽器/音楽"],
   ["ペットショップCoo&RIKU","ペット用品"],["ペットフォレスト","ペット用品"],["アミーゴ","ペット用品"],["ジョーカー","ペット用品"]
 ];
+function drKindOpts(sel){
+  const base=[];
+  DR_CHAINS.forEach(x=>{ if(base.indexOf(x[1])<0) base.push(x[1]); });
+  const extra=["書店","食品スーパー","100円ショップ","家具・インテリア","ホビー","メディア","その他"];
+  extra.forEach(k=>{ if(base.indexOf(k)<0) base.push(k); });
+  const cur=sel||"";
+  if(cur&&base.indexOf(cur)<0) base.push(cur);
+  return '<option value="">種類</option>'+base.map(k=>`<option ${k===cur?"selected":""}>${k}</option>`).join("");
+}
 function drChainOpts(sel){
   const byKind={};
   DR_CHAINS.forEach(x=>{ (byKind[x[1]]=byKind[x[1]]||[]).push(x[0]); });
@@ -1500,7 +1509,7 @@ function drRowHtml(it){
     <select class="ginput drm" title="マスト">${mOpts}</select>
     <select class="ginput drc" title="チェーン">${drChainOpts(chSel)}</select>
     <input class="ginput drn" placeholder="支店名・場所（例：吉祥寺店）" value="${escH(it.n)}">
-    <input class="ginput drk" placeholder="種類（自動）" value="${escH(it.k)}" ${chainKnown?"readonly":""}>
+    <select class="ginput drk" title="種類" ${chainKnown?"disabled":""}>${drKindOpts(it.k)}</select>
     <input class="ginput dra" inputmode="numeric" placeholder="実際分" value="${escH(it.a)}">
     <input class="ginput drr" inputmode="numeric" placeholder="見込利益" value="${escH(it.r)}">
     <button type="button" class="tdel drdel" title="削除">×</button>
@@ -1538,8 +1547,10 @@ function bindDrRow(row){
   row.querySelector(".drc").onchange=e=>{
     const found=DR_CHAINS.find(x=>x[0]===e.target.value);
     const k=row.querySelector(".drk");
-    if(found){ k.value=found[1]; k.readOnly=true; }
-    else{ k.readOnly=false; if(e.target.value==="") k.value=""; }
+    if(found){
+      if(![...k.options].some(o=>o.value===found[1])) k.add(new Option(found[1],found[1]));
+      k.value=found[1]; k.disabled=true;
+    }else{ k.disabled=false; if(e.target.value==="") k.value=""; }
   };
 }
 function sortRoute(list){
