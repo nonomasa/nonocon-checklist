@@ -333,7 +333,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 14:07</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 14:12</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1508,15 +1508,11 @@ function drRowHtml(it){
 function refreshRouteTimes(){
   const box=document.getElementById("d_route");
   if(!box) return;
-  let prevEnd="";
+  // 終了時刻の表示だけ更新（時刻は手入力を尊重し、強制で動かさない）
   [...box.querySelectorAll(".drrow")].forEach(row=>{
-    const lower=(prevEnd&&prevEnd>"09:00")?prevEnd:"09:00";
-    const cur=getDrTime(row);
-    if(cur&&cur<lower) setDrTime(row,lower); // 前の店の終了時刻より前は選べない
     const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
     const end=addMinutes(getDrTime(row),num(row.querySelector(".drp").value));
     row.querySelector(".drend").textContent=end?("〜"+end):"";
-    if(end) prevEnd=end;
   });
 }
 function bindDrRow(row){
