@@ -1487,7 +1487,7 @@ function drRowHtml(it){
   const mOpts=["","◎","○","△"].map(o=>`<option ${o===(it.m||"")?"selected":""}>${o}</option>`).join("");
   const chSel=it.ch===""&&it.n?"__free__":(it.ch||"");
   const pOpts=['<option value="">予定分数</option>']
-    .concat(["15","30","60","90","120","180"].concat((it.p&&!["15","30","60","90","120","180"].includes(String(it.p)))?[String(it.p)]:[])
+    .concat(["15","30","45","60","90","120","150","180"].concat((it.p&&!["15","30","45","60","90","120","150","180"].includes(String(it.p)))?[String(it.p)]:[])
       .map(v=>`<option ${String(it.p)===v?"selected":""}>${v}</option>`)).join("");
   const chainKnown=!!DR_CHAINS.find(x=>x[0]===(it.ch||""));
   return `<div class="drrow${it.in?" in":""}">
