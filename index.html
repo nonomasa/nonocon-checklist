@@ -199,9 +199,11 @@
   .plbox{background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
   .pltbl{width:100%;font-size:11px}
   .pltbl td,.pltbl th{padding:4px 8px}
-  .pltbl .pl-t{text-align:left;max-width:280px;white-space:normal}
-  .pltbl .pl-c{text-align:left;color:var(--sub)}
+  .pltbl .pl-id{text-align:left;white-space:nowrap}
+  .pltbl .pl-jan{display:block;font-size:10px;color:var(--sub)}
+  .pltbl .pl-asin{font-family:ui-monospace,Menlo,monospace}
   .pltbl .pl-n{text-align:right;white-space:nowrap}
+  .pltbl .pl-profit{color:#0e9f6e;font-weight:700}
   .pltbl .pl-k{white-space:nowrap}
   .pltbl .pl-k a{color:#2563eb;text-decoration:none;margin-right:4px}
   .plbtns{margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -392,7 +394,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 23:06</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 23:45</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1659,17 +1661,16 @@ function sedoprePasteParse(text){
     // SKUで取れなければ列/正規表現で補完
     if(!asin){ asin=(c[2]||""); if(!/^[A-Z0-9]{10}$/.test(asin)){ const m=l.match(/\b([A-Z0-9]{10})\b/); asin=m?m[1]:""; } }
     if(!asin) return;
-    const title=(c[3]||"");
-    // 粗利＝「仕入原価・個数」が並ぶ直前の数値（CSV/コピペ どちらのフォーマットでも成立）
-    let profit=0, pIdx=-1;
+    // JAN：2列目が8〜13桁ならそれ。指数表記(E+)や小数は桁欠落なので採用せず、行内の13桁を探す
+    const rawJan=String(c[1]||"").trim();
+    let jan=(/^\d{8,13}$/.test(rawJan))?rawJan:"";
+    if(!jan){ const jm=l.match(/\b(\d{13})\b/); jan=jm?jm[1]:""; }
+    // 粗利＝「仕入原価・個数」が並ぶ直前の数値。販売価格＝個数の直後の数値（出品予定価格）
+    let profit=0, price=0, pIdx=-1;
     if(cost>0){
-      for(let i=0;i<c.length-2;i++){ if(num(c[i+1])===cost && num(c[i+2])===qty){ profit=num(c[i]); pIdx=i; break; } }
+      for(let i=0;i<c.length-2;i++){ if(num(c[i+1])===cost && num(c[i+2])===qty){ profit=num(c[i]); pIdx=i; price=num(c[i+3])||0; break; } }
     }
-    // カテゴリ＝粗利の3つ手前（ランク・重量の数値2つを挟む）。無いフォーマットでは空
-    const isNumT=x=>x!==""&&!isNaN(parseFloat(String(x).replace(/,/g,"")));
-    let cat="";
-    if(pIdx>=3 && isNumT(c[pIdx-1]) && isNumT(c[pIdx-2]) && c[pIdx-3] && !isNumT(c[pIdx-3])) cat=c[pIdx-3];
-    out.push({asin:asin, title:title, profit:profit, cost:cost, price:0, qty:qty, cat:cat});
+    out.push({asin:asin, jan:jan, profit:profit, cost:cost, price:price, qty:qty});
   });
   return out;
 }
@@ -1677,19 +1678,23 @@ function sedopreParse(text){
   const rows=parseCSV(text);
   if(!rows.length) throw "CSVが読めません";
   const head=rows[0].map(h=>String(h).trim());
-  const ci={asin:head.indexOf("ASIN"),title:head.indexOf("タイトル"),
+  const ci={asin:head.indexOf("ASIN"),jan:head.indexOf("JAN"),title:head.indexOf("タイトル"),
     profit:head.indexOf("粗利"),cost:head.indexOf("仕入原価"),
-    price:head.indexOf("出品予定価格"),qty:head.indexOf("個数"),cat:head.indexOf("カテゴリ")};
+    price:head.indexOf("出品予定価格"),qty:head.indexOf("個数")};
   if(ci.asin<0) throw "ASIN列が見つかりません（せどプレのCSVを選んでください）";
   const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+  const janFix=x=>{ // 指数表記(4.9886E+12)は桁欠落するので表示しない。8〜13桁の数字だけ採用
+    x=String(x||"").trim();
+    if(/e\+/i.test(x)||/\./.test(x)) return "";
+    return /^\d{8,13}$/.test(x)?x:"";
+  };
   const out=[];
   for(let r=1;r<rows.length;r++){
     const asin=String(rows[r][ci.asin]||"").trim();
     if(!asin) continue;
-    out.push({asin:asin, title:ci.title>=0?String(rows[r][ci.title]||"").trim():"",
+    out.push({asin:asin, jan:ci.jan>=0?janFix(rows[r][ci.jan]):"",
       profit:ci.profit>=0?num(rows[r][ci.profit]):0, cost:ci.cost>=0?num(rows[r][ci.cost]):0,
-      price:ci.price>=0?num(rows[r][ci.price]):0, qty:ci.qty>=0?(num(rows[r][ci.qty])||1):1,
-      cat:ci.cat>=0?String(rows[r][ci.cat]||"").trim():""});
+      price:ci.price>=0?num(rows[r][ci.price]):0, qty:ci.qty>=0?(num(rows[r][ci.qty])||1):1});
   }
   return out;
 }
@@ -1698,16 +1703,18 @@ function productListHtml(rid,shopKey){
   let items=[]; try{ items=arr?JSON.parse(arr):[]; }catch(e){ items=[]; }
   const totProfit=items.reduce((a,x)=>a+(x.profit||0)*(x.qty||1),0);
   const rowsHtml=items.length?items.map(p=>
-    `<tr><td class="pl-t">${escH(p.title||p.asin)}</td>`+
-    `<td class="pl-c">${p.cat?escH(p.cat):""}</td>`+
+    `<tr><td class="pl-id">${p.jan?`<span class="pl-jan">JAN ${escH(p.jan)}</span>`:""}<span class="pl-asin">${escH(p.asin)}</span></td>`+
     `<td class="pl-n">${p.qty>1?p.qty+"個":""}</td>`+
-    `<td class="pl-n">${p.profit?yen(p.profit*(p.qty||1))+"円":""}</td>`+
+    `<td class="pl-n">${p.price?yen(p.price)+"円":""}</td>`+
+    `<td class="pl-n">${p.cost?yen(p.cost)+"円":""}</td>`+
+    `<td class="pl-n pl-profit">${p.profit?yen(p.profit*(p.qty||1))+"円":""}</td>`+
     `<td class="pl-k"><a href="https://keepa.com/#!product/5-${encodeURIComponent(p.asin)}" target="_blank" rel="noopener">Keepa↗</a>`+
     ` <a href="https://www.amazon.co.jp/dp/${encodeURIComponent(p.asin)}" target="_blank" rel="noopener">Amazon↗</a></td></tr>`
-  ).join(""):`<tr><td colspan="5" style="color:#c2c8d0">まだ商品がありません</td></tr>`;
+  ).join(""):`<tr><td colspan="6" style="color:#c2c8d0">まだ商品がありません</td></tr>`;
+  const totCost=items.reduce((a,x)=>a+(x.cost||0),0), totPrice=items.reduce((a,x)=>a+(x.price||0),0);
   return `<div class="plbox">
-    <table class="ntbl pltbl"><thead><tr><th>商品名</th><th>カテゴリ</th><th>個数</th><th>見込利益</th><th>リンク</th></tr></thead>
-    <tbody>${rowsHtml}${items.length?`<tr class="ntotal"><td colspan="3">合計 ${items.length}点</td><td>${yen(totProfit)}円</td><td></td></tr>`:""}</tbody></table>
+    <table class="ntbl pltbl"><thead><tr><th>JAN / ASIN</th><th>個数</th><th>販売価格</th><th>仕入価格</th><th>見込利益</th><th>リンク</th></tr></thead>
+    <tbody>${rowsHtml}${items.length?`<tr class="ntotal"><td>合計 ${items.length}点</td><td></td><td>${totPrice?yen(totPrice)+"円":""}</td><td>${totCost?yen(totCost)+"円":""}</td><td>${yen(totProfit)}円</td><td></td></tr>`:""}</tbody></table>
     <div class="plbtns"><button class="gbtn pl-csv" data-rid="${rid}" data-shop="${escH(shopKey)}">せどプレCSVを取り込む</button>
     <button class="gbtn pl-paste-open" data-rid="${rid}" data-shop="${escH(shopKey)}" style="background:#6b7686">行を貼り付けて取り込む</button>
     ${items.length?`<button class="pl-clear" data-rid="${rid}" data-shop="${escH(shopKey)}">クリア</button>`:""}
