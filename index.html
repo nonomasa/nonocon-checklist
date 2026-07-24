@@ -216,12 +216,12 @@
   .slide-h{text-align:center;margin-bottom:16px}
   .slide-h b{font-size:26px;display:block}
   .slide-h span{color:#9aa0ad;font-size:15px}
-  .slide-imgs{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;min-height:0}
-  .slide-imgs.cover{display:flex;align-items:center;justify-content:center}
-  .slide-imgs figure{display:flex;flex-direction:column;min-height:0;margin:0}
-  .slide-imgs figcaption{font-size:14px;font-weight:700;text-align:center;margin-bottom:8px;color:#cfd3db}
-  .slide-imgs img{flex:1;width:100%;object-fit:contain;min-height:0;background:#1c1f28;border-radius:10px}
-  .ph-empty div{flex:1;display:flex;align-items:center;justify-content:center;color:#5a5f6c;background:#1c1f28;border-radius:10px}
+  .slide-imgs{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
+  .ph-flow{display:flex;gap:16px;height:100%;width:100%;justify-content:center;align-items:stretch;flex-wrap:nowrap}
+  .ph-tile{display:flex;flex-direction:column;min-width:0;flex:1 1 0;margin:0;max-width:520px}
+  .ph-tile figcaption{font-size:14px;font-weight:700;text-align:center;margin-bottom:8px;color:#cfd3db}
+  .ph-tile img{flex:1;width:100%;object-fit:contain;min-height:0;background:#1c1f28;border-radius:10px}
+  .ph-none{color:#5a5f6c;font-size:18px}
   .slide-cover{font-size:32px;font-weight:800;text-align:center;line-height:1.6}
   .slide-cover span{font-size:16px;font-weight:400;color:#9aa0ad}
   .slide-nav{display:flex;justify-content:center;gap:20px;padding:18px}
@@ -392,7 +392,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 22:44</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 23:06</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1860,13 +1860,14 @@ function openSlide(rid){
   const render=()=>{
     const sl=slides[i];
     const ph=sl.shop?(pmap[sl.shop]||{}):{};
-    const imgs=sl.shop?PHOTO_KINDS.map(k=>{
-      const urls=ph[k[0]]||[];
-      if(!urls.length) return `<figure class="ph-empty"><figcaption>${k[1]}</figcaption><div>写真なし</div></figure>`;
-      const inner=urls.map(u=>`<img src="${u}" alt="${k[1]}">`).join("");
-      return `<figure><figcaption>${k[1]}（${urls.length}）</figcaption><div class="ph-stack">${inner}</div></figure>`;
-    }).join("")
-      :`<div class="slide-cover">🚗 同行スタート<br><span>${escH(r.memo||"")}</span></div>`;
+    let imgs;
+    if(!sl.shop){
+      imgs=`<div class="slide-cover">🚗 同行スタート<br><span>${escH(r.memo||"")}</span></div>`;
+    }else{
+      const tiles=[];
+      PHOTO_KINDS.forEach(k=>{ (ph[k[0]]||[]).forEach(u=>tiles.push(`<figure class="ph-tile"><figcaption>${k[1]}</figcaption><img src="${u}" alt="${k[1]}"></figure>`)); });
+      imgs=tiles.length?`<div class="ph-flow">${tiles.join("")}</div>`:`<div class="ph-none">この店舗の写真はまだありません</div>`;
+    }
     ov.innerHTML=`<div class="slide-top"><button class="slide-x">✕ 閉じる</button><span class="slide-page">${i+1} / ${slides.length}</span></div>
       <div class="slide-body">
         <div class="slide-h"><b>${sl.title}</b><span>${sl.sub}</span>${sl.memo?`<div class="slide-memo">📝 ${escH(sl.memo)}</div>`:""}</div>
