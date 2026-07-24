@@ -177,6 +177,30 @@
   .dmatome li{margin-bottom:3px}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .drth{font-size:12px;font-weight:800;color:#3d4654;margin-bottom:4px}
+  .drphotos{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+  .drph{display:inline-flex;flex-direction:column;align-items:center;text-decoration:none;font-size:9px;color:#8a93a3}
+  .drph img{width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+  .drph-add{font-size:10px;padding:3px 8px;border:1px dashed #c9cfd7;border-radius:999px;background:#fff;color:#8a93a3;cursor:pointer}
+  .drph-add:hover{border-color:#f97316;color:#f97316}
+  .slideov{position:fixed;inset:0;background:#12141c;z-index:9999;display:flex;flex-direction:column;color:#fff}
+  .slide-top{display:flex;justify-content:space-between;align-items:center;padding:14px 20px}
+  .slide-x{background:none;border:1px solid #3a3f4c;color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:14px}
+  .slide-page{color:#9aa0ad;font-size:14px}
+  .slide-body{flex:1;overflow:auto;padding:0 24px;display:flex;flex-direction:column}
+  .slide-h{text-align:center;margin-bottom:16px}
+  .slide-h b{font-size:26px;display:block}
+  .slide-h span{color:#9aa0ad;font-size:15px}
+  .slide-imgs{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;min-height:0}
+  .slide-imgs.cover{display:flex;align-items:center;justify-content:center}
+  .slide-imgs figure{display:flex;flex-direction:column;min-height:0;margin:0}
+  .slide-imgs figcaption{font-size:14px;font-weight:700;text-align:center;margin-bottom:8px;color:#cfd3db}
+  .slide-imgs img{flex:1;width:100%;object-fit:contain;min-height:0;background:#1c1f28;border-radius:10px}
+  .ph-empty div{flex:1;display:flex;align-items:center;justify-content:center;color:#5a5f6c;background:#1c1f28;border-radius:10px}
+  .slide-cover{font-size:32px;font-weight:800;text-align:center;line-height:1.6}
+  .slide-cover span{font-size:16px;font-weight:400;color:#9aa0ad}
+  .slide-nav{display:flex;justify-content:center;gap:20px;padding:18px}
+  .slide-nav button{background:#f97316;border:none;color:#fff;font-size:16px;font-weight:700;border-radius:10px;padding:12px 36px;cursor:pointer}
+  .slide-nav button:disabled{background:#3a3f4c;cursor:default}
   tr.dr-add td{color:#2563eb}
   tr.dr-skip td{color:#b6bdc7;text-decoration:line-through}
   td.dr-chg{color:#2563eb;font-weight:700}
@@ -342,7 +366,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 17:27</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 21:03</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1591,11 +1615,22 @@ function addMinutes(hm,min){
   return ("0"+Math.floor(t/60)%24).slice(-2)+":"+("0"+t%60).slice(-2);
 }
 const drNum=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+const PHOTO_KINDS=[["shelf","店頭"],["list","せどプレ"],["sold","売れた"]];
+let PHOTOCTX={}; // {routeId:{shopKey:{kind:url}}}
+function photoCell(rid,shopKey){
+  const m=(PHOTOCTX[rid]||{})[shopKey]||{};
+  return `<div class="drphotos">`+PHOTO_KINDS.map(k=>{
+    const url=m[k[0]];
+    return url
+      ? `<a class="drph" href="${url}" target="_blank" rel="noopener" title="${k[1]}"><img src="${url}" alt="${k[1]}"><span>${k[1]}</span></a>`
+      : `<button class="drph-add" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" title="${k[1]}の写真を追加">＋${k[1]}</button>`;
+  }).join("")+`</div>`;
+}
 const drName=x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
 const drKey=x=>drName(x).replace(/\s+/g,"");
 
 /* 単一ルート表（計画のみ／実際のみ）。実際(分)列は廃止 */
-function routeTableHtml(route){
+function routeTableHtml(route,RID){
   if(!route.length) return "";
   route=sortRoute(route);
   const tp=route.reduce((a,x)=>a+drNum(x.p),0), tr=route.reduce((a,x)=>a+drNum(x.r),0);
@@ -1604,15 +1639,16 @@ function routeTableHtml(route){
       const end=x.e||addMinutes(x.s,drNum(x.p));
       const nm=drName(x);
       const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
+      const ph=RID?photoCell(RID,drKey(x)):"";
       return `<tr${x.in?' class="drin-row"':""}><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
-      `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}</td><td style="text-align:left">${escH(x.k)}</td>`+
+      `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}${ph}</td><td style="text-align:left">${escH(x.k)}</td>`+
       `<td>${x.p?escH(x.p):""}</td><td>${x.r?yen(x.r)+"円":""}</td></tr>`;}).join("")+
     `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${tr?yen(tr)+"円":""}</td></tr>`+
     `</tbody></table>`;
 }
 
 /* 計画と実際を1つに統合した表：追加=青＋「当」、変更=青、未訪問=グレー取消線 */
-function routeMergedHtml(actual, plan){
+function routeMergedHtml(actual, plan, RID){
   const planMap={}; plan.forEach(x=>{planMap[drKey(x)]=x;});
   const actMap={}; actual.forEach(x=>{actMap[drKey(x)]=x;});
   // 実際に回った店（時刻順）＋計画にあって行かなかった店（末尾）
@@ -1626,6 +1662,7 @@ function routeMergedHtml(actual, plan){
     const end=addMinutes(x.s,drNum(x.p));
     const nm=drName(x);
     const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
+    const ph=RID?photoCell(RID,drKey(x)):"";
     let cls="", mustCell=escH(x.m||"");
     if(kind==="added"){ cls="dr-add"; mustCell=`<span class="dr-touban">当</span>`; }
     else if(kind==="skipped"){ cls="dr-skip"; }
@@ -1645,7 +1682,7 @@ function routeMergedHtml(actual, plan){
     body+=`<tr class="${cls}${x.in?" drin-row":""}">`+
       `<td style="white-space:nowrap" class="${timeChg}">${timeCell}</td>`+
       `<td style="text-align:center">${mustCell}</td>`+
-      `<td style="text-align:left">${nmCell}</td>`+
+      `<td style="text-align:left">${nmCell}${ph}</td>`+
       `<td style="text-align:left">${escH(x.k)}</td>`+
       `<td class="${pChg}">${pCell}</td>`+
       `<td>${x.r?yen(x.r)+"円":""}</td></tr>`;
@@ -1654,6 +1691,44 @@ function routeMergedHtml(actual, plan){
     body+`<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${tr?yen(tr)+"円":""}</td></tr></tbody></table>`+
     `<div class="drlegend"><span class="dr-touban">当</span> 当日追加　<span class="dr-chg-legend">青字</span>＝計画から変更　<span class="dr-skip-legend">取消線</span>＝計画したが未訪問</div>`;
 }
+/* 同行スライド表示（全画面。1店舗ずつ 情報＋3枚の写真を大きく） */
+function openSlide(rid){
+  const r=(DOKOALL||[]).find(x=>x.id===rid); if(!r) return;
+  const route=sortRoute(parseRoute(r.route));
+  const pmap={}; (r.photos||[]).forEach(p=>{(pmap[p.shop]=pmap[p.shop]||{})[p.kind]=p.url;});
+  // 全体＋各店舗のスライド
+  const slides=[{title:`${dokoDateLabel(r.date)} ${escH(r.place)}`, sub:escH(r.members||""), shop:null}]
+    .concat(route.map(x=>({title:drName(x), sub:`${escH(x.s||"")}${x.k?"　"+escH(x.k):""}`, shop:drKey(x)})));
+  let i=0;
+  const ov=document.createElement("div"); ov.className="slideov";
+  const render=()=>{
+    const sl=slides[i];
+    const ph=sl.shop?(pmap[sl.shop]||{}):{};
+    const imgs=sl.shop?PHOTO_KINDS.map(k=>
+      ph[k[0]]?`<figure><figcaption>${k[1]}</figcaption><img src="${ph[k[0]]}" alt="${k[1]}"></figure>`
+              :`<figure class="ph-empty"><figcaption>${k[1]}</figcaption><div>写真なし</div></figure>`).join("")
+      :`<div class="slide-cover">🚗 同行スタート<br><span>${escH(r.memo||"")}</span></div>`;
+    ov.innerHTML=`<div class="slide-top"><button class="slide-x">✕ 閉じる</button><span class="slide-page">${i+1} / ${slides.length}</span></div>
+      <div class="slide-body">
+        <div class="slide-h"><b>${sl.title}</b><span>${sl.sub}</span></div>
+        <div class="slide-imgs ${sl.shop?"":"cover"}">${imgs}</div>
+      </div>
+      <div class="slide-nav">
+        <button class="slide-prev" ${i===0?"disabled":""}>← 前</button>
+        <button class="slide-next" ${i===slides.length-1?"disabled":""}>次 →</button>
+      </div>`;
+    ov.querySelector(".slide-x").onclick=close;
+    const prev=ov.querySelector(".slide-prev"), next=ov.querySelector(".slide-next");
+    if(prev) prev.onclick=()=>{ if(i>0){i--;render();} };
+    if(next) next.onclick=()=>{ if(i<slides.length-1){i++;render();} };
+  };
+  const key=e=>{ if(e.key==="ArrowRight"||e.key===" "){ if(i<slides.length-1){i++;render();} } else if(e.key==="ArrowLeft"){ if(i>0){i--;render();} } else if(e.key==="Escape"){ close(); } };
+  const close=()=>{ document.removeEventListener("keydown",key); ov.remove(); };
+  document.addEventListener("keydown",key);
+  document.body.appendChild(ov);
+  render();
+}
+
 async function renderDoko(){
   const body=document.getElementById("body");
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと同行の登録・閲覧ができます</div>'; return; }
@@ -1685,9 +1760,11 @@ async function renderDoko(){
       <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　📝 ${escH(r.memo)}`:""}</div>
       <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
       ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${(()=>{
+        PHOTOCTX[r.id]={};(r.photos||[]).forEach(p=>{(PHOTOCTX[r.id][p.shop]=PHOTOCTX[r.id][p.shop]||{})[p.kind]=p.url;});
         const plan=parseRoute(r.planRoute);
         const differs=plan.length&&r.planRoute!==r.route;
-        return differs?routeMergedHtml(route,plan):routeTableHtml(route);
+        const tbl=differs?routeMergedHtml(route,plan,r.id):routeTableHtml(route,r.id);
+        return `<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${r.id}">📷 スライド表示</button></div>`+tbl;
       })()}</div>`:""}
       ${r.review?`<div class="drevbox" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
       <div class="dcmtbox" data-cmtbody="${r.id}" style="display:none">
@@ -1834,6 +1911,34 @@ async function renderDoko(){
       el.style.display=open?"none":"";
       b.textContent=b.textContent.replace(open?"▲":"▼",open?"▼":"▲");
     };
+  });
+  // 店舗写真のアップロード（＋店頭/せどプレ/売れた ボタン）
+  const uploadPhoto=(rid,shop,kind,file,btn)=>{
+    if(file.size>12*1024*1024){ alert("12MB以下の画像にしてください"); return; }
+    const old=btn.textContent; btn.textContent="…"; btn.disabled=true;
+    const fr=new FileReader();
+    fr.onload=async()=>{
+      const b64=String(fr.result).split(",")[1];
+      try{
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:kind,mime:file.type||"image/jpeg",name:me.name,data:b64})})).json();
+        if(d&&d.ok){ DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${rid}"]`); if(nb)nb.style.display=""; return; }
+        alert("アップロード失敗："+(d&&d.error||"不明")); 
+      }catch(e){ alert("通信エラー"); }
+      btn.textContent=old; btn.disabled=false;
+    };
+    fr.readAsDataURL(file);
+  };
+  body.querySelectorAll(".drph-add").forEach(btn=>{
+    btn.onclick=()=>{
+      const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*";
+      inp.onchange=()=>{ if(inp.files[0]) uploadPhoto(btn.dataset.rid,btn.dataset.shop,btn.dataset.kind,inp.files[0],btn); };
+      inp.click();
+    };
+  });
+  // 既存写真をクリックで拡大は<a target>で対応済み。長押し等の削除は編集運用で
+  body.querySelectorAll(".dslide").forEach(b=>{
+    b.onclick=()=>openSlide(b.dataset.id);
   });
   body.querySelectorAll(".dcmtsaveall").forEach(b=>{
     b.onclick=async()=>{
