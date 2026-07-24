@@ -168,6 +168,9 @@
   .dcmtform{margin-top:8px}
   .dcmtg{margin-bottom:8px}
   .dcmtgh{font-size:11.5px;font-weight:800;color:#3d4654;margin-bottom:3px}
+  .dcmto{margin-bottom:10px}
+  .dcmtrow{margin-bottom:8px}
+  .dcmtlbl{font-size:11.5px;font-weight:700;color:#5a6472;margin-bottom:3px}
   .dmatome{font-size:13px;line-height:1.8;margin-top:10px}
   .dmatome h4{font-size:13px;margin:14px 0 6px;color:#3d4654;border-left:4px solid var(--accent);padding-left:8px}
   .dmatome ul{padding-left:20px;margin:0}
@@ -330,7 +333,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 12:42</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 13:57</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1608,25 +1611,24 @@ async function renderDoko(){
         ${(()=>{
           const route=parseRoute(r.route);
           const shops=["全体"].concat(route.map(x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n)).filter(Boolean));
-          // 対象ごとにグループ化して表示
-          let out="";
+          const mine=c=>String(c.uid)===String(me.sid);
+          // 他の人の感想（対象ごとにグループ化）
+          let others="";
           shops.forEach(sh=>{
-            const cs=(r.comments||[]).filter(c=>(c.target||"全体")===sh);
+            const cs=(r.comments||[]).filter(c=>(c.target||"全体")===sh && !mine(c));
             if(!cs.length) return;
-            out+=`<div class="dcmtg"><div class="dcmtgh">${sh==="全体"?"🗒 全体":"🏬 "+escH(sh)}</div>`+
+            others+=`<div class="dcmtg"><div class="dcmtgh">${sh==="全体"?"🗒 全体":"🏬 "+escH(sh)}</div>`+
               cs.map(c=>`<div class="dcmt1"><div class="dcmth">${escH(c.name)}<span class="dwho" style="margin-left:8px">${escH(c.updated)}</span></div><div class="dcmtt">${escH(c.text)}</div></div>`).join("")+`</div>`;
           });
-          if(!out) out='<div style="color:#c2c8d0;font-size:12px">まだ感想がありません</div>';
-          const shopOpts=shops.map(sh=>`<option>${escH(sh)}</option>`).join("");
-          return out+`<div class="dcmtform">
-            <label class="glbl">感想を書く</label>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-              <select class="ginput dcmttgt" data-id="${r.id}" style="max-width:220px">${shopOpts}</select>
-              <span class="gpn">全体 or 店舗ごとに書けます</span>
-            </div>
-            <textarea class="ginput dcmtin" rows="3" placeholder="同行の学び・感想をどうぞ"></textarea>
-            <button class="gbtn dcmtsave" data-target="${r.id}" style="margin-top:6px">感想を保存</button><span class="gmsg"></span>
-          </div>`;
+          // 自分の入力欄（全店舗を並べて一括保存）
+          const myText=sh=>{const c=(r.comments||[]).find(c=>mine(c)&&(c.target||"全体")===sh);return c?c.text:"";};
+          const inputs=shops.map((sh,i)=>
+            `<div class="dcmtrow"><div class="dcmtlbl">${sh==="全体"?"🗒 全体":"🏬 "+escH(sh)}</div>`+
+            `<textarea class="ginput dcmtcell" data-target="${escH(sh)}" rows="2" placeholder="${sh==="全体"?"全体の感想":"この店舗の感想"}">${escH(myText(sh))}</textarea></div>`).join("");
+          return (others?`<div class="dcmto">${others}</div>`:"")+
+            `<div class="dcmtform"><label class="glbl">あなたの感想 <span class="gpn">（店舗ごとに書いて、最後にまとめて保存）</span></label>
+            ${inputs}
+            <button class="gbtn dcmtsaveall" data-id="${r.id}" style="margin-top:8px">まとめて保存</button><span class="gmsg"></span></div>`;
         })()}
       </div>
     </div>`;
@@ -1738,31 +1740,30 @@ async function renderDoko(){
       b.textContent=b.textContent.replace(open?"▲":"▼",open?"▼":"▲");
     };
   });
-  // 対象を変えたら、その対象の自分の既存感想を入力欄に呼び出す
-  body.querySelectorAll(".dcmttgt").forEach(sel=>{
-    const box=sel.closest(".dcmtbox");
-    const rid=sel.dataset.id;
-    const rec=(DOKOALL||[]).find(x=>x.id===rid);
-    const fill=()=>{
-      const c=(rec&&rec.comments||[]).find(c=>String(c.uid)===String(me.sid)&&(c.target||"全体")===sel.value);
-      box.querySelector(".dcmtin").value=c?c.text:"";
-    };
-    sel.onchange=fill; fill();
-  });
-  body.querySelectorAll(".dcmtsave").forEach(b=>{
+  body.querySelectorAll(".dcmtsaveall").forEach(b=>{
     b.onclick=async()=>{
       const box=b.closest(".dcmtbox");
-      const text=box.querySelector(".dcmtin").value.trim();
-      const target=box.querySelector(".dcmttgt").value;
+      const rid=b.dataset.id;
+      const rec=(DOKOALL||[]).find(x=>x.id===rid);
       const msg=b.nextElementSibling;
+      // 現在値と保存済みを比較し、変わったものだけ送る
+      const jobs=[];
+      box.querySelectorAll(".dcmtcell").forEach(t=>{
+        const target=t.dataset.target;
+        const val=t.value.trim();
+        const cur=((rec&&rec.comments||[]).find(c=>String(c.uid)===String(me.sid)&&(c.target||"全体")===target)||{}).text||"";
+        if(val!==cur) jobs.push({target,text:val});
+      });
+      if(!jobs.length){ msg.textContent="変更はありません"; return; }
       b.disabled=true; msg.textContent="保存中…";
       try{
-        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify({action:"dcsave",pass:PASS,id:b.dataset.target,uid:me.sid,name:me.name,text:text,target:target})})).json();
-        if(d&&d.ok){ DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-cmtbody="${b.dataset.target}"]`); if(nb){nb.style.display="";} return; }
-        msg.textContent="保存に失敗しました："+(d&&d.error||"不明");
-      }catch(e){ msg.textContent="通信エラー"; }
-      b.disabled=false;
+        for(const j of jobs){
+          await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+            body:JSON.stringify({action:"dcsave",pass:PASS,id:rid,uid:me.sid,name:me.name,text:j.text,target:j.target})});
+        }
+        DOKOALL=null; await renderDoko();
+        const nb=document.querySelector(`div[data-cmtbody="${rid}"]`); if(nb) nb.style.display="";
+      }catch(e){ msg.textContent="通信エラー"; b.disabled=false; }
     };
   });
   body.querySelectorAll(".dedit").forEach(b=>{
