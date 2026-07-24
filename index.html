@@ -183,6 +183,12 @@
   .drph-add{font-size:10px;padding:3px 8px;border:1px dashed #c9cfd7;border-radius:999px;background:#fff;color:#8a93a3;cursor:pointer}
   .drph-add:hover{border-color:#f97316;color:#f97316}
   .drph-add.drop-on{border-style:solid;border-color:#f97316;background:#fff4ec;color:#f97316}
+  .drmemo{margin-top:4px;font-size:11px;line-height:1.5}
+  .drmemo-t{color:#5a6472}
+  .drmemo-edit{font-size:10px;padding:1px 7px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#8a93a3;cursor:pointer}
+  .drmemo-edit:hover{border-color:#f97316;color:#f97316}
+  .drmemo-add{border-style:dashed}
+  .slide-memo{margin-top:10px;font-size:16px;color:#e8c37a;max-width:900px;margin-left:auto;margin-right:auto;line-height:1.6}
   .slideov{position:fixed;inset:0;background:#12141c;z-index:9999;display:flex;flex-direction:column;color:#fff}
   .slide-top{display:flex;justify-content:space-between;align-items:center;padding:14px 20px}
   .slide-x{background:none;border:1px solid #3a3f4c;color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:14px}
@@ -367,7 +373,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 21:26</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 21:44</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1620,12 +1626,17 @@ const PHOTO_KINDS=[["shelf","店頭"],["list","せどプレ"],["sold","売れた
 let PHOTOCTX={}; // {routeId:{shopKey:{kind:url}}}
 function photoCell(rid,shopKey){
   const m=(PHOTOCTX[rid]||{})[shopKey]||{};
-  return `<div class="drphotos">`+PHOTO_KINDS.map(k=>{
+  const memo=m.memo||"";
+  const photos=`<div class="drphotos">`+PHOTO_KINDS.map(k=>{
     const url=m[k[0]];
     return url
       ? `<a class="drph" href="${url}" target="_blank" rel="noopener" title="${k[1]}"><img src="${url}" alt="${k[1]}"><span>${k[1]}</span></a>`
       : `<button class="drph-add" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" title="${k[1]}の写真を追加">＋${k[1]}</button>`;
   }).join("")+`</div>`;
+  const memoLine=memo
+    ? `<div class="drmemo"><span class="drmemo-t">📝 ${escH(memo)}</span> <button class="drmemo-edit" data-rid="${rid}" data-shop="${escH(shopKey)}">編集</button></div>`
+    : `<div class="drmemo"><button class="drmemo-edit drmemo-add" data-rid="${rid}" data-shop="${escH(shopKey)}">＋メモ（店の特徴）</button></div>`;
+  return photos+memoLine;
 }
 const drName=x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
 const drKey=x=>drName(x).replace(/\s+/g,"");
@@ -1699,7 +1710,10 @@ function openSlide(rid){
   const pmap={}; (r.photos||[]).forEach(p=>{(pmap[p.shop]=pmap[p.shop]||{})[p.kind]=p.url;});
   // 全体＋各店舗のスライド
   const slides=[{title:`${dokoDateLabel(r.date)} ${escH(r.place)}`, sub:escH(r.members||""), shop:null}]
-    .concat(route.map(x=>({title:drName(x), sub:`${escH(x.s||"")}${x.k?"　"+escH(x.k):""}`, shop:drKey(x)})));
+    .concat(route.map(x=>{
+      const info=[x.s||"", x.k||"", x.r?("見込利益 "+yen(x.r)+"円"):""].filter(Boolean).join("　");
+      return {title:drName(x), sub:escH(info), shop:drKey(x), memo:(pmap[drKey(x)]||{}).memo||""};
+    }));
   let i=0;
   const ov=document.createElement("div"); ov.className="slideov";
   const render=()=>{
@@ -1711,7 +1725,7 @@ function openSlide(rid){
       :`<div class="slide-cover">🚗 同行スタート<br><span>${escH(r.memo||"")}</span></div>`;
     ov.innerHTML=`<div class="slide-top"><button class="slide-x">✕ 閉じる</button><span class="slide-page">${i+1} / ${slides.length}</span></div>
       <div class="slide-body">
-        <div class="slide-h"><b>${sl.title}</b><span>${sl.sub}</span></div>
+        <div class="slide-h"><b>${sl.title}</b><span>${sl.sub}</span>${sl.memo?`<div class="slide-memo">📝 ${escH(sl.memo)}</div>`:""}</div>
         <div class="slide-imgs ${sl.shop?"":"cover"}">${imgs}</div>
       </div>
       <div class="slide-nav">
@@ -1958,6 +1972,20 @@ async function renderDoko(){
     btn.ondrop=e=>{ e.preventDefault(); btn.classList.remove("drop-on"); dropFrom(e.dataTransfer,btn.dataset.rid,btn.dataset.shop,btn.dataset.kind,btn); };
   });
   // 既存写真をクリックで拡大は<a target>で対応済み。長押し等の削除は編集運用で
+  body.querySelectorAll(".drmemo-edit").forEach(btn=>{
+    btn.onclick=async()=>{
+      const rid=btn.dataset.rid, shop=btn.dataset.shop;
+      const cur=((PHOTOCTX[rid]||{})[shop]||{}).memo||"";
+      const t=prompt("店舗メモ（特徴・気づきなど）",cur);
+      if(t===null) return;
+      try{
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"memo",name:me.name,text:t.trim()})})).json();
+        if(d&&d.ok){ DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${rid}"]`); if(nb)nb.style.display=""; return; }
+        alert("保存失敗："+(d&&d.error||"不明"));
+      }catch(e){ alert("通信エラー"); }
+    };
+  });
   body.querySelectorAll(".dslide").forEach(b=>{
     b.onclick=()=>openSlide(b.dataset.id);
   });
