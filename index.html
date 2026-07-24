@@ -391,7 +391,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 22:13</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 22:24</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1683,6 +1683,31 @@ function productListHtml(rid,shopKey){
     <span class="gpn">CSVを取り込むとKeepaリンク付きで一覧＋見込利益を自動計算</span></div>
   </div>`;
 }
+let _bindRouteBox=null; // renderDoko内のbindRouteBoxを橋渡し
+/* その同行のルート表だけを再描画（全体リロードを避け、作業が止まらないように） */
+function refreshRouteBox(rid){
+  const r=(DOKOALL||[]).find(x=>x.id===rid); if(!r) return;
+  const box=document.querySelector(`div[data-route="${rid}"]`); if(!box) return;
+  const route=parseRoute(r.route);
+  const plan=parseRoute(r.planRoute);
+  const differs=plan.length&&r.planRoute!==r.route;
+  const tbl=differs?routeMergedHtml(route,plan,rid):routeTableHtml(route,rid);
+  box.innerHTML=`<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${rid}">📷 スライド表示</button></div>`+tbl;
+  if(_bindRouteBox) _bindRouteBox(box);
+  box.style.display="";
+}
+/* ローカルのDOKOALLとPHOTOCTXに1件の変更を反映（サーバー往復せず即時） */
+function applyPhotoLocal(rid,shop,kind,url,mode){
+  const r=(DOKOALL||[]).find(x=>x.id===rid); if(!r) return;
+  r.photos=r.photos||[];
+  if(mode==="del-one"){ r.photos=r.photos.filter(p=>!(p.shop===shop&&p.kind===kind&&p.url===url)); }
+  else if(mode==="del-all"){ r.photos=r.photos.filter(p=>!(p.shop===shop&&p.kind===kind)); }
+  else if(mode==="set"){ r.photos=r.photos.filter(p=>!(p.shop===shop&&p.kind===kind)); if(url) r.photos.push({shop,kind,url}); }
+  else if(mode==="add"){ r.photos.push({shop,kind,url}); }
+  // PHOTOCTX再構築（この同行だけ）
+  PHOTOCTX[rid]={};
+  r.photos.forEach(p=>{const sh=PHOTOCTX[rid][p.shop]=PHOTOCTX[rid][p.shop]||{}; if(p.kind==="memo"||p.kind==="products"){sh[p.kind]=p.url;} else {(sh[p.kind]=sh[p.kind]||[]).push(p.url);}});
+}
 function photoCell(rid,shopKey){
   const m=(PHOTOCTX[rid]||{})[shopKey]||{};
   const memo=m.memo||"";
@@ -2009,6 +2034,17 @@ async function renderDoko(){
     };
     fr.readAsDataURL(file);
   });
+  const uploadPhotoRet=(rid,shop,kind,file)=>new Promise(res=>{
+    if(file.size>12*1024*1024){ alert("12MB以下の画像にしてください"); res(null); return; }
+    const fr=new FileReader();
+    fr.onload=async()=>{
+      const b64=String(fr.result).split(",")[1];
+      try{ const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:kind,mime:file.type||"image/jpeg",name:me.name,data:b64})})).json();
+        res(d&&d.ok?d.url:null); }catch(e){ res(null); }
+    };
+    fr.readAsDataURL(file);
+  });
   const uploadPhoto=(rid,shop,kind,file,btn)=>{
     if(file.size>12*1024*1024){ alert("12MB以下の画像にしてください"); return; }
     const old=btn.textContent; btn.textContent="…"; btn.disabled=true;
@@ -2027,7 +2063,7 @@ async function renderDoko(){
   };
   const dropFrom=async(dt,rid,shop,kind,btn)=>{
     // ファイルなら即アップ
-    if(dt.files&&dt.files.length){ (async()=>{ for(const f of [...dt.files]){ await uploadPhotoWait(rid,shop,kind,f); } DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${rid}"]`); if(nb)nb.style.display=""; })(); return; }
+    if(dt.files&&dt.files.length){ (async()=>{ for(const f of [...dt.files]){ const u=await uploadPhotoRet(rid,shop,kind,f); if(u){ applyPhotoLocal(rid,shop,kind,u,"add"); refreshRouteBox(rid); } } })(); return; }
     // 写真アプリ等からのドロップはURL/HTMLで来ることがある → 画像URLを取得してfetch
     let url=dt.getData("text/uri-list")||dt.getData("text/plain")||"";
     const html=dt.getData("text/html");
@@ -2036,64 +2072,59 @@ async function renderDoko(){
       btn.disabled=true;
       try{
         const blob=await (await fetch(url)).blob();
-        await uploadPhotoWait(rid,shop,kind,new File([blob],"photo",{type:blob.type||"image/jpeg"}));
-        DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${rid}"]`); if(nb)nb.style.display="";
+        const u=await uploadPhotoRet(rid,shop,kind,new File([blob],"photo",{type:blob.type||"image/jpeg"}));
+        if(u){ applyPhotoLocal(rid,shop,kind,u,"add"); refreshRouteBox(rid); }
       }catch(e){ alert("この写真は直接ドロップできませんでした。写真をデスクトップに書き出してからアップしてください"); btn.disabled=false; }
     }else{
       alert("画像として受け取れませんでした。写真をデスクトップに書き出すか、クリックで選んでください");
     }
   };
-  body.querySelectorAll(".drph-del").forEach(btn=>{
+function bindRouteBox(scope){
+  scope=scope||document.getElementById("body");
+  scope.querySelectorAll(".drph-del").forEach(btn=>{
     btn.onclick=async()=>{
       if(!confirm("この写真を削除しますか？")) return;
-      try{
-        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify({action:"dphoto",pass:PASS,id:btn.dataset.rid,shop:btn.dataset.shop,kind:btn.dataset.kind,url:btn.dataset.url,data:""})})).json();
-        if(d&&d.ok){ DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${btn.dataset.rid}"]`); if(nb)nb.style.display=""; return; }
-      }catch(e){ alert("通信エラー"); }
+      const rid=btn.dataset.rid, shop=btn.dataset.shop, kind=btn.dataset.kind, url=btn.dataset.url;
+      applyPhotoLocal(rid,shop,kind,url,"del-one"); refreshRouteBox(rid); // 画面は即更新
+      try{ await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:kind,url:url,data:""})}); }catch(e){}
     };
   });
-  body.querySelectorAll(".drph-add").forEach(btn=>{
+  scope.querySelectorAll(".drph-add").forEach(btn=>{
     btn.onclick=()=>{
       const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.multiple=true;
-      inp.onchange=async()=>{ for(const f of [...inp.files]){ await uploadPhotoWait(btn.dataset.rid,btn.dataset.shop,btn.dataset.kind,f); } DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${btn.dataset.rid}"]`); if(nb)nb.style.display=""; };
+      inp.onchange=async()=>{
+        const rid=btn.dataset.rid, shop=btn.dataset.shop, kind=btn.dataset.kind;
+        for(const f of [...inp.files]){
+          const url=await uploadPhotoRet(rid,shop,kind,f);
+          if(url){ applyPhotoLocal(rid,shop,kind,url,"add"); refreshRouteBox(rid); }
+        }
+      };
       inp.click();
     };
     btn.ondragover=e=>{ e.preventDefault(); btn.classList.add("drop-on"); };
     btn.ondragleave=()=>btn.classList.remove("drop-on");
     btn.ondrop=e=>{ e.preventDefault(); btn.classList.remove("drop-on"); dropFrom(e.dataTransfer,btn.dataset.rid,btn.dataset.shop,btn.dataset.kind,btn); };
   });
-  // 既存写真をクリックで拡大は<a target>で対応済み。長押し等の削除は編集運用で
-  body.querySelectorAll(".drmemo-edit").forEach(btn=>{
+  scope.querySelectorAll(".drmemo-edit").forEach(btn=>{
     btn.onclick=async()=>{
       const rid=btn.dataset.rid, shop=btn.dataset.shop;
       const cur=((PHOTOCTX[rid]||{})[shop]||{}).memo||"";
       const t=prompt("店舗メモ（特徴・気づきなど）",cur);
       if(t===null) return;
-      try{
-        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"memo",name:me.name,text:t.trim()})})).json();
-        if(d&&d.ok){ DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${rid}"]`); if(nb)nb.style.display=""; return; }
-        alert("保存失敗："+(d&&d.error||"不明"));
-      }catch(e){ alert("通信エラー"); }
+      applyPhotoLocal(rid,shop,"memo",t.trim(),"set"); refreshRouteBox(rid);
+      try{ await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"memo",name:me.name,text:t.trim()})}); }catch(e){}
     };
   });
-  // 商品リスト開閉
-  body.querySelectorAll(".pl-toggle").forEach(btn=>{
+  scope.querySelectorAll(".pl-toggle").forEach(btn=>{
     btn.onclick=()=>{
-      const w=body.querySelector(`div[data-plwrap="${btn.dataset.rid}__${btn.dataset.shop}"]`);
+      const w=document.querySelector(`div[data-plwrap="${btn.dataset.rid}__${btn.dataset.shop}"]`);
       if(!w) return;
       w.style.display=w.style.display==="none"?"":"none";
     };
   });
-  // せどプレCSV取り込み（その店舗の商品リストにする）
-  const saveProducts=async(rid,shop,items)=>{
-    const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-      body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"products",name:me.name,text:JSON.stringify(items)})})).json();
-    if(d&&d.ok){ DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${rid}"]`); if(nb)nb.style.display=""; const w=document.querySelector(`div[data-plwrap="${rid}__${shop}"]`); if(w)w.style.display=""; return true; }
-    alert("保存失敗："+(d&&d.error||"不明")); return false;
-  };
-  body.querySelectorAll(".pl-csv").forEach(btn=>{
+  scope.querySelectorAll(".pl-csv").forEach(btn=>{
     btn.onclick=()=>{
       const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
       inp.onchange=async()=>{
@@ -2105,21 +2136,34 @@ async function renderDoko(){
           if(text.indexOf("ASIN")<0) text=new TextDecoder("utf-8").decode(buf);
           const items=sedopreParse(text);
           if(!items.length){ alert("商品が見つかりませんでした"); btn.textContent="せどプレCSVを取り込む"; btn.disabled=false; return; }
-          const cur=((PHOTOCTX[btn.dataset.rid]||{})[btn.dataset.shop]||{}).products;
+          const rid=btn.dataset.rid, shop=btn.dataset.shop;
+          const cur=((PHOTOCTX[rid]||{})[shop]||{}).products;
           let curArr=[]; try{ curArr=cur?JSON.parse(cur):[]; }catch(e){}
           const list=curArr.length&&confirm(`既に${curArr.length}件あります。追記しますか？（キャンセルで置き換え）`)?curArr.concat(items):items;
-          await saveProducts(btn.dataset.rid,btn.dataset.shop,list);
+          applyPhotoLocal(rid,shop,"products",JSON.stringify(list),"set"); refreshRouteBox(rid);
+          const w=document.querySelector(`div[data-plwrap="${rid}__${shop}"]`); if(w)w.style.display="";
+          fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+            body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"products",name:me.name,text:JSON.stringify(list)})}).catch(()=>{});
         }catch(e){ alert(String(e)); btn.textContent="せどプレCSVを取り込む"; btn.disabled=false; }
       };
       inp.click();
     };
   });
-  body.querySelectorAll(".pl-clear").forEach(btn=>{
-    btn.onclick=async()=>{ if(!confirm("この店舗の商品リストを消しますか？")) return; await saveProducts(btn.dataset.rid,btn.dataset.shop,[]); };
+  scope.querySelectorAll(".pl-clear").forEach(btn=>{
+    btn.onclick=async()=>{
+      if(!confirm("この店舗の商品リストを消しますか？")) return;
+      const rid=btn.dataset.rid, shop=btn.dataset.shop;
+      applyPhotoLocal(rid,shop,"products","","del-all"); refreshRouteBox(rid);
+      fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"products",name:me.name,text:""})}).catch(()=>{});
+    };
   });
-  body.querySelectorAll(".dslide").forEach(b=>{
+  scope.querySelectorAll(".dslide").forEach(b=>{
     b.onclick=()=>openSlide(b.dataset.id);
   });
+}
+_bindRouteBox=bindRouteBox;
+  bindRouteBox(body);
   body.querySelectorAll(".dcmtsaveall").forEach(b=>{
     b.onclick=async()=>{
       const box=b.closest(".dcmtbox");
