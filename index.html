@@ -161,11 +161,17 @@
   .droutebox{margin-top:10px;overflow-x:auto}
   .drevbox{margin-top:10px;background:#fafbfc;border:1px solid var(--line);border-radius:8px;
     padding:12px 14px;font-size:12.5px;line-height:1.8;white-space:pre-wrap}
+  .dcmtbox{margin-top:10px;background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+  .dcmt1{border-bottom:1px dashed var(--line);padding:6px 0 10px;margin-bottom:6px}
+  .dcmth{font-size:12px;font-weight:700}
+  .dcmtt{font-size:12.5px;line-height:1.8;white-space:pre-wrap;margin-top:3px}
+  .dcmtform{margin-top:8px}
   .dmatome{font-size:13px;line-height:1.8;margin-top:10px}
   .dmatome h4{font-size:13px;margin:14px 0 6px;color:#3d4654;border-left:4px solid var(--accent);padding-left:8px}
   .dmatome ul{padding-left:20px;margin:0}
   .dmatome li{margin-bottom:3px}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
+  .drth{font-size:12px;font-weight:800;color:#3d4654;margin-bottom:4px}
   .droutewrap{overflow-x:auto}
   .drrow{display:grid;grid-template-columns:26px 118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
@@ -322,7 +328,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-23 21:03</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 12:08</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1582,14 +1588,28 @@ async function renderDoko(){
         <span class="dplace">${escH(r.place)}</span>
         ${route.length?`<button class="dtoggle" data-id="${r.id}">🗺 ルート表（${route.length}店舗）▼</button>`:""}
         ${r.review?`<button class="dtoggle drev" data-rev="${r.id}">📖 振り返り ▼</button>`:""}
+        <button class="dtoggle dcmt" data-cmt="${r.id}">💬 感想（${(r.comments||[]).length}）▼</button>
         <span style="flex:1"></span>
         <button class="dedit" data-id="${r.id}">編集</button>
         ${(mine||ADMIN_KEY)?`<button class="ddel" data-id="${r.id}">削除</button>`:""}
       </div>
       <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　📝 ${escH(r.memo)}`:""}</div>
       <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
-      ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${routeTableHtml(route)}</div>`:""}
+      ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${(()=>{
+        const plan=parseRoute(r.planRoute);
+        const differs=plan.length&&r.planRoute!==r.route;
+        if(!differs) return routeTableHtml(route);
+        return `<div class="drth">✅ 実際のルート</div>${routeTableHtml(route)}<div class="drth" style="margin-top:12px">📋 当初のプラン</div>${routeTableHtml(plan)}`;
+      })()}</div>`:""}
       ${r.review?`<div class="drevbox" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
+      <div class="dcmtbox" data-cmtbody="${r.id}" style="display:none">
+        ${(r.comments||[]).map(c=>`<div class="dcmt1"><div class="dcmth">${escH(c.name)}<span class="dwho" style="margin-left:8px">${escH(c.updated)}</span></div><div class="dcmtt">${escH(c.text)}</div></div>`).join("")||'<div style="color:#c2c8d0;font-size:12px">まだ感想がありません</div>'}
+        <div class="dcmtform">
+          <label class="glbl">あなたの感想${(r.comments||[]).some(c=>String(c.uid)===String(me.sid))?"（編集）":""}</label>
+          <textarea class="ginput dcmtin" rows="3" placeholder="同行の学び・感想をどうぞ">${escH(((r.comments||[]).find(c=>String(c.uid)===String(me.sid))||{}).text||"")}</textarea>
+          <button class="gbtn dcmtsave" data-target="${r.id}" style="margin-top:6px">感想を保存</button><span class="gmsg"></span>
+        </div>
+      </div>
     </div>`;
   };
   const listHtml=list=>list.length?list.map(entryHtml).join("")
@@ -1691,10 +1711,27 @@ async function renderDoko(){
     b.onclick=()=>{
       const el=b.classList.contains("drev")
         ? body.querySelector(`div[data-revbody="${b.dataset.rev}"]`)
-        : body.querySelector(`div[data-route="${b.dataset.id}"]`);
+        : (b.classList.contains("dcmt")
+          ? body.querySelector(`div[data-cmtbody="${b.dataset.cmt}"]`)
+          : body.querySelector(`div[data-route="${b.dataset.id}"]`));
       const open=el.style.display!=="none";
       el.style.display=open?"none":"";
       b.textContent=b.textContent.replace(open?"▲":"▼",open?"▼":"▲");
+    };
+  });
+  body.querySelectorAll(".dcmtsave").forEach(b=>{
+    b.onclick=async()=>{
+      const box=b.closest(".dcmtbox");
+      const text=box.querySelector(".dcmtin").value.trim();
+      const msg=b.nextElementSibling;
+      b.disabled=true; msg.textContent="保存中…";
+      try{
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({action:"dcsave",pass:PASS,id:b.dataset.target,uid:me.sid,name:me.name,text:text})})).json();
+        if(d&&d.ok){ DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-cmtbody="${b.dataset.target}"]`); if(nb){nb.style.display="";} return; }
+        msg.textContent="保存に失敗しました："+(d&&d.error||"不明");
+      }catch(e){ msg.textContent="通信エラー"; }
+      b.disabled=false;
     };
   });
   body.querySelectorAll(".dedit").forEach(b=>{
