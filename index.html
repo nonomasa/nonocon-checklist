@@ -333,7 +333,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 14:12</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 14:23</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1515,14 +1515,23 @@ function refreshRouteTimes(){
     row.querySelector(".drend").textContent=end?("〜"+end):"";
   });
 }
+function reorderRouteRows(){
+  const box=document.getElementById("d_route");
+  if(!box) return;
+  const rows=[...box.querySelectorAll(".drrow")];
+  const sorted=rows.map((r,i)=>[r,getDrTime(r)||"99:99",i])
+    .sort((a,b)=>a[1]<b[1]?-1:(a[1]>b[1]?1:a[2]-b[2]));
+  sorted.forEach(x=>box.appendChild(x[0])); // 並び順に再配置（値は保持）
+}
 function bindDrRow(row){
   row.querySelector(".drdel").onclick=()=>{ row.remove(); refreshRouteTimes(); };
   row.querySelector(".drin").onclick=e=>{
     row.classList.toggle("in");
     e.target.classList.toggle("on");
   };
-  row.querySelector(".drsh").onchange=refreshRouteTimes;
-  row.querySelector(".drsm").onchange=refreshRouteTimes;
+  const onTime=()=>{ reorderRouteRows(); refreshRouteTimes(); };
+  row.querySelector(".drsh").onchange=onTime;
+  row.querySelector(".drsm").onchange=onTime;
   row.querySelector(".drp").onchange=refreshRouteTimes;
   row.querySelector(".drc").onchange=e=>{
     const found=DR_CHAINS.find(x=>x[0]===e.target.value);
@@ -1531,10 +1540,17 @@ function bindDrRow(row){
     else{ k.readOnly=false; if(e.target.value==="") k.value=""; }
   };
 }
+function sortRoute(list){
+  // 開始時刻で昇順。時刻未入力は末尾。同時刻は元の順を維持（安定ソート）
+  return list.map((x,i)=>[x,i]).sort((a,b)=>{
+    const ta=a[0].s||"99:99", tb=b[0].s||"99:99";
+    return ta<tb?-1:(ta>tb?1:a[1]-b[1]);
+  }).map(x=>x[0]);
+}
 function collectRoute(){
   const box=document.getElementById("d_route");
   if(!box) return [];
-  return [...box.querySelectorAll(".drrow")].map(r=>{
+  const list=[...box.querySelectorAll(".drrow")].map(r=>{
     const cv=r.querySelector(".drc").value;
     return {
       s:getDrTime(r),
@@ -1546,6 +1562,7 @@ function collectRoute(){
       a:r.querySelector(".dra").value.trim(), r:r.querySelector(".drr").value.trim()
     };
   }).filter(x=>x.ch||x.n);
+  return sortRoute(list);
 }
 function addMinutes(hm,min){
   const m=String(hm).match(/^(\d{1,2}):(\d{2})$/); if(!m||!min) return "";
@@ -1554,6 +1571,7 @@ function addMinutes(hm,min){
 }
 function routeTableHtml(route){
   if(!route.length) return "";
+  route=sortRoute(route);
   const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
   const tp=route.reduce((a,x)=>a+num(x.p),0), ta=route.reduce((a,x)=>a+num(x.a),0), tr=route.reduce((a,x)=>a+num(x.r),0);
   return `<table class="ntbl drtbl"><thead><tr><th>時間</th><th>マスト</th><th>店名・場所名</th><th>種類</th><th>予定(分)</th><th>実際(分)</th><th>見込利益(円)</th></tr></thead><tbody>`+
