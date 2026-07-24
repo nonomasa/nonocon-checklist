@@ -207,6 +207,7 @@
   .plbtns{margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .pl-clear{font-size:10px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#8a93a3;cursor:pointer}
   .pl-clear:hover{border-color:#dc2626;color:#dc2626}
+  .rieki-auto{color:#0e9f6e;font-weight:700}
   .slideov{position:fixed;inset:0;background:#12141c;z-index:9999;display:flex;flex-direction:column;color:#fff}
   .slide-top{display:flex;justify-content:space-between;align-items:center;padding:14px 20px}
   .slide-x{background:none;border:1px solid #3a3f4c;color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:14px}
@@ -391,7 +392,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 22:24</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 22:28</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1728,6 +1729,22 @@ function photoCell(rid,shopKey){
 }
 const drName=x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
 const drKey=x=>drName(x).replace(/\s+/g,"");
+function productTotal(rid,shopKey){
+  const pj=((PHOTOCTX[rid]||{})[shopKey]||{}).products;
+  if(!pj) return null;
+  let items=[]; try{ items=JSON.parse(pj); }catch(e){ return null; }
+  if(!items.length) return null;
+  return items.reduce((a,x)=>a+(Number(x.profit)||0)*(Number(x.qty)||1),0);
+}
+function riekiCellHtml(rid,x){
+  const pt=rid?productTotal(rid,drKey(x)):null;
+  if(pt!=null) return `<span class="rieki-auto" title="商品リストの合計">${yen(pt)}円</span>`;
+  return x.r?yen(x.r)+"円":"";
+}
+function riekiVal(rid,x){
+  const pt=rid?productTotal(rid,drKey(x)):null;
+  return pt!=null?pt:drNum(x.r);
+}
 
 /* 単一ルート表（計画のみ／実際のみ）。実際(分)列は廃止 */
 function routeTableHtml(route,RID){
@@ -1742,8 +1759,8 @@ function routeTableHtml(route,RID){
       const ph=RID?photoCell(RID,drKey(x)):"";
       return `<tr${x.in?' class="drin-row"':""}><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
       `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}${ph}</td><td style="text-align:left">${escH(x.k)}</td>`+
-      `<td>${x.p?escH(x.p):""}</td><td>${x.r?yen(x.r)+"円":""}</td></tr>`;}).join("")+
-    `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${tr?yen(tr)+"円":""}</td></tr>`+
+      `<td>${x.p?escH(x.p):""}</td><td>${riekiCellHtml(RID,x)}</td></tr>`;}).join("")+
+    `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${(()=>{const t=route.reduce((a,x)=>a+riekiVal(RID,x),0);return t?yen(t)+"円":"";})()}</td></tr>`+
     `</tbody></table>`;
 }
 
@@ -1755,7 +1772,7 @@ function routeMergedHtml(actual, plan, RID){
   const rows=[];
   sortRoute(actual).forEach(x=>rows.push({x, kind: planMap[drKey(x)]?"kept":"added"}));
   sortRoute(plan).forEach(x=>{ if(!actMap[drKey(x)]) rows.push({x, kind:"skipped"}); });
-  const tp=actual.reduce((a,x)=>a+drNum(x.p),0), tr=actual.reduce((a,x)=>a+drNum(x.r),0);
+  const tp=actual.reduce((a,x)=>a+drNum(x.p),0), tr=actual.reduce((a,x)=>a+riekiVal(RID,x),0);
   let body="";
   rows.forEach(({x,kind})=>{
     const p0=planMap[drKey(x)];
@@ -1785,7 +1802,7 @@ function routeMergedHtml(actual, plan, RID){
       `<td style="text-align:left">${nmCell}${ph}</td>`+
       `<td style="text-align:left">${escH(x.k)}</td>`+
       `<td class="${pChg}">${pCell}</td>`+
-      `<td>${x.r?yen(x.r)+"円":""}</td></tr>`;
+      `<td>${riekiCellHtml(RID,x)}</td></tr>`;
   });
   return `<table class="ntbl drtbl"><thead><tr><th>時間</th><th>マスト</th><th>店名・場所名</th><th>種類</th><th>予定(分)</th><th>見込利益(円)</th></tr></thead><tbody>`+
     body+`<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${tr?yen(tr)+"円":""}</td></tr></tbody></table>`+
