@@ -183,6 +183,12 @@
   .drph-add{font-size:10px;padding:3px 8px;border:1px dashed #c9cfd7;border-radius:999px;background:#fff;color:#8a93a3;cursor:pointer}
   .drph-add:hover{border-color:#f97316;color:#f97316}
   .drph-add.drop-on{border-style:solid;border-color:#f97316;background:#fff4ec;color:#f97316}
+  .drph-group{display:inline-flex;align-items:center;gap:3px;margin-right:8px;padding:2px 4px;border:1px solid var(--line);border-radius:8px}
+  .drph-lbl{font-size:9px;color:#8a93a3;margin-right:2px}
+  .drph-w{position:relative;display:inline-block}
+  .drph-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:none;background:#dc2626;color:#fff;font-size:10px;line-height:1;cursor:pointer;padding:0}
+  .ph-stack{flex:1;display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0}
+  .ph-stack img{width:100%;object-fit:contain;background:#1c1f28;border-radius:10px}
   .drmemo{margin-top:4px;font-size:11px;line-height:1.5}
   .drmemo-t{color:#5a6472}
   .drmemo-edit{font-size:10px;padding:1px 7px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#8a93a3;cursor:pointer}
@@ -385,7 +391,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 22:04</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 22:13</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -557,6 +563,7 @@ const DATA = [
       {id:"tool-jancodedb", l:1, t:"JANCODE DATABASEをブックマークする", n:"JAN検索ツール", url:"https://www.jancode.xyz/"},
       {id:"tool-app-sc", l:1, t:"セラーセントラルアプリをインストールする", n:"スマホで出品・売上確認"},
       {id:"tool-app-kaitori", l:1, t:"買取スキャナーアプリをインストールする", n:""},
+      {id:"tool-app-pppark", l:1, t:"PPParkアプリを入れる", n:"型番・JAN検索に便利"},
       {id:"tool-app-locasma", l:1, t:"ロケスマをインストールする", n:"店舗ルート作りに便利"},
       {id:"tool-app-mercari", l:1, t:"メルカリ／ジモティーをインストールする", n:"返品/制限かかっている商品の売り先確保"},
     ]},
@@ -1680,10 +1687,12 @@ function photoCell(rid,shopKey){
   const m=(PHOTOCTX[rid]||{})[shopKey]||{};
   const memo=m.memo||"";
   const photos=`<div class="drphotos">`+PHOTO_KINDS.map(k=>{
-    const url=m[k[0]];
-    return url
-      ? `<a class="drph" href="${url}" target="_blank" rel="noopener" title="${k[1]}"><img src="${url}" alt="${k[1]}"><span>${k[1]}</span></a>`
-      : `<button class="drph-add" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" title="${k[1]}の写真を追加">＋${k[1]}</button>`;
+    const urls=m[k[0]]||[];
+    const imgs=urls.map(u=>
+      `<span class="drph-w"><a class="drph" href="${u}" target="_blank" rel="noopener" title="${k[1]}"><img src="${u}" alt="${k[1]}"></a>`+
+      `<button class="drph-del" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" data-url="${escH(u)}" title="削除">×</button></span>`).join("");
+    return `<span class="drph-group"><span class="drph-lbl">${k[1]}</span>${imgs}`+
+      `<button class="drph-add" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" title="${k[1]}の写真を追加">＋</button></span>`;
   }).join("")+`</div>`;
   const memoLine=memo
     ? `<div class="drmemo"><span class="drmemo-t">📝 ${escH(memo)}</span> <button class="drmemo-edit" data-rid="${rid}" data-shop="${escH(shopKey)}">編集</button></div>`
@@ -1761,7 +1770,7 @@ function routeMergedHtml(actual, plan, RID){
 function openSlide(rid){
   const r=(DOKOALL||[]).find(x=>x.id===rid); if(!r) return;
   const route=sortRoute(parseRoute(r.route));
-  const pmap={}; (r.photos||[]).forEach(p=>{(pmap[p.shop]=pmap[p.shop]||{})[p.kind]=p.url;});
+  const pmap={}; (r.photos||[]).forEach(p=>{const sh=pmap[p.shop]=pmap[p.shop]||{}; if(p.kind==="memo"||p.kind==="products"){sh[p.kind]=p.url;} else {(sh[p.kind]=sh[p.kind]||[]).push(p.url);}});
   // 全体＋各店舗のスライド
   const slides=[{title:`${dokoDateLabel(r.date)} ${escH(r.place)}`, sub:escH(r.members||""), shop:null}]
     .concat(route.map(x=>{
@@ -1773,9 +1782,12 @@ function openSlide(rid){
   const render=()=>{
     const sl=slides[i];
     const ph=sl.shop?(pmap[sl.shop]||{}):{};
-    const imgs=sl.shop?PHOTO_KINDS.map(k=>
-      ph[k[0]]?`<figure><figcaption>${k[1]}</figcaption><img src="${ph[k[0]]}" alt="${k[1]}"></figure>`
-              :`<figure class="ph-empty"><figcaption>${k[1]}</figcaption><div>写真なし</div></figure>`).join("")
+    const imgs=sl.shop?PHOTO_KINDS.map(k=>{
+      const urls=ph[k[0]]||[];
+      if(!urls.length) return `<figure class="ph-empty"><figcaption>${k[1]}</figcaption><div>写真なし</div></figure>`;
+      const inner=urls.map(u=>`<img src="${u}" alt="${k[1]}">`).join("");
+      return `<figure><figcaption>${k[1]}（${urls.length}）</figcaption><div class="ph-stack">${inner}</div></figure>`;
+    }).join("")
       :`<div class="slide-cover">🚗 同行スタート<br><span>${escH(r.memo||"")}</span></div>`;
     ov.innerHTML=`<div class="slide-top"><button class="slide-x">✕ 閉じる</button><span class="slide-page">${i+1} / ${slides.length}</span></div>
       <div class="slide-body">
@@ -1829,7 +1841,11 @@ async function renderDoko(){
       <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　📝 ${escH(r.memo)}`:""}</div>
       <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
       ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${(()=>{
-        PHOTOCTX[r.id]={};(r.photos||[]).forEach(p=>{(PHOTOCTX[r.id][p.shop]=PHOTOCTX[r.id][p.shop]||{})[p.kind]=p.url;});
+        PHOTOCTX[r.id]={};(r.photos||[]).forEach(p=>{
+          const sh=PHOTOCTX[r.id][p.shop]=PHOTOCTX[r.id][p.shop]||{};
+          if(p.kind==="memo"||p.kind==="products"){ sh[p.kind]=p.url; }
+          else{ (sh[p.kind]=sh[p.kind]||[]).push(p.url); }
+        });
         const plan=parseRoute(r.planRoute);
         const differs=plan.length&&r.planRoute!==r.route;
         const tbl=differs?routeMergedHtml(route,plan,r.id):routeTableHtml(route,r.id);
@@ -1982,6 +1998,17 @@ async function renderDoko(){
     };
   });
   // 店舗写真のアップロード（＋店頭/せどプレ/売れた ボタン）
+  const uploadPhotoWait=(rid,shop,kind,file)=>new Promise(res=>{
+    if(file.size>12*1024*1024){ alert("12MB以下の画像にしてください"); res(); return; }
+    const fr=new FileReader();
+    fr.onload=async()=>{
+      const b64=String(fr.result).split(",")[1];
+      try{ await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:kind,mime:file.type||"image/jpeg",name:me.name,data:b64})}); }catch(e){}
+      res();
+    };
+    fr.readAsDataURL(file);
+  });
   const uploadPhoto=(rid,shop,kind,file,btn)=>{
     if(file.size>12*1024*1024){ alert("12MB以下の画像にしてください"); return; }
     const old=btn.textContent; btn.textContent="…"; btn.disabled=true;
@@ -2000,25 +2027,36 @@ async function renderDoko(){
   };
   const dropFrom=async(dt,rid,shop,kind,btn)=>{
     // ファイルなら即アップ
-    if(dt.files&&dt.files.length){ uploadPhoto(rid,shop,kind,dt.files[0],btn); return; }
+    if(dt.files&&dt.files.length){ (async()=>{ for(const f of [...dt.files]){ await uploadPhotoWait(rid,shop,kind,f); } DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${rid}"]`); if(nb)nb.style.display=""; })(); return; }
     // 写真アプリ等からのドロップはURL/HTMLで来ることがある → 画像URLを取得してfetch
     let url=dt.getData("text/uri-list")||dt.getData("text/plain")||"";
     const html=dt.getData("text/html");
     if(!/^https?:|^data:|^file:/.test(url) && html){ const m=html.match(/src=["\']([^"\']+)["\']/); if(m) url=m[1]; }
     if(/^https?:|^data:/.test(url)){
-      btn.textContent="…"; btn.disabled=true;
+      btn.disabled=true;
       try{
         const blob=await (await fetch(url)).blob();
-        uploadPhoto(rid,shop,kind,new File([blob],"photo",{type:blob.type||"image/jpeg"}),btn);
-      }catch(e){ alert("この写真は直接ドロップできませんでした。写真をデスクトップに書き出してからアップしてください"); btn.textContent="＋"+({shelf:"店頭",list:"せどプレ",sold:"売れた"}[kind]||""); btn.disabled=false; }
+        await uploadPhotoWait(rid,shop,kind,new File([blob],"photo",{type:blob.type||"image/jpeg"}));
+        DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${rid}"]`); if(nb)nb.style.display="";
+      }catch(e){ alert("この写真は直接ドロップできませんでした。写真をデスクトップに書き出してからアップしてください"); btn.disabled=false; }
     }else{
       alert("画像として受け取れませんでした。写真をデスクトップに書き出すか、クリックで選んでください");
     }
   };
+  body.querySelectorAll(".drph-del").forEach(btn=>{
+    btn.onclick=async()=>{
+      if(!confirm("この写真を削除しますか？")) return;
+      try{
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({action:"dphoto",pass:PASS,id:btn.dataset.rid,shop:btn.dataset.shop,kind:btn.dataset.kind,url:btn.dataset.url,data:""})})).json();
+        if(d&&d.ok){ DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${btn.dataset.rid}"]`); if(nb)nb.style.display=""; return; }
+      }catch(e){ alert("通信エラー"); }
+    };
+  });
   body.querySelectorAll(".drph-add").forEach(btn=>{
     btn.onclick=()=>{
-      const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*";
-      inp.onchange=()=>{ if(inp.files[0]) uploadPhoto(btn.dataset.rid,btn.dataset.shop,btn.dataset.kind,inp.files[0],btn); };
+      const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.multiple=true;
+      inp.onchange=async()=>{ for(const f of [...inp.files]){ await uploadPhotoWait(btn.dataset.rid,btn.dataset.shop,btn.dataset.kind,f); } DOKOALL=null; await renderDoko(); const nb=document.querySelector(`div[data-route="${btn.dataset.rid}"]`); if(nb)nb.style.display=""; };
       inp.click();
     };
     btn.ondragover=e=>{ e.preventDefault(); btn.classList.add("drop-on"); };
