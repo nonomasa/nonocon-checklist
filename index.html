@@ -394,7 +394,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 23:45</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-25 08:13</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1919,7 +1919,7 @@ async function renderDoko(){
         <span class="dplace">${escH(r.place)}</span>
         ${route.length?`<button class="dtoggle" data-id="${r.id}">🗺 ルート表（${route.length}店舗）▼</button>`:""}
         ${r.review?`<button class="dtoggle drev" data-rev="${r.id}">📖 振り返り ▼</button>`:""}
-        <button class="dtoggle dcmt" data-cmt="${r.id}">💬 感想（${(r.comments||[]).length}）▼</button>
+        <button class="dtoggle dcmt" data-cmt="${r.id}">💬 感想（${new Set((r.comments||[]).map(c=>c.name)).size}人）▼</button>
         <span style="flex:1"></span>
         <button class="dedit" data-id="${r.id}">編集</button>
         ${(mine||ADMIN_KEY)?`<button class="ddel" data-id="${r.id}">削除</button>`:""}
