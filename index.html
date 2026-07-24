@@ -392,7 +392,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 22:28</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 22:44</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1644,6 +1644,35 @@ function addMinutes(hm,min){
 const drNum=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
 const PHOTO_KINDS=[["shelf","店頭"],["list","せどプレ"],["sold","売れた"]];
 let PHOTOCTX={}; // {routeId:{shopKey:{kind:url}}}
+/* せどプレの行コピペ（タブ区切り・ヘッダ無し）をパース。列位置はCSVと同じ */
+function sedoprePasteParse(text){
+  const lines=String(text).replace(/\r/g,"").split("\n").filter(l=>l.trim());
+  const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+  const out=[];
+  lines.forEach(l=>{
+    const c=l.split("\t").map(x=>x.trim());
+    // SKU（1列目）から ASIN・個数・仕入原価 を確実に取得
+    const parts=(c[0]||"").split("-");
+    let asin="", qty=1, cost=0, ai=-1;
+    for(let k=0;k<parts.length;k++){ if(/^[A-Z0-9]{10}$/.test(parts[k])){ asin=parts[k]; ai=k; break; } }
+    if(ai>=0){ qty=num(parts[ai+2])||1; cost=num(parts[ai+3]); }
+    // SKUで取れなければ列/正規表現で補完
+    if(!asin){ asin=(c[2]||""); if(!/^[A-Z0-9]{10}$/.test(asin)){ const m=l.match(/\b([A-Z0-9]{10})\b/); asin=m?m[1]:""; } }
+    if(!asin) return;
+    const title=(c[3]||"");
+    // 粗利＝「仕入原価・個数」が並ぶ直前の数値（CSV/コピペ どちらのフォーマットでも成立）
+    let profit=0, pIdx=-1;
+    if(cost>0){
+      for(let i=0;i<c.length-2;i++){ if(num(c[i+1])===cost && num(c[i+2])===qty){ profit=num(c[i]); pIdx=i; break; } }
+    }
+    // カテゴリ＝粗利の3つ手前（ランク・重量の数値2つを挟む）。無いフォーマットでは空
+    const isNumT=x=>x!==""&&!isNaN(parseFloat(String(x).replace(/,/g,"")));
+    let cat="";
+    if(pIdx>=3 && isNumT(c[pIdx-1]) && isNumT(c[pIdx-2]) && c[pIdx-3] && !isNumT(c[pIdx-3])) cat=c[pIdx-3];
+    out.push({asin:asin, title:title, profit:profit, cost:cost, price:0, qty:qty, cat:cat});
+  });
+  return out;
+}
 function sedopreParse(text){
   const rows=parseCSV(text);
   if(!rows.length) throw "CSVが読めません";
@@ -1680,8 +1709,15 @@ function productListHtml(rid,shopKey){
     <table class="ntbl pltbl"><thead><tr><th>商品名</th><th>カテゴリ</th><th>個数</th><th>見込利益</th><th>リンク</th></tr></thead>
     <tbody>${rowsHtml}${items.length?`<tr class="ntotal"><td colspan="3">合計 ${items.length}点</td><td>${yen(totProfit)}円</td><td></td></tr>`:""}</tbody></table>
     <div class="plbtns"><button class="gbtn pl-csv" data-rid="${rid}" data-shop="${escH(shopKey)}">せどプレCSVを取り込む</button>
+    <button class="gbtn pl-paste-open" data-rid="${rid}" data-shop="${escH(shopKey)}" style="background:#6b7686">行を貼り付けて取り込む</button>
     ${items.length?`<button class="pl-clear" data-rid="${rid}" data-shop="${escH(shopKey)}">クリア</button>`:""}
-    <span class="gpn">CSVを取り込むとKeepaリンク付きで一覧＋見込利益を自動計算</span></div>
+    <span class="gpn">Keepaリンク付きで一覧＋見込利益を自動計算</span></div>
+    <div class="pl-pastebox" data-pastebox="${rid}__${escH(shopKey)}" style="display:none;margin-top:8px">
+      <div class="nhint">せどプレ or Excelで、その店で仕入れた行を選択→コピーして、下に貼り付け（Cmd+V）→取り込む</div>
+      <textarea class="ginput pl-paste-in" rows="4" placeholder="ここに行を貼り付け"></textarea>
+      <button class="gbtn pl-paste-go" data-rid="${rid}" data-shop="${escH(shopKey)}" style="margin-top:6px">取り込む</button>
+      <span class="gmsg pl-paste-msg"></span>
+    </div>
   </div>`;
 }
 let _bindRouteBox=null; // renderDoko内のbindRouteBoxを橋渡し
@@ -2164,6 +2200,29 @@ function bindRouteBox(scope){
         }catch(e){ alert(String(e)); btn.textContent="せどプレCSVを取り込む"; btn.disabled=false; }
       };
       inp.click();
+    };
+  });
+  scope.querySelectorAll(".pl-paste-open").forEach(btn=>{
+    btn.onclick=()=>{
+      const b=document.querySelector(`div[data-pastebox="${btn.dataset.rid}__${btn.dataset.shop}"]`);
+      if(!b) return; b.style.display=b.style.display==="none"?"":"none";
+      if(b.style.display!=="none"){ const ta=b.querySelector(".pl-paste-in"); ta.value=""; ta.focus(); }
+    };
+  });
+  scope.querySelectorAll(".pl-paste-go").forEach(btn=>{
+    btn.onclick=()=>{
+      const rid=btn.dataset.rid, shop=btn.dataset.shop;
+      const b=document.querySelector(`div[data-pastebox="${rid}__${shop}"]`);
+      const ta=b.querySelector(".pl-paste-in"), msg=b.querySelector(".pl-paste-msg");
+      const items=sedoprePasteParse(ta.value);
+      if(!items.length){ msg.textContent="商品が読み取れませんでした（ASINを含む行を貼り付けてください）"; return; }
+      const cur=((PHOTOCTX[rid]||{})[shop]||{}).products;
+      let curArr=[]; try{ curArr=cur?JSON.parse(cur):[]; }catch(e){}
+      const list=curArr.length&&confirm(`既に${curArr.length}件あります。追記しますか？（キャンセルで置き換え）`)?curArr.concat(items):items;
+      applyPhotoLocal(rid,shop,"products",JSON.stringify(list),"set"); refreshRouteBox(rid);
+      const w=document.querySelector(`div[data-plwrap="${rid}__${shop}"]`); if(w)w.style.display="";
+      fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"products",name:me.name,text:JSON.stringify(list)})}).catch(()=>{});
     };
   });
   scope.querySelectorAll(".pl-clear").forEach(btn=>{
