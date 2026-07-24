@@ -177,8 +177,16 @@
   .dmatome li{margin-bottom:3px}
   .drtbl td,.drtbl th{font-size:12px;padding:6px 10px}
   .drth{font-size:12px;font-weight:800;color:#3d4654;margin-bottom:4px}
+  tr.dr-add td{color:#2563eb}
+  tr.dr-skip td{color:#b6bdc7;text-decoration:line-through}
+  td.dr-chg{color:#2563eb;font-weight:700}
+  .dr-touban{display:inline-block;background:#2563eb;color:#fff;font-size:10px;font-weight:800;
+    border-radius:4px;padding:1px 5px}
+  .drlegend{font-size:10.5px;color:#8a93a3;margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .dr-chg-legend{color:#2563eb;font-weight:700}
+  .dr-skip-legend{color:#b6bdc7;text-decoration:line-through}
   .droutewrap{overflow-x:auto}
-  .drrow{display:grid;grid-template-columns:26px 118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 64px 84px 26px;
+  .drrow{display:grid;grid-template-columns:26px 118px 84px 62px 52px minmax(150px,1fr) minmax(120px,1fr) 90px 84px 26px;
     gap:5px;margin-bottom:5px;min-width:760px}
   .drrow .ginput{padding:6px 7px;font-size:12px}
   .dmemwrap{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px}
@@ -333,7 +341,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-24 14:40</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-24 14:45</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1510,7 +1518,6 @@ function drRowHtml(it){
     <select class="ginput drc" title="チェーン">${drChainOpts(chSel)}</select>
     <input class="ginput drn" placeholder="支店名・場所（例：吉祥寺店）" value="${escH(it.n)}">
     <select class="ginput drk" title="種類" ${chainKnown?"disabled":""}>${drKindOpts(it.k)}</select>
-    <input class="ginput dra" inputmode="numeric" placeholder="実際分" value="${escH(it.a)}">
     <input class="ginput drr" inputmode="numeric" placeholder="見込利益" value="${escH(it.r)}">
     <button type="button" class="tdel drdel" title="削除">×</button>
   </div>`;
@@ -1572,7 +1579,7 @@ function collectRoute(){
       ch:(cv==="__free__"||cv==="")?"":cv,
       n:r.querySelector(".drn").value.trim(),
       k:r.querySelector(".drk").value.trim(), p:r.querySelector(".drp").value.trim(),
-      a:r.querySelector(".dra").value.trim(), r:r.querySelector(".drr").value.trim()
+      a:"", r:r.querySelector(".drr").value.trim()
     };
   }).filter(x=>x.ch||x.n);
   return sortRoute(list);
@@ -1582,21 +1589,60 @@ function addMinutes(hm,min){
   const t=(+m[1])*60+(+m[2])+Math.round(min);
   return ("0"+Math.floor(t/60)%24).slice(-2)+":"+("0"+t%60).slice(-2);
 }
+const drNum=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+const drName=x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
+const drKey=x=>drName(x).replace(/\s+/g,"");
+
+/* 単一ルート表（計画のみ／実際のみ）。実際(分)列は廃止 */
 function routeTableHtml(route){
   if(!route.length) return "";
   route=sortRoute(route);
-  const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
-  const tp=route.reduce((a,x)=>a+num(x.p),0), ta=route.reduce((a,x)=>a+num(x.a),0), tr=route.reduce((a,x)=>a+num(x.r),0);
-  return `<table class="ntbl drtbl"><thead><tr><th>時間</th><th>マスト</th><th>店名・場所名</th><th>種類</th><th>予定(分)</th><th>実際(分)</th><th>見込利益(円)</th></tr></thead><tbody>`+
+  const tp=route.reduce((a,x)=>a+drNum(x.p),0), tr=route.reduce((a,x)=>a+drNum(x.r),0);
+  return `<table class="ntbl drtbl"><thead><tr><th>時間</th><th>マスト</th><th>店名・場所名</th><th>種類</th><th>予定(分)</th><th>見込利益(円)</th></tr></thead><tbody>`+
     route.map(x=>{
-      const end=x.e||addMinutes(x.s,num(x.a)||num(x.p));
-      const nm=(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
+      const end=x.e||addMinutes(x.s,drNum(x.p));
+      const nm=drName(x);
       const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
       return `<tr${x.in?' class="drin-row"':""}><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
       `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}</td><td style="text-align:left">${escH(x.k)}</td>`+
-      `<td>${x.p?escH(x.p):""}</td><td>${x.a?escH(x.a):""}</td><td>${x.r?yen(x.r)+"円":""}</td></tr>`;}).join("")+
-    `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${ta||""}</td><td>${tr?yen(tr)+"円":""}</td></tr>`+
+      `<td>${x.p?escH(x.p):""}</td><td>${x.r?yen(x.r)+"円":""}</td></tr>`;}).join("")+
+    `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${tr?yen(tr)+"円":""}</td></tr>`+
     `</tbody></table>`;
+}
+
+/* 計画と実際を1つに統合した表：追加=青＋「当」、変更=青、未訪問=グレー取消線 */
+function routeMergedHtml(actual, plan){
+  const planMap={}; plan.forEach(x=>{planMap[drKey(x)]=x;});
+  const actMap={}; actual.forEach(x=>{actMap[drKey(x)]=x;});
+  // 実際に回った店（時刻順）＋計画にあって行かなかった店（末尾）
+  const rows=[];
+  sortRoute(actual).forEach(x=>rows.push({x, kind: planMap[drKey(x)]?"kept":"added"}));
+  sortRoute(plan).forEach(x=>{ if(!actMap[drKey(x)]) rows.push({x, kind:"skipped"}); });
+  const tp=actual.reduce((a,x)=>a+drNum(x.p),0), tr=actual.reduce((a,x)=>a+drNum(x.r),0);
+  let body="";
+  rows.forEach(({x,kind})=>{
+    const p0=planMap[drKey(x)];
+    const end=addMinutes(x.s,drNum(x.p));
+    const nm=drName(x);
+    const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
+    let cls="", mustCell=escH(x.m||"");
+    if(kind==="added"){ cls="dr-add"; mustCell=`<span class="dr-touban">当</span>`; }
+    else if(kind==="skipped"){ cls="dr-skip"; }
+    // 変更セル判定（計画と実際で時刻/予定分が違えばそのセルだけ青）
+    const chg=(a,b)=>(p0&&kind==="kept"&&String(a)!==String(b))?"dr-chg":"";
+    const timeChg=p0&&kind==="kept"&&(x.s!==p0.s||drNum(x.p)!==drNum(p0.p))?"dr-chg":"";
+    const pChg=p0&&kind==="kept"&&drNum(x.p)!==drNum(p0.p)?"dr-chg":"";
+    body+=`<tr class="${cls}${x.in?" drin-row":""}">`+
+      `<td style="white-space:nowrap" class="${timeChg}">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
+      `<td style="text-align:center">${mustCell}</td>`+
+      `<td style="text-align:left">${nmCell}</td>`+
+      `<td style="text-align:left">${escH(x.k)}</td>`+
+      `<td class="${pChg}">${x.p?escH(x.p):""}</td>`+
+      `<td>${x.r?yen(x.r)+"円":""}</td></tr>`;
+  });
+  return `<table class="ntbl drtbl"><thead><tr><th>時間</th><th>マスト</th><th>店名・場所名</th><th>種類</th><th>予定(分)</th><th>見込利益(円)</th></tr></thead><tbody>`+
+    body+`<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${tr?yen(tr)+"円":""}</td></tr></tbody></table>`+
+    `<div class="drlegend"><span class="dr-touban">当</span> 当日追加　<span class="dr-chg-legend">青字</span>＝計画から変更　<span class="dr-skip-legend">取消線</span>＝計画したが未訪問</div>`;
 }
 async function renderDoko(){
   const body=document.getElementById("body");
@@ -1631,8 +1677,7 @@ async function renderDoko(){
       ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${(()=>{
         const plan=parseRoute(r.planRoute);
         const differs=plan.length&&r.planRoute!==r.route;
-        if(!differs) return routeTableHtml(route);
-        return `<div class="drth">✅ 実際のルート</div>${routeTableHtml(route)}<div class="drth" style="margin-top:12px">📋 当初のプラン</div>${routeTableHtml(plan)}`;
+        return differs?routeMergedHtml(route,plan):routeTableHtml(route);
       })()}</div>`:""}
       ${r.review?`<div class="drevbox" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
       <div class="dcmtbox" data-cmtbody="${r.id}" style="display:none">
