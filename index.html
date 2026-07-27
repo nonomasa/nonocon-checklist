@@ -394,7 +394,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-25 08:13</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-27 09:49</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1715,7 +1715,7 @@ function productListHtml(rid,shopKey){
   return `<div class="plbox">
     <table class="ntbl pltbl"><thead><tr><th>JAN / ASIN</th><th>個数</th><th>販売価格</th><th>仕入価格</th><th>見込利益</th><th>リンク</th></tr></thead>
     <tbody>${rowsHtml}${items.length?`<tr class="ntotal"><td>合計 ${items.length}点</td><td></td><td>${totPrice?yen(totPrice)+"円":""}</td><td>${totCost?yen(totCost)+"円":""}</td><td>${yen(totProfit)}円</td><td></td></tr>`:""}</tbody></table>
-    <div class="plbtns"><button class="gbtn pl-csv" data-rid="${rid}" data-shop="${escH(shopKey)}">せどプレCSVを取り込む</button>
+    ${canEditDokoId(rid)?`<div class="plbtns"><button class="gbtn pl-csv" data-rid="${rid}" data-shop="${escH(shopKey)}">せどプレCSVを取り込む</button>
     <button class="gbtn pl-paste-open" data-rid="${rid}" data-shop="${escH(shopKey)}" style="background:#6b7686">行を貼り付けて取り込む</button>
     ${items.length?`<button class="pl-clear" data-rid="${rid}" data-shop="${escH(shopKey)}">クリア</button>`:""}
     <span class="gpn">Keepaリンク付きで一覧＋見込利益を自動計算</span></div>
@@ -1724,7 +1724,7 @@ function productListHtml(rid,shopKey){
       <textarea class="ginput pl-paste-in" rows="4" placeholder="ここに行を貼り付け"></textarea>
       <button class="gbtn pl-paste-go" data-rid="${rid}" data-shop="${escH(shopKey)}" style="margin-top:6px">取り込む</button>
       <span class="gmsg pl-paste-msg"></span>
-    </div>
+    </div>`:""}
   </div>`;
 }
 let _bindRouteBox=null; // renderDoko内のbindRouteBoxを橋渡し
@@ -1755,23 +1755,36 @@ function applyPhotoLocal(rid,shop,kind,url,mode){
 function photoCell(rid,shopKey){
   const m=(PHOTOCTX[rid]||{})[shopKey]||{};
   const memo=m.memo||"";
+  const canEdit=canEditDokoId(rid);
   const photos=`<div class="drphotos">`+PHOTO_KINDS.map(k=>{
     const urls=m[k[0]]||[];
+    if(!urls.length && !canEdit) return ""; // 閲覧者には空の枠を出さない
     const imgs=urls.map(u=>
       `<span class="drph-w"><a class="drph" href="${u}" target="_blank" rel="noopener" title="${k[1]}"><img src="${u}" alt="${k[1]}"></a>`+
-      `<button class="drph-del" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" data-url="${escH(u)}" title="削除">×</button></span>`).join("");
+      `${canEdit?`<button class="drph-del" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" data-url="${escH(u)}" title="削除">×</button>`:""}</span>`).join("");
     return `<span class="drph-group"><span class="drph-lbl">${k[1]}</span>${imgs}`+
-      `<button class="drph-add" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" title="${k[1]}の写真を追加">＋</button></span>`;
+      `${canEdit?`<button class="drph-add" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" title="${k[1]}の写真を追加">＋</button>`:""}</span>`;
   }).join("")+`</div>`;
   const memoLine=memo
-    ? `<div class="drmemo"><span class="drmemo-t">📝 ${escH(memo)}</span> <button class="drmemo-edit" data-rid="${rid}" data-shop="${escH(shopKey)}">編集</button></div>`
-    : `<div class="drmemo"><button class="drmemo-edit drmemo-add" data-rid="${rid}" data-shop="${escH(shopKey)}">＋メモ（店の特徴）</button></div>`;
+    ? `<div class="drmemo"><span class="drmemo-t">📝 ${escH(memo)}</span> ${canEdit?`<button class="drmemo-edit" data-rid="${rid}" data-shop="${escH(shopKey)}">編集</button>`:""}</div>`
+    : (canEdit?`<div class="drmemo"><button class="drmemo-edit drmemo-add" data-rid="${rid}" data-shop="${escH(shopKey)}">＋メモ（店の特徴）</button></div>`:"");
   let prodArr=[]; try{ prodArr=JSON.parse(((PHOTOCTX[rid]||{})[shopKey]||{}).products||"[]"); }catch(e){}
-  const prodLine=`<div class="drmemo"><button class="drmemo-edit pl-toggle" data-rid="${rid}" data-shop="${escH(shopKey)}">🛒 商品リスト（${prodArr.length}）</button></div><div class="pl-wrap" data-plwrap="${rid}__${escH(shopKey)}" style="display:none">${productListHtml(rid,shopKey)}</div>`;
+  const prodLine=(prodArr.length||canEdit)
+    ? `<div class="drmemo"><button class="drmemo-edit pl-toggle" data-rid="${rid}" data-shop="${escH(shopKey)}">🛒 商品リスト（${prodArr.length}）</button></div><div class="pl-wrap" data-plwrap="${rid}__${escH(shopKey)}" style="display:none">${productListHtml(rid,shopKey)}</div>`
+    : "";
   return photos+memoLine+prodLine;
 }
 const drName=x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
 const drKey=x=>drName(x).replace(/\s+/g,"");
+/* 同行の編集可否：参加メンバー本人・作成者・管理者のみ編集可（他は閲覧のみ） */
+function dokoMembers(r){ return String((r&&r.members)||"").split(/[・、,／]+/).map(s=>s.trim()).filter(Boolean); }
+function canEditDokoId(rid){
+  const r=(DOKOALL||[]).find(x=>String(x.id)===String(rid));
+  if(!r||!me) return false;
+  if(ADMIN_KEY) return true;
+  if(String(r.uid)===String(me.sid)) return true;
+  return dokoMembers(r).includes(me.name);
+}
 function productTotal(rid,shopKey){
   const pj=((PHOTOCTX[rid]||{})[shopKey]||{}).products;
   if(!pj) return null;
@@ -1943,6 +1956,7 @@ async function renderDoko(){
           const route=parseRoute(r.route);
           const shops=["全体"].concat(route.map(x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n)).filter(Boolean));
           const mine=c=>String(c.uid)===String(me.sid);
+          const canEdit=canEditDokoId(r.id);
           // 他の人の感想（対象ごとにグループ化）
           let others="";
           shops.forEach(sh=>{
@@ -1957,9 +1971,11 @@ async function renderDoko(){
             `<div class="dcmtrow"><div class="dcmtlbl">${sh==="全体"?"🗒 全体":"🏬 "+escH(sh)}</div>`+
             `<textarea class="ginput dcmtcell" data-target="${escH(sh)}" rows="2" placeholder="${sh==="全体"?"全体の感想":"この店舗の感想"}">${escH(myText(sh))}</textarea></div>`).join("");
           return (others?`<div class="dcmto">${others}</div>`:"")+
-            `<div class="dcmtform"><label class="glbl">あなたの感想 <span class="gpn">（店舗ごとに書いて、最後にまとめて保存）</span></label>
+            (canEdit
+              ? `<div class="dcmtform"><label class="glbl">あなたの感想 <span class="gpn">（店舗ごとに書いて、最後にまとめて保存）</span></label>
             ${inputs}
-            <button class="gbtn dcmtsaveall" data-id="${r.id}" style="margin-top:8px">まとめて保存</button><span class="gmsg"></span></div>`;
+            <button class="gbtn dcmtsaveall" data-id="${r.id}" style="margin-top:8px">まとめて保存</button><span class="gmsg"></span></div>`
+              : (others?"":`<div class="gpn" style="padding:6px 0">まだ感想はありません（感想は参加メンバーのみ記入できます）</div>`));
         })()}
       </div>
     </div>`;
