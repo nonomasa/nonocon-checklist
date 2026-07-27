@@ -218,12 +218,21 @@
   .slide-h{text-align:center;margin-bottom:16px}
   .slide-h b{font-size:26px;display:block}
   .slide-h span{color:#9aa0ad;font-size:15px}
-  .slide-imgs{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
-  .ph-flow{display:flex;gap:16px;height:100%;width:100%;justify-content:center;align-items:stretch;flex-wrap:nowrap}
-  .ph-tile{display:flex;flex-direction:column;min-width:0;flex:1 1 0;margin:0;max-width:520px}
-  .ph-tile figcaption{font-size:14px;font-weight:700;text-align:center;margin-bottom:8px;color:#cfd3db}
-  .ph-tile img{flex:1;width:100%;object-fit:contain;min-height:0;background:#1c1f28;border-radius:10px}
+  .slide-imgs{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;justify-content:center}
+  .slide-imgs.cover{align-items:center}
+  .ph-flow{display:grid;gap:14px;width:100%;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));align-content:center;justify-items:center}
+  .ph-tile{display:flex;flex-direction:column;align-items:center;min-width:0;width:100%;margin:0}
+  .ph-tile figcaption{font-size:13px;font-weight:700;text-align:center;margin-bottom:6px;color:#cfd3db}
+  .ph-tile img{max-width:100%;max-height:66vh;width:auto;height:auto;object-fit:contain;background:#1c1f28;border-radius:10px}
   .ph-none{color:#5a5f6c;font-size:18px}
+  @media (max-width:640px){
+    .slide-body{padding:0 12px}
+    .slide-h b{font-size:20px}
+    .slide-h span{font-size:13px}
+    .ph-flow{grid-template-columns:repeat(2,1fr);gap:10px;align-content:start}
+    .ph-tile img{max-height:48vh}
+    .slide-nav button{padding:12px 24px;font-size:15px}
+  }
   .slide-cover{font-size:32px;font-weight:800;text-align:center;line-height:1.6}
   .slide-cover span{font-size:16px;font-weight:400;color:#9aa0ad}
   .slide-nav{display:flex;justify-content:center;gap:20px;padding:18px}
@@ -394,7 +403,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-27 09:49</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-27 10:03</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
