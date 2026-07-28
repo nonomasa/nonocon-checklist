@@ -262,6 +262,7 @@
   .qothers{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
   .qothers-h{font-size:13px;font-weight:800;color:#3d4654;margin-bottom:8px}
   .qo1{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc}
+  .qo-mine{border-color:#f9a56a;background:#fff7ed}
   .qo-top{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px}
   .qo-dec{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
   .qo-dec.buy{background:#eafaf2;color:#0e9f6e}
@@ -444,7 +445,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 16:53</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 17:17</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -3044,6 +3045,12 @@ function quizCard(q,isAdmin){
   </div>`;
   if(canSeeOthers){
     h+=`<div class="qothers"><div class="qothers-h">👥 みんなの回答（⭕${buyN}／❌${noN}）</div>`;
+    if(myAns){
+      h+=`<div class="qo1 qo-mine"><div class="qo-top"><span class="qo-dec ${myAns.decision==="仕入れる"?"buy":"no"}">${escH(myAns.decision||"—")}</span><b>あなた（${escH(myAns.name)}）</b><span class="dwho">${escH(myAns.updated)}</span></div>`;
+      if(myAns.cost||myAns.price) h+=`<div class="qo-jan">💰 仕入${myAns.cost?yen(+myAns.cost)+"円":"—"} → 販売${myAns.price?yen(+myAns.price)+"円":"—"}</div>`;
+      if(myAns.memo) h+=`<div class="qo-memo">${escH(myAns.memo)}</div>`;
+      h+=`</div>`;
+    }
     if(others.length){
       others.forEach(a=>{
         h+=`<div class="qo1"><div class="qo-top"><span class="qo-dec ${a.decision==="仕入れる"?"buy":"no"}">${escH(a.decision||"—")}</span><b>${escH(a.name)}</b><span class="dwho">${escH(a.updated)}</span></div>`;
