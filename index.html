@@ -450,7 +450,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 22:42</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 23:00</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1740,7 +1740,9 @@ function sedoprePasteParse(text){
     if(cost>0){
       for(let i=0;i<c.length-2;i++){ if(num(c[i+1])===cost && num(c[i+2])===qty){ profit=num(c[i]); pIdx=i; price=num(c[i+3])||0; break; } }
     }
-    out.push({asin:asin, jan:jan, profit:profit, cost:cost, price:price, qty:qty});
+    // 仕入日：SKU先頭の8桁（20260718-...）→ 2026-07-18
+    let dt=""; const dm=(c[0]||"").match(/^(\d{4})(\d{2})(\d{2})-/); if(dm) dt=dm[1]+"-"+dm[2]+"-"+dm[3];
+    out.push({asin:asin, jan:jan, profit:profit, cost:cost, price:price, qty:qty, dt:dt});
   });
   return out;
 }
@@ -1762,9 +1764,10 @@ function sedopreParse(text){
   for(let r=1;r<rows.length;r++){
     const asin=String(rows[r][ci.asin]||"").trim();
     if(!asin) continue;
+    let dt=""; const skuv=String(rows[r][0]||""); const dm=skuv.match(/^(\d{4})(\d{2})(\d{2})-/); if(dm) dt=dm[1]+"-"+dm[2]+"-"+dm[3];
     out.push({asin:asin, jan:ci.jan>=0?janFix(rows[r][ci.jan]):"",
       profit:ci.profit>=0?num(rows[r][ci.profit]):0, cost:ci.cost>=0?num(rows[r][ci.cost]):0,
-      price:ci.price>=0?num(rows[r][ci.price]):0, qty:ci.qty>=0?(num(rows[r][ci.qty])||1):1});
+      price:ci.price>=0?num(rows[r][ci.price]):0, qty:ci.qty>=0?(num(rows[r][ci.qty])||1):1, dt:dt});
   }
   return out;
 }
@@ -2507,12 +2510,13 @@ function dailySectionHtml(uid){
     <span class="gpn">みんなの記録も見られます</span></div>
     <div class="dlygoals">月間目標：見込利益 ${gIn("gmikomi","300000")}円　時間 ${gIn("ghours","100")}h　回訪 ${gIn("gvisits","100")}店　検索 ${gIn("gsearches","10000")}件
     ${editable?`<button class="gbtn dlyg-save" style="margin-left:8px;padding:6px 14px;font-size:12px">目標を保存</button>`:""}</div>
-    ${editable?`<div class="dly-pastewrap"><button class="drmemo-edit" id="dlyPasteOpen">📋 せどプレ行を貼り付けて仕入金額・見込利益を自動入力</button>
+    ${editable?`<div class="dly-pastewrap"><button class="drmemo-edit" id="dlyPasteOpen">📋 せどプレのデータを入れて仕入金額・見込利益を自動入力</button>
       <div id="dlyPasteBox" style="display:none;margin-top:6px">
-        <div class="nhint">せどプレでその日仕入れた行をコピー→貼り付け→日付を選んで「反映」（原価×個数＝仕入金額、粗利×個数＝見込利益）</div>
-        <textarea class="ginput" id="dlyPasteIn" rows="3" placeholder="ここに行を貼り付け"></textarea>
-        <select class="ginput" id="dlyPasteDate" style="max-width:140px;margin-top:6px">${Array.from({length:dim},(_,i)=>{const ds=Y+"-"+pad(MO)+"-"+pad(i+1);return `<option value="${ds}"${ds===today?" selected":""}>${MO}/${i+1}</option>`;}).join("")}</select>
-        <button class="gbtn" id="dlyPasteGo" style="margin-top:6px;padding:6px 14px;font-size:12px">反映</button><span class="gmsg" id="dlyPasteMsg"></span>
+        <div class="nhint">せどプレの仕入れリストを行コピー（何日分まとめてもOK）→貼り付け、またはCSVを選択。仕入日ごとに自動で振り分けます（原価×個数＝仕入金額、粗利×個数＝見込利益）</div>
+        <textarea class="ginput" id="dlyPasteIn" rows="3" placeholder="ここに行を貼り付け（1ヶ月分まとめてOK）"></textarea>
+        <button class="gbtn" id="dlyPasteGo" style="margin-top:6px;padding:6px 14px;font-size:12px">貼り付けを反映</button>
+        <button class="gbtn" id="dlyCsvGo" style="margin-top:6px;padding:6px 14px;font-size:12px;background:#6b7686">CSVファイルから</button>
+        <span class="gmsg" id="dlyPasteMsg"></span>
       </div></div>`:""}
     <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="ntbl pltbl"><thead><tr><th>日付</th><th>仕入金額</th><th>見込利益</th><th>時間</th><th>回訪</th><th>検索</th></tr></thead><tbody>${body_}${total}</tbody></table></div>
     ${editable?`<button class="gbtn" id="dlySave" style="margin-top:8px">デイリーを保存</button><span class="gmsg" id="dlyMsg"></span>`:""}
@@ -2523,18 +2527,34 @@ function bindDaily(){
   if(sel) sel.onchange=()=>{ dailyWho=sel.value; const w=document.getElementById("dailyWrap"); if(w){ w.innerHTML=dailySectionHtml(dailyWho); bindDaily(); } };
   const po=document.getElementById("dlyPasteOpen");
   if(po) po.onclick=()=>{ const b=document.getElementById("dlyPasteBox"); b.style.display=b.style.display==="none"?"":"none"; };
-  const pg=document.getElementById("dlyPasteGo");
-  if(pg) pg.onclick=()=>{
-    const items=sedoprePasteParse(document.getElementById("dlyPasteIn").value);
+  const applyDailyItems=items=>{
     const msg=document.getElementById("dlyPasteMsg");
-    if(!items.length){ msg.textContent="行が読み取れませんでした"; return; }
-    const ds=document.getElementById("dlyPasteDate").value;
-    const cost=items.reduce((a,x)=>a+(x.cost||0)*(x.qty||1),0);
-    const mikomi=items.reduce((a,x)=>a+(x.profit||0)*(x.qty||1),0);
-    const ci=document.querySelector(`.dly[data-date="${ds}"][data-k="cost"]`);
-    const mi=document.querySelector(`.dly[data-date="${ds}"][data-k="mikomi"]`);
-    if(ci) ci.value=cost; if(mi) mi.value=mikomi;
-    msg.textContent=`${items.length}商品 → 仕入${yen(cost)}円・見込${yen(mikomi)}円（保存を忘れずに）`;
+    if(!items.length){ msg.textContent="データが読み取れませんでした"; return; }
+    const byDt={}; let noDt=0;
+    items.forEach(x=>{ if(!x.dt){noDt++;return;} const o=byDt[x.dt]=byDt[x.dt]||{cost:0,mikomi:0,n:0}; o.cost+=(x.cost||0)*(x.qty||1); o.mikomi+=(x.profit||0)*(x.qty||1); o.n++; });
+    let hit=0, miss=0;
+    Object.keys(byDt).forEach(ds=>{
+      const ci=document.querySelector(`.dly[data-date="${ds}"][data-k="cost"]`);
+      const mi=document.querySelector(`.dly[data-date="${ds}"][data-k="mikomi"]`);
+      if(ci&&mi){ ci.value=byDt[ds].cost; mi.value=byDt[ds].mikomi; hit++; } else miss++;
+    });
+    msg.textContent=`${items.length}商品を${Object.keys(byDt).length}日分に振り分け（この月に${hit}日反映${miss?`・別の月${miss}日分は月を切り替えて再度実行`:""}${noDt?`・仕入日不明${noDt}件`:""}）。「デイリーを保存」を忘れずに`;
+  };
+  const pg=document.getElementById("dlyPasteGo");
+  if(pg) pg.onclick=()=>applyDailyItems(sedoprePasteParse(document.getElementById("dlyPasteIn").value));
+  const cg=document.getElementById("dlyCsvGo");
+  if(cg) cg.onclick=()=>{
+    const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
+    inp.onchange=async()=>{
+      const f=inp.files[0]; if(!f) return;
+      try{
+        const buf=await f.arrayBuffer();
+        let text=""; try{ text=new TextDecoder("shift_jis").decode(buf); }catch(e){}
+        if(text.indexOf("ASIN")<0) text=new TextDecoder("utf-8").decode(buf);
+        applyDailyItems(sedopreParse(text));
+      }catch(e){ alert(String(e)); }
+    };
+    inp.click();
   };
   const gs=document.querySelector(".dlyg-save");
   if(gs) gs.onclick=async()=>{
