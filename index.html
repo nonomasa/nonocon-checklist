@@ -247,6 +247,8 @@
   .qdate{font-size:12px;color:var(--sub);white-space:nowrap}
   .qtitle{font-size:16px}
   .qdel{font-size:11px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#dc2626;cursor:pointer}
+  .qedit{font-size:11px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#6b7686;cursor:pointer;margin-right:4px}
+  .qstore{font-size:12px;font-weight:700;color:#7c3aed;background:#f4effd;border-radius:999px;padding:2px 10px;white-space:nowrap}
   .qmemo{font-size:14px;color:#3d4654;margin-bottom:8px}
   .qphoto img{max-width:100%;max-height:360px;border-radius:10px;display:block;margin:0 auto}
   .qans{background:#f7f9fc;border-radius:10px;padding:12px;margin-top:12px}
@@ -265,6 +267,8 @@
   .qo-dec.buy{background:#eafaf2;color:#0e9f6e}
   .qo-dec.no{background:#fdeaea;color:#dc2626}
   .qo-photo img{max-width:100%;max-height:240px;border-radius:8px;display:block;margin:4px 0}
+  .qprice-row{display:flex;gap:10px}
+  .qprice-row>div{flex:1}
   .qo-jan{font-size:12px;color:var(--sub);margin:2px 0}
   .qo-jan a{color:#2563eb}
   .qo-memo{font-size:13px;line-height:1.7;white-space:pre-wrap;color:#3d4654}
@@ -440,7 +444,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 15:55</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 16:09</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1019,6 +1023,7 @@ const ADMIN   = DATA.length+5; // 管理タブ（キー保持者のみ表示）
 const QUIZ    = DATA.length+6; // 仕入れクイズタブ
 let QUIZALL   = null;          // クイズ一覧キャッシュ
 let quizNewPhoto = null;       // 出題フォームで選択中の写真 {data,mime}
+let quizEditId = null;         // 編集中のクイズID（管理者）
 let quizAnsPhoto = {};         // 回答フォームで選択中の写真 quizId→{data,mime}
 let pallCache = null;          // みんなの進捗のキャッシュ
 let adminStepSel = "";         // 管理：ステップ別ビューで選択中のステップID
@@ -2968,14 +2973,19 @@ async function renderQuiz(){
   let html='<div class="quizwrap">';
   html+='<div class="quizintro">📸 <b>仕入れ写真</b>を見て「仕入れる／仕入れない」を判断！<br>販売価格・仕入値がわかる写真と、<b>何をどう見て判断したか</b>のメモを添えて回答しよう。<div class="gpn" style="margin-top:4px">🔒 他の人の回答は、自分が回答すると見られます。</div></div>';
   if(isAdmin){
+    const ed=quizEditId?QUIZALL.find(x=>x.id===quizEditId):null;
+    const STORES=["ヤマダデンキ","エディオン","ケーズデンキ","ジョーシン","ビックカメラ","コジマ","ヨドバシカメラ","ドン・キホーテ","イオン","西松屋","バースデイ","しまむら","トイザらス","セカンドストリート","ハードオフ／オフハウス","ブックオフ","ゲオ","ホームセンター","ドラッグストア","スーパー","その他"];
     html+=`<div class="quizform">
-      <div class="gh2">＋ クイズを出題する（管理者）</div>
-      <div id="qphotoDrop" class="qphoto-drop">📷 仕入れ写真をクリック or ドラッグで選ぶ</div>
+      <div class="gh2">${ed?"✏️ クイズを編集中":"＋ クイズを出題する（管理者）"}</div>
+      <div id="qphotoDrop" class="qphoto-drop">📷 ${ed?"写真を差し替える（そのままなら変更なし）":"仕入れ写真をクリック or ドラッグで選ぶ"}</div>
       <img id="qphotoPrev" class="qphoto-prev" style="display:none">
-      <input class="ginput" id="qtitle" placeholder="タイトル（任意）例：イオンのおもちゃ売場" style="margin-top:8px">
-      <input class="ginput" id="qjan" inputmode="numeric" placeholder="JAN（任意）例：4988602178241" style="margin-top:6px">
-      <input class="ginput" id="qmemo" placeholder="ひとことメモ（任意）例：この棚、仕入れる？" style="margin-top:6px">
-      <button class="gbtn" id="qsaveBtn" style="margin-top:8px">出題する</button><span class="gmsg" id="qsaveMsg"></span>
+      ${ed&&ed.photo?`<img class="qphoto-prev" src="${ed.photo}">`:""}
+      <select class="ginput" id="qstore" style="margin-top:8px"><option value="">仕入れ先を選ぶ</option>${STORES.map(st=>`<option value="${st}"${ed&&ed.store===st?" selected":""}>${st}</option>`).join("")}</select>
+      <input class="ginput" id="qtitle" placeholder="タイトル（任意）例：イオンのおもちゃ売場" style="margin-top:6px" value="${ed?escH(ed.title):""}">
+      <input class="ginput" id="qjan" inputmode="numeric" placeholder="JAN（任意）例：4988602178241" style="margin-top:6px" value="${ed?escH(ed.jan||""):""}">
+      <input class="ginput" id="qmemo" placeholder="ひとことメモ（任意）例：この棚、仕入れる？" style="margin-top:6px" value="${ed?escH(ed.memo||""):""}">
+      <button class="gbtn" id="qsaveBtn" style="margin-top:8px">${ed?"更新する":"出題する"}</button>
+      ${ed?`<button class="gbtn" id="qcancelBtn" style="margin-top:8px;background:#6b7686">キャンセル</button>`:""}<span class="gmsg" id="qsaveMsg"></span>
     </div>`;
   }
   const quizzes=[...QUIZALL].sort((a,b)=>String(b.date+b.id).localeCompare(String(a.date+a.id)));
@@ -2996,9 +3006,9 @@ function quizCard(q,isAdmin){
   const dec=myAns?myAns.decision:"";
   const bigUrl=q.photo?q.photo.replace("/thumbnail?id=","/uc?id=").replace("&sz=w1000",""):"";
   let h=`<div class="qcard">`;
-  h+=`<div class="qcardh"><span class="qdate">${escH(dokoDateLabel(q.date))}</span>${q.title?`<b class="qtitle">${escH(q.title)}</b>`:""}${(String(q.uid)===String(me.sid)||isAdmin)?`<span style="flex:1"></span><button class="qdel" data-id="${q.id}">削除</button>`:""}</div>`;
+  h+=`<div class="qcardh"><span class="qdate">${escH(dokoDateLabel(q.date))}</span>${q.store?`<span class="qstore">🏬 ${escH(q.store)}</span>`:""}${q.title?`<b class="qtitle">${escH(q.title)}</b>`:""}${isAdmin?`<span style="flex:1"></span><button class="qedit" data-id="${q.id}">編集</button><button class="qdel" data-id="${q.id}">削除</button>`:""}</div>`;
   if(q.memo) h+=`<div class="qmemo">💬 ${escH(q.memo)}</div>`;
-  if(q.jan) h+=`<div class="qo-jan">🔖 JAN ${escH(q.jan)} <a href="https://www.amazon.co.jp/s?k=${encodeURIComponent(q.jan)}" target="_blank" rel="noopener">Amazon検索↗</a></div>`;
+  if(q.jan) h+=`<div class="qo-jan">🔖 JAN ${escH(q.jan)} <a href="https://keepa.com/#!search/5-${encodeURIComponent(q.jan)}" target="_blank" rel="noopener">Keepa↗</a></div>`;
   if(q.photo) h+=`<div class="qphoto"><a href="${bigUrl}" target="_blank" rel="noopener"><img src="${q.photo}" alt="仕入れ写真"></a></div>`;
   h+=`<div class="qans">
     <div class="qans-h">🙋 あなたの判断</div>
@@ -3006,10 +3016,10 @@ function quizCard(q,isAdmin){
       <button class="qdec ${dec==="仕入れる"?"on buy":""}" data-q="${q.id}" data-dec="仕入れる">⭕ 仕入れる</button>
       <button class="qdec ${dec==="仕入れない"?"on no":""}" data-q="${q.id}" data-dec="仕入れない">❌ 仕入れない</button>
     </div>
-    <label class="glbl">販売価格・仕入値がわかる写真（せどプレ等）</label>
-    <div class="qphoto-drop qans-drop" data-q="${q.id}">📷 ${myAns&&myAns.photo?"写真を差し替える":"クリック or ドラッグで選ぶ"}</div>
-    <img class="qphoto-prev qans-prev" data-q="${q.id}" style="display:none">
-    ${myAns&&myAns.photo?`<div class="qphoto qans-photo"><img src="${myAns.photo}"></div>`:""}
+    <div class="qprice-row">
+      <div><label class="glbl">仕入れ値（税込）</label><input class="ginput qans-cost" data-q="${q.id}" inputmode="numeric" placeholder="例：4620" value="${myAns?escH(myAns.cost||""):""}"></div>
+      <div><label class="glbl">販売価格</label><input class="ginput qans-price" data-q="${q.id}" inputmode="numeric" placeholder="例：6980" value="${myAns?escH(myAns.price||""):""}"></div>
+    </div>
     <label class="glbl">何をどう見て判断した？</label>
     <textarea class="ginput qans-memo" data-q="${q.id}" rows="3" placeholder="例：ランキング○位、利益率○%、月○個回転、ライバル○人、価格推移…">${myAns?escH(myAns.memo):""}</textarea>
     <button class="gbtn qans-save" data-q="${q.id}" style="margin-top:8px">${answered?"回答を更新":"回答する"}</button><span class="gmsg qans-msg" data-q="${q.id}"></span>
@@ -3019,6 +3029,7 @@ function quizCard(q,isAdmin){
     if(others.length){
       others.forEach(a=>{
         h+=`<div class="qo1"><div class="qo-top"><span class="qo-dec ${a.decision==="仕入れる"?"buy":"no"}">${escH(a.decision||"—")}</span><b>${escH(a.name)}</b><span class="dwho">${escH(a.updated)}</span></div>`;
+        if(a.cost||a.price) h+=`<div class="qo-jan">💰 仕入${a.cost?yen(+a.cost)+"円":"—"} → 販売${a.price?yen(+a.price)+"円":"—"}</div>`;
         if(a.photo) h+=`<div class="qo-photo"><a href="${a.photo}" target="_blank" rel="noopener"><img src="${a.photo}"></a></div>`;
         if(a.memo) h+=`<div class="qo-memo">${escH(a.memo)}</div>`;
         h+=`</div>`;
@@ -3043,20 +3054,29 @@ function bindQuiz(){
     drop.ondragleave=()=>drop.classList.remove("drop-on");
     drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drop-on"); const f=e.dataTransfer.files[0]; if(f) setPhoto(f); };
     const saveBtn=body.querySelector("#qsaveBtn");
+    const cancelBtn=body.querySelector("#qcancelBtn");
+    if(cancelBtn) cancelBtn.onclick=()=>{ quizEditId=null; quizNewPhoto=null; renderQuiz(); };
     saveBtn.onclick=async()=>{
       const msg=body.querySelector("#qsaveMsg");
-      if(!quizNewPhoto){ msg.textContent="仕入れ写真を選んでください"; return; }
-      saveBtn.disabled=true; msg.textContent="出題中…";
+      if(!quizNewPhoto && !quizEditId){ msg.textContent="仕入れ写真を選んでください"; return; }
+      saveBtn.disabled=true; msg.textContent=quizEditId?"更新中…":"出題中…";
       try{
+        const payload={action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:body.querySelector("#qtitle").value.trim(),memo:body.querySelector("#qmemo").value.trim(),jan:(body.querySelector("#qjan").value||"").replace(/[^0-9]/g,""),store:body.querySelector("#qstore").value,uid:me.sid,name:me.name};
+        if(quizEditId){ payload.id=quizEditId; const ed=QUIZALL.find(x=>x.id===quizEditId); payload.date=(ed&&ed.date)||payload.date; }
+        if(quizNewPhoto){ payload.data=quizNewPhoto.data; payload.mime=quizNewPhoto.mime; }
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify({action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:body.querySelector("#qtitle").value.trim(),memo:body.querySelector("#qmemo").value.trim(),jan:(body.querySelector("#qjan").value||"").replace(/[^0-9]/g,""),uid:me.sid,name:me.name,data:quizNewPhoto.data,mime:quizNewPhoto.mime})})).json();
-        if(d&&d.ok){ quizNewPhoto=null; QUIZALL=null; renderQuiz(); return; }
+          body:JSON.stringify(payload)})).json();
+        if(d&&d.ok){ quizNewPhoto=null; quizEditId=null; QUIZALL=null; renderQuiz(); return; }
         let em=(d&&d.error)||"不明";
         if(/unauthorized/.test(em)) em="認証エラー：ページ上部の🔑合言葉を入力してください（それでもダメなら #admin を付けて開き直し、管理キーを入れ直し）";
         msg.textContent="失敗："+em; saveBtn.disabled=false;
       }catch(e){ msg.textContent="通信エラー："+String(e).slice(0,80); saveBtn.disabled=false; }
     };
   }
+  // 編集（管理者）
+  body.querySelectorAll(".qedit").forEach(b=>{
+    b.onclick=()=>{ quizEditId=b.dataset.id; quizNewPhoto=null; renderQuiz(); window.scrollTo({top:0,behavior:"smooth"}); };
+  });
   // 削除
   body.querySelectorAll(".qdel").forEach(b=>{
     b.onclick=async()=>{
@@ -3072,16 +3092,6 @@ function bindQuiz(){
       b.classList.add("on", b.dataset.dec==="仕入れる"?"buy":"no");
     };
   });
-  // 回答写真
-  body.querySelectorAll(".qans-drop").forEach(drop=>{
-    const qid=drop.dataset.q;
-    const prev=body.querySelector(`.qans-prev[data-q="${qid}"]`);
-    const setPhoto=async(file)=>{ try{ const r=await readImgB64(file); quizAnsPhoto[qid]={data:r.data,mime:r.mime}; prev.src=r.url; prev.style.display=""; drop.textContent="📷 写真を変更する"; }catch(e){ alert(e); } };
-    drop.onclick=async()=>{ const f=await pickImage(); if(f) setPhoto(f); };
-    drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drop-on"); };
-    drop.ondragleave=()=>drop.classList.remove("drop-on");
-    drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drop-on"); const f=e.dataTransfer.files[0]; if(f) setPhoto(f); };
-  });
   // 回答保存
   body.querySelectorAll(".qans-save").forEach(btn=>{
     btn.onclick=async()=>{
@@ -3090,13 +3100,13 @@ function bindQuiz(){
       const decBtn=body.querySelector(`.qdec.on[data-q="${qid}"]`);
       if(!decBtn){ msg.textContent="「仕入れる／仕入れない」を選んでください"; return; }
       const memo=body.querySelector(`.qans-memo[data-q="${qid}"]`).value.trim();
-      const ph=quizAnsPhoto[qid];
+      const cost=(body.querySelector(`.qans-cost[data-q="${qid}"]`).value||"").replace(/[^0-9]/g,"");
+      const price=(body.querySelector(`.qans-price[data-q="${qid}"]`).value||"").replace(/[^0-9]/g,"");
       btn.disabled=true; msg.textContent="保存中…";
       try{
-        const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo};
-        if(ph){ payload.data=ph.data; payload.mime=ph.mime; }
+        const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo,cost:cost,price:price};
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)})).json();
-        if(d&&d.ok){ delete quizAnsPhoto[qid]; QUIZALL=null; renderQuiz(); return; }
+        if(d&&d.ok){ QUIZALL=null; renderQuiz(); return; }
         msg.textContent="失敗："+(d&&d.error||"不明"); btn.disabled=false;
       }catch(e){ msg.textContent="通信エラー"; btn.disabled=false; }
     };
