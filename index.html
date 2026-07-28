@@ -448,7 +448,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 22:17</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 22:32</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2417,7 +2417,7 @@ function trendTableHtml(uid){
     // 目標の修正チェーン（旧→…→現在の一つ前）。藤田さんのように目標がずれていく様子を残す
     const fmtMan=v=>{const n=numv(v); if(!n) return "—"; return n%10000===0?(n/10000)+"万":yen(n);};
     const chainOf=k=>{
-      const hs=((NUMSALL&&NUMSALL.ghist)||[]).filter(h=>String(h.uid)===String(uid)&&h.ym===ym).filter(h=>k==="gsales"?(h.oldS!==h.newS):(h.oldP!==h.newP));
+      const hs=((NUMSALL&&NUMSALL.ghist)||[]).filter(h=>String(h.uid)===String(uid)&&h.ym===ym).filter(h=>k==="gsales"?(h.oldS!==h.newS&&h.oldS):(h.oldP!==h.newP&&h.oldP));
       if(!hs.length) return "";
       const vals=[k==="gsales"?hs[0].oldS:hs[0].oldP,...hs.map(h=>k==="gsales"?h.newS:h.newP)];
       return `<div class="ghchain" title="目標の修正履歴（古→新）">${vals.slice(0,-1).map(fmtMan).join("→")}→</div>`;
