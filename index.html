@@ -265,6 +265,8 @@
   .qo-dec.buy{background:#eafaf2;color:#0e9f6e}
   .qo-dec.no{background:#fdeaea;color:#dc2626}
   .qo-photo img{max-width:100%;max-height:240px;border-radius:8px;display:block;margin:4px 0}
+  .qo-jan{font-size:12px;color:var(--sub);margin:2px 0}
+  .qo-jan a{color:#2563eb}
   .qo-memo{font-size:13px;line-height:1.7;white-space:pre-wrap;color:#3d4654}
   .qlock{margin-top:12px;text-align:center;color:#8a93a3;font-size:13px;background:#f2f4f7;border-radius:8px;padding:12px}
   @media (max-width:640px){ .quizwrap{max-width:100%} }
@@ -438,7 +440,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 14:05</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 14:15</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2984,6 +2986,8 @@ function quizCard(q,isAdmin){
       <button class="qdec ${dec==="仕入れる"?"on buy":""}" data-q="${q.id}" data-dec="仕入れる">⭕ 仕入れる</button>
       <button class="qdec ${dec==="仕入れない"?"on no":""}" data-q="${q.id}" data-dec="仕入れない">❌ 仕入れない</button>
     </div>
+    <label class="glbl">JAN（商品バーコードの数字・任意）</label>
+    <input class="ginput qans-jan" data-q="${q.id}" inputmode="numeric" placeholder="例：4988602178241" value="${myAns?escH(myAns.jan||""):""}">
     <label class="glbl">販売価格・仕入値がわかる写真（せどプレ等）</label>
     <div class="qphoto-drop qans-drop" data-q="${q.id}">📷 ${myAns&&myAns.photo?"写真を差し替える":"クリック or ドラッグで選ぶ"}</div>
     <img class="qphoto-prev qans-prev" data-q="${q.id}" style="display:none">
@@ -2997,6 +3001,7 @@ function quizCard(q,isAdmin){
     if(others.length){
       others.forEach(a=>{
         h+=`<div class="qo1"><div class="qo-top"><span class="qo-dec ${a.decision==="仕入れる"?"buy":"no"}">${escH(a.decision||"—")}</span><b>${escH(a.name)}</b><span class="dwho">${escH(a.updated)}</span></div>`;
+        if(a.jan) h+=`<div class="qo-jan">🔖 JAN ${escH(a.jan)} <a href="https://www.amazon.co.jp/s?k=${encodeURIComponent(a.jan)}" target="_blank" rel="noopener">Amazon検索↗</a></div>`;
         if(a.photo) h+=`<div class="qo-photo"><a href="${a.photo}" target="_blank" rel="noopener"><img src="${a.photo}"></a></div>`;
         if(a.memo) h+=`<div class="qo-memo">${escH(a.memo)}</div>`;
         h+=`</div>`;
@@ -3069,7 +3074,8 @@ function bindQuiz(){
       const ph=quizAnsPhoto[qid];
       btn.disabled=true; msg.textContent="保存中…";
       try{
-        const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo};
+        const jan=(body.querySelector(`.qans-jan[data-q="${qid}"]`).value||"").replace(/[^0-9]/g,"");
+        const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo,jan:jan};
         if(ph){ payload.data=ph.data; payload.mime=ph.mime; }
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)})).json();
         if(d&&d.ok){ delete quizAnsPhoto[qid]; QUIZALL=null; renderQuiz(); return; }
