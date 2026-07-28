@@ -447,7 +447,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 21:54</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 22:06</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2384,11 +2384,21 @@ function captureNumsDraft(){
 function ymSortKey(ym){const m=String(ym).match(/(\d{4})年(\d{1,2})月/);return m?(+m[1]*100+ +m[2]):0;}
 function trendTableHtml(uid){
   const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+  const editable=String(uid)===String(me.sid);
   const nums=(NUMSALL&&NUMSALL.nums||[]).filter(n=>String(n.uid)===String(uid));
   const metas=(NUMSALL&&NUMSALL.metas||[]).filter(m=>String(m.uid)===String(uid));
-  const yms=[...new Set([...nums.map(n=>n.ym),...metas.filter(m=>numv(m.gsales)||numv(m.gprofit)).map(m=>m.ym)])].sort((a,b)=>ymSortKey(a)-ymSortKey(b));
-  if(!yms.length) return '<div class="gpn" style="padding:8px 0">まだ目標・実績がありません（数字報告に入力すると自動で表に出ます）</div>';
   const cur=ymNow();
+  let yms=[...new Set([...nums.map(n=>n.ym),...metas.filter(m=>numv(m.gsales)||numv(m.gprofit)).map(m=>m.ym)])];
+  if(editable){
+    // 今日から卒業目標月（未設定なら6ヶ月先）までの行を出して、目標をまとめて入力できるようにする
+    let end=null;
+    metas.forEach(m=>{ if(m.gradMonth&&ymSortKey(m.gradMonth)) end=(!end||ymSortKey(m.gradMonth)>ymSortKey(end))?m.gradMonth:end; });
+    if(!end||ymSortKey(end)<=ymSortKey(cur)) end=ymShift(cur,6);
+    let m=cur;
+    for(let i=0;i<36&&ymSortKey(m)<=ymSortKey(end);i++){ if(!yms.includes(m)) yms.push(m); m=ymShift(m,1); }
+  }
+  yms=yms.filter(Boolean).sort((a,b)=>ymSortKey(a)-ymSortKey(b));
+  if(!yms.length) return '<div class="gpn" style="padding:8px 0">まだ目標・実績がありません（数字報告に入力すると自動で表に出ます）</div>';
   let rows="";
   yms.forEach(ym=>{
     const meta=metas.find(m=>m.ym===ym)||{};
@@ -2400,14 +2410,47 @@ function trendTableHtml(uid){
     const pPct=gP?(aP/gP*100):null;
     const rate=aS?(aP/aS*100):null;
     const pctCls=v=>v==null?"":(v>=100?' style="color:#0e9f6e;font-weight:700"':(v<70?' style="color:#dc2626;font-weight:700"':' style="font-weight:700"'));
+    const future=ymSortKey(ym)>=ymSortKey(cur);
+    const gsCell=(editable&&future)?`<td class="pl-n"><input class="ginput tgoal" data-ym="${escH(ym)}" data-k="gsales" inputmode="numeric" style="width:110px;text-align:right;padding:5px 8px" value="${numv(meta.gsales)||""}"></td>`:`<td class="pl-n">${gS?yen(gS)+"円":""}</td>`;
+    const gpCell=(editable&&future)?`<td class="pl-n"><input class="ginput tgoal" data-ym="${escH(ym)}" data-k="gprofit" inputmode="numeric" style="width:100px;text-align:right;padding:5px 8px" value="${numv(meta.gprofit)||""}"></td>`:`<td class="pl-n">${gP?yen(gP)+"円":""}</td>`;
     rows+=`<tr${ym===cur?' style="background:#fff7ed"':''}><td style="white-space:nowrap">${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>`+
-      `<td class="pl-n">${gS?yen(gS)+"円":""}</td><td class="pl-n">${aS?yen(aS)+"円":""}</td><td class="pl-n"${pctCls(pct)}>${pct!=null?pct.toFixed(0)+"%":""}</td>`+
-      `<td class="pl-n">${gP?yen(gP)+"円":""}</td><td class="pl-n">${aP?yen(aP)+"円":""}</td><td class="pl-n"${pctCls(pPct)}>${pPct!=null?pPct.toFixed(0)+"%":""}</td>`+
+      gsCell+`<td class="pl-n">${aS?yen(aS)+"円":""}</td><td class="pl-n"${pctCls(pct)}>${pct!=null?pct.toFixed(0)+"%":""}</td>`+
+      gpCell+`<td class="pl-n">${aP?yen(aP)+"円":""}</td><td class="pl-n"${pctCls(pPct)}>${pPct!=null?pPct.toFixed(0)+"%":""}</td>`+
       `<td class="pl-n">${rate!=null?rate.toFixed(0)+"%":""}</td></tr>`;
   });
   return `<div style="overflow-x:auto"><table class="ntbl pltbl"><thead><tr><th>月</th><th>目標月商</th><th>実績月商</th><th>進捗率</th><th>目標月利</th><th>実績月利</th><th>月利達成</th><th>利益率</th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div class="nhint">目標は「①今月の目標」に入れた数字（修正目標があればそちら優先）。実績は旬ごとの報告の合計で自動計算。</div>`;
+  ${editable?`<button class="gbtn" id="tgoalSave" style="margin-top:8px">目標をまとめて保存</button><span class="gmsg" id="tgoalMsg"></span>`:""}
+  <div class="nhint">${editable?"今日以降の月は目標月商・目標月利を直接入力できます（卒業目標月まで表示）。":""}実績は旬ごとの報告の合計で自動計算。修正目標を入れた月はそちらが優先表示されます。</div>`;
 }
+function bindTrendGoals(){
+  const btn=document.getElementById("tgoalSave");
+  if(!btn) return;
+  btn.onclick=async()=>{
+    const msg=document.getElementById("tgoalMsg");
+    const inputs=[...document.querySelectorAll("#trendBox .tgoal")];
+    const byYm={};
+    inputs.forEach(i=>{ (byYm[i.dataset.ym]=byYm[i.dataset.ym]||{})[i.dataset.k]=i.value.replace(/[^0-9]/g,""); });
+    const metas=(NUMSALL&&NUMSALL.metas||[]);
+    const jobs=[];
+    Object.keys(byYm).forEach(ym=>{
+      const cur=metas.find(m=>String(m.uid)===String(me.sid)&&m.ym===ym)||{};
+      const nv=byYm[ym];
+      if(String(cur.gsales||"")===String(nv.gsales||"")&&String(cur.gprofit||"")===String(nv.gprofit||"")) return; // 変更なし
+      if(!nv.gsales&&!nv.gprofit&&!cur.gsales&&!cur.gprofit) return;
+      const payload={action:"nsave",pass:PASS,uid:me.sid,name:me.name,ym:ym};
+      NMETA_KEYS_F.forEach(k=>{ payload[k]=cur[k]||""; }); // 既存メタを温存
+      payload.gsales=nv.gsales; payload.gprofit=nv.gprofit;
+      jobs.push(payload);
+    });
+    if(!jobs.length){ msg.textContent="変更はありません"; return; }
+    btn.disabled=true; msg.textContent="保存中…";
+    try{
+      for(const pl of jobs){ await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(pl)}); }
+      NUMSALL=null; numsDraft=null; await renderNums(); showToast("✅ 目標を保存しました（"+jobs.length+"ヶ月分）");
+    }catch(e){ msg.textContent="通信エラー"; btn.disabled=false; }
+  };
+}
+const NMETA_KEYS_F=["gsales","gprofit","expense","gradMonth","gradGoal","todo","todoResult","good1","good2","good3","bad1","bad2","bad3","stockCnt","stockSales","stockCost","todo1","todoR1","todo2","todoR2","todo3","todoR3","gsales2","gprofit2"];
 async function renderNums(){
   const body=document.getElementById("body");
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと数字報告を使えます</div>'; return; }
@@ -2522,7 +2565,8 @@ async function renderNums(){
     b.onclick=()=>{ b.insertAdjacentHTML("beforebegin",tdRowHtml()); bindTdRow(b.previousElementSibling); };
   });
   const tw=document.getElementById("trendWho");
-  if(tw) tw.onchange=()=>{ trendWho=tw.value; document.getElementById("trendBox").innerHTML=trendTableHtml(trendWho); };
+  if(tw) tw.onchange=()=>{ trendWho=tw.value; document.getElementById("trendBox").innerHTML=trendTableHtml(trendWho); bindTrendGoals(); };
+  bindTrendGoals();
   document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;numsDraft=null;renderNums();};
   document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;numsDraft=null;renderNums();};
 
