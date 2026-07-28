@@ -447,7 +447,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 18:07</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 21:54</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1239,6 +1239,7 @@ async function renderAdmin(){
 
 /* ---------- 数字報告タブ ---------- */
 let NUMSALL=null;          // {nums:[], metas:[]}
+let trendWho=null;          // 月次推移で表示中のメンバー
 let numsMonth=null;        // 表示中の年月 "2026年7月"
 let numsParsed=null;       // CSV解析結果 {上旬:{sales,profit,cnt},...}
 let numsDraft=null;        // 未保存の入力値（再描画で消えないように保持）
@@ -2379,6 +2380,34 @@ function captureNumsDraft(){
   TODO_SECS.forEach(x=>{ const v=collectTodos(x[0]); if(v!==null) numsDraft[x[0]]=JSON.stringify(v); });
 }
 
+/* 北野シート型の月次推移（目標/実績/進捗率/月利/利益率）。全員分を誰でも閲覧可 */
+function ymSortKey(ym){const m=String(ym).match(/(\d{4})年(\d{1,2})月/);return m?(+m[1]*100+ +m[2]):0;}
+function trendTableHtml(uid){
+  const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+  const nums=(NUMSALL&&NUMSALL.nums||[]).filter(n=>String(n.uid)===String(uid));
+  const metas=(NUMSALL&&NUMSALL.metas||[]).filter(m=>String(m.uid)===String(uid));
+  const yms=[...new Set([...nums.map(n=>n.ym),...metas.filter(m=>numv(m.gsales)||numv(m.gprofit)).map(m=>m.ym)])].sort((a,b)=>ymSortKey(a)-ymSortKey(b));
+  if(!yms.length) return '<div class="gpn" style="padding:8px 0">まだ目標・実績がありません（数字報告に入力すると自動で表に出ます）</div>';
+  const cur=ymNow();
+  let rows="";
+  yms.forEach(ym=>{
+    const meta=metas.find(m=>m.ym===ym)||{};
+    const gS=numv(meta.gsales2)||numv(meta.gsales);
+    const gP=numv(meta.gprofit2)||numv(meta.gprofit);
+    const mine=nums.filter(n=>n.ym===ym);
+    const aS=mine.reduce((a,n)=>a+n.sales,0), aP=mine.reduce((a,n)=>a+n.profit,0);
+    const pct=gS?(aS/gS*100):null;
+    const pPct=gP?(aP/gP*100):null;
+    const rate=aS?(aP/aS*100):null;
+    const pctCls=v=>v==null?"":(v>=100?' style="color:#0e9f6e;font-weight:700"':(v<70?' style="color:#dc2626;font-weight:700"':' style="font-weight:700"'));
+    rows+=`<tr${ym===cur?' style="background:#fff7ed"':''}><td style="white-space:nowrap">${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>`+
+      `<td class="pl-n">${gS?yen(gS)+"円":""}</td><td class="pl-n">${aS?yen(aS)+"円":""}</td><td class="pl-n"${pctCls(pct)}>${pct!=null?pct.toFixed(0)+"%":""}</td>`+
+      `<td class="pl-n">${gP?yen(gP)+"円":""}</td><td class="pl-n">${aP?yen(aP)+"円":""}</td><td class="pl-n"${pctCls(pPct)}>${pPct!=null?pPct.toFixed(0)+"%":""}</td>`+
+      `<td class="pl-n">${rate!=null?rate.toFixed(0)+"%":""}</td></tr>`;
+  });
+  return `<div style="overflow-x:auto"><table class="ntbl pltbl"><thead><tr><th>月</th><th>目標月商</th><th>実績月商</th><th>進捗率</th><th>目標月利</th><th>実績月利</th><th>月利達成</th><th>利益率</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="nhint">目標は「①今月の目標」に入れた数字（修正目標があればそちら優先）。実績は旬ごとの報告の合計で自動計算。</div>`;
+}
 async function renderNums(){
   const body=document.getElementById("body");
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと数字報告を使えます</div>'; return; }
@@ -2396,6 +2425,13 @@ async function renderNums(){
   const nm=numsFor(me.sid,numsMonth);
   const V=k=>escH((numsDraft&&numsDraft[k]!==undefined)?numsDraft[k]:(meta[k]||""));
   let html=`<div class="nbar"><button class="nnav" id="nprev0">◀</button><span class="nmonth">${numsMonth}</span><button class="nnav" id="nnext0">▶</button></div>`;
+
+  // 月次推移（北野シート型）。誰の分でも見られる
+  const trendUids=(()=>{const set=new Map(); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); return [...set.entries()];})();
+  html+=`<div class="gpanel"><div class="gph" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📈 月次推移
+    <select class="ginput" id="trendWho" style="max-width:220px;font-size:13px;padding:6px 10px">${trendUids.map(([u,n])=>`<option value="${u}"${String(u)===String(trendWho||me.sid)?" selected":""}>${escH(n)}</option>`).join("")}</select>
+    <span class="gpn">みんなの推移も見られます</span></div>
+    <div id="trendBox">${trendTableHtml(trendWho||me.sid)}</div></div>`;
 
   html+=`<div class="gpanel"><div class="gph">① 今月の目標</div>
     <div class="nrow3">
@@ -2485,6 +2521,8 @@ async function renderNums(){
   body.querySelectorAll(".tdadd").forEach(b=>{
     b.onclick=()=>{ b.insertAdjacentHTML("beforebegin",tdRowHtml()); bindTdRow(b.previousElementSibling); };
   });
+  const tw=document.getElementById("trendWho");
+  if(tw) tw.onchange=()=>{ trendWho=tw.value; document.getElementById("trendBox").innerHTML=trendTableHtml(trendWho); };
   document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;numsDraft=null;renderNums();};
   document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;numsDraft=null;renderNums();};
 
