@@ -264,6 +264,7 @@
   .qo1{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc}
   .qo-mine{border-color:#f9a56a;background:#fff7ed}
   .dlygoals{font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+  .dlytbl thead th{position:sticky;top:0;background:#eef1f5;z-index:2;box-shadow:0 1px 0 var(--line)}
   .dly-pastewrap{margin-bottom:8px}
   .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:nowrap}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0e9f6e;color:#fff;font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:all .3s;z-index:99999;pointer-events:none}
@@ -450,7 +451,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 23:00</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 23:01</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2518,7 +2519,7 @@ function dailySectionHtml(uid){
         <button class="gbtn" id="dlyCsvGo" style="margin-top:6px;padding:6px 14px;font-size:12px;background:#6b7686">CSVファイルから</button>
         <span class="gmsg" id="dlyPasteMsg"></span>
       </div></div>`:""}
-    <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="ntbl pltbl"><thead><tr><th>日付</th><th>仕入金額</th><th>見込利益</th><th>時間</th><th>回訪</th><th>検索</th></tr></thead><tbody>${body_}${total}</tbody></table></div>
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="ntbl pltbl dlytbl"><thead><tr><th>日付</th><th>仕入金額</th><th>見込利益</th><th>時間</th><th>回訪</th><th>検索</th></tr></thead><tbody>${body_}${total}</tbody></table></div>
     ${editable?`<button class="gbtn" id="dlySave" style="margin-top:8px">デイリーを保存</button><span class="gmsg" id="dlyMsg"></span>`:""}
   </div>`;
 }
