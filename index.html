@@ -440,7 +440,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 15:28</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 15:55</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -3051,7 +3051,9 @@ function bindQuiz(){
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
           body:JSON.stringify({action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:body.querySelector("#qtitle").value.trim(),memo:body.querySelector("#qmemo").value.trim(),jan:(body.querySelector("#qjan").value||"").replace(/[^0-9]/g,""),uid:me.sid,name:me.name,data:quizNewPhoto.data,mime:quizNewPhoto.mime})})).json();
         if(d&&d.ok){ quizNewPhoto=null; QUIZALL=null; renderQuiz(); return; }
-        msg.textContent="失敗："+(d&&d.error||"不明"); saveBtn.disabled=false;
+        let em=(d&&d.error)||"不明";
+        if(/unauthorized/.test(em)) em="認証エラー：ページ上部の🔑合言葉を入力してください（それでもダメなら #admin を付けて開き直し、管理キーを入れ直し）";
+        msg.textContent="失敗："+em; saveBtn.disabled=false;
       }catch(e){ msg.textContent="通信エラー："+String(e).slice(0,80); saveBtn.disabled=false; }
     };
   }
