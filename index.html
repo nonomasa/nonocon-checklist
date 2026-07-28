@@ -444,7 +444,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 16:09</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 16:53</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2974,16 +2974,34 @@ async function renderQuiz(){
   html+='<div class="quizintro">📸 <b>仕入れ写真</b>を見て「仕入れる／仕入れない」を判断！<br>販売価格・仕入値がわかる写真と、<b>何をどう見て判断したか</b>のメモを添えて回答しよう。<div class="gpn" style="margin-top:4px">🔒 他の人の回答は、自分が回答すると見られます。</div></div>';
   if(isAdmin){
     const ed=quizEditId?QUIZALL.find(x=>x.id===quizEditId):null;
-    const STORES=["ヤマダデンキ","エディオン","ケーズデンキ","ジョーシン","ビックカメラ","コジマ","ヨドバシカメラ","ドン・キホーテ","イオン","西松屋","バースデイ","しまむら","トイザらス","セカンドストリート","ハードオフ／オフハウス","ブックオフ","ゲオ","ホームセンター","ドラッグストア","スーパー","その他"];
+    const STORE_GROUPS=[
+      ["家電量販店",["ビックカメラ","ヤマダ電機","ベスト電器","エディオン","ケーズデンキ","コジマ","ジョーシン","ノジマ","ヨドバシカメラ","ベイシア電器","マツヤデンキ","ラオックス","デンキチ"]],
+      ["ホームセンター",["DCM","コーナン","コメリ","カインズ","ナフコ","ビバホーム","ロイヤルホームセンター","バローホームセンター","ジュンテンドー","ダイキ","エンチョー","グッデイ","ユニディ","ローカルホームセンター","島忠ホームズ","ジョイフル本田","カーマ","綿半","D2","ホーマック"]],
+      ["ディスカウント",["ドンキホーテ","ダイレックス","ミスターマックス","コストコ","トライアル","ザ・ビッグ","オリンピック","プラント","ルミエール","ジャパン"]],
+      ["pcショップ",["パソコン工房","ツクモ","PCデポ","じゃんぱら","ソフマップ","アプライド"]],
+      ["モール系",["イオン","平和堂","サンエー","イトーヨーカドー","アピタ","西友","ゆめタウン","フジグラン"]],
+      ["スポーツ",["スポーツデポ","ゼビオ","アルペン","つるやゴルフ","ゴルフ5","ヒマラヤ","オーソリティ","ムラサキスポーツ"]],
+      ["薬局",["ウォンツ","ドラッグストアモリ","ウェルシア","ツルハ","コスモス","サンドラ","ドラッグイレブン","Vドラッグ","ダイコクドラッグ","スギ薬局","マツモトキヨシ","ココカラファイン","クスリのアオキ","ゲンキー","ドラッグユタカ","その他薬局"]],
+      ["リサイクル",["セカンドストリート","ハードオフ","オフハウス","ブックオフ","お宝創庫","買取王国","万代","駿河屋","トレジャーファクトリー","ふるいち","らしんばん","リサイクルショップ"]],
+      ["楽器",["島村楽器","イシバシ楽器","その他楽器"]],
+      ["書店/音楽",["ブックオフ","フタバ図書","その他書店","GEO","TSUTAYA","タワレコ","HMV","新星堂","ヴィレッジヴァンガード"]],
+      ["こども",["トイザらス","バースデイ","西松屋","アカチャンホンポ","赤ちゃんデパート水谷"]],
+      ["カー用品",["イエローハット","オートバックス","ジェームス"]],
+      ["釣具",["釣具その他","ポイント","上州屋","タックルベリー"]],
+      ["電脳",["刈り取り","楽天","電脳"]],
+      ["スーパー",["カルディ","北のエース","ヨシヅヤ","ベイシア","業務用スーパー"]],
+      ["コンビニ",["セブンイレブン","ローソン","ファミリーマート"]],
+      ["雑貨コスメ",["ロフト","東急ハンズ"]],
+      ["その他",["倒産品買付","刈り取りデータ参照","ユザワヤ","アウトレットモール","ペットショップコジマ","はるやま","リサイクルショップ","らしんばん","ピアゴ","コールマンアウトレット","靴流通センター","百貨店","カメラのキタムラ","その他"]]
+    ];
     html+=`<div class="quizform">
       <div class="gh2">${ed?"✏️ クイズを編集中":"＋ クイズを出題する（管理者）"}</div>
       <div id="qphotoDrop" class="qphoto-drop">📷 ${ed?"写真を差し替える（そのままなら変更なし）":"仕入れ写真をクリック or ドラッグで選ぶ"}</div>
       <img id="qphotoPrev" class="qphoto-prev" style="display:none">
       ${ed&&ed.photo?`<img class="qphoto-prev" src="${ed.photo}">`:""}
-      <select class="ginput" id="qstore" style="margin-top:8px"><option value="">仕入れ先を選ぶ</option>${STORES.map(st=>`<option value="${st}"${ed&&ed.store===st?" selected":""}>${st}</option>`).join("")}</select>
-      <input class="ginput" id="qtitle" placeholder="タイトル（任意）例：イオンのおもちゃ売場" style="margin-top:6px" value="${ed?escH(ed.title):""}">
+      <select class="ginput" id="qstore" style="margin-top:8px"><option value="">仕入れ先を選ぶ</option>${STORE_GROUPS.map(g=>`<optgroup label="${g[0]}">`+g[1].map(st=>`<option value="${st}"${ed&&ed.store===st?" selected":""}>${st}</option>`).join("")+`</optgroup>`).join("")}${ed&&ed.store&&!STORE_GROUPS.some(g=>g[1].includes(ed.store))?`<option value="${escH(ed.store)}" selected>${escH(ed.store)}</option>`:""}</select>
       <input class="ginput" id="qjan" inputmode="numeric" placeholder="JAN（任意）例：4988602178241" style="margin-top:6px" value="${ed?escH(ed.jan||""):""}">
-      <input class="ginput" id="qmemo" placeholder="ひとことメモ（任意）例：この棚、仕入れる？" style="margin-top:6px" value="${ed?escH(ed.memo||""):""}">
+      <input class="ginput" id="qmemo" placeholder="ひとことメモ（任意）例：この棚、仕入れる？" style="margin-top:6px" value="${ed?escH(ed.memo||ed.title||""):""}">
       <button class="gbtn" id="qsaveBtn" style="margin-top:8px">${ed?"更新する":"出題する"}</button>
       ${ed?`<button class="gbtn" id="qcancelBtn" style="margin-top:8px;background:#6b7686">キャンセル</button>`:""}<span class="gmsg" id="qsaveMsg"></span>
     </div>`;
@@ -3061,7 +3079,7 @@ function bindQuiz(){
       if(!quizNewPhoto && !quizEditId){ msg.textContent="仕入れ写真を選んでください"; return; }
       saveBtn.disabled=true; msg.textContent=quizEditId?"更新中…":"出題中…";
       try{
-        const payload={action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:body.querySelector("#qtitle").value.trim(),memo:body.querySelector("#qmemo").value.trim(),jan:(body.querySelector("#qjan").value||"").replace(/[^0-9]/g,""),store:body.querySelector("#qstore").value,uid:me.sid,name:me.name};
+        const payload={action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:"",memo:body.querySelector("#qmemo").value.trim(),jan:(body.querySelector("#qjan").value||"").replace(/[^0-9]/g,""),store:body.querySelector("#qstore").value,uid:me.sid,name:me.name};
         if(quizEditId){ payload.id=quizEditId; const ed=QUIZALL.find(x=>x.id===quizEditId); payload.date=(ed&&ed.date)||payload.date; }
         if(quizNewPhoto){ payload.data=quizNewPhoto.data; payload.mime=quizNewPhoto.mime; }
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
