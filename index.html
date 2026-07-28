@@ -265,6 +265,7 @@
   .qo-mine{border-color:#f9a56a;background:#fff7ed}
   .dlygoals{font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
   .dlytbl thead th{position:sticky;top:0;background:#eef1f5;z-index:2;box-shadow:0 1px 0 var(--line)}
+  .thsub{font-size:10px;color:#8a93a3;font-weight:400;white-space:nowrap}
   .dly-pastewrap{margin-bottom:8px}
   .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:nowrap}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0e9f6e;color:#fff;font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:all .3s;z-index:99999;pointer-events:none}
@@ -451,7 +452,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 23:01</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 23:10</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1719,11 +1720,19 @@ const PHOTO_KINDS=[["shelf","店頭"],["list","せどプレ"],["sold","売れた
 let PHOTOCTX={}; // {routeId:{shopKey:{kind:url}}}
 /* せどプレの行コピペ（タブ区切り・ヘッダ無し）をパース。列位置はCSVと同じ */
 function sedoprePasteParse(text){
-  const lines=String(text).replace(/\r/g,"").split("\n").filter(l=>l.trim());
+  const raw=String(text).replace(/\r/g,"");
   const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+  // タブ区切り（Excel/スプシコピー）が基本。タブが無ければCSVとして解釈
+  let rowsArr;
+  if(raw.indexOf("\t")>=0){
+    rowsArr=raw.split("\n").filter(l=>l.trim()).map(l=>l.split("\t").map(x=>x.trim()));
+  }else{
+    rowsArr=parseCSV(raw).filter(r=>r.some(x=>String(x).trim()));
+  }
   const out=[];
-  lines.forEach(l=>{
-    const c=l.split("\t").map(x=>x.trim());
+  rowsArr.forEach(c=>{
+    c=c.map(x=>String(x).trim());
+    const l=c.join("\t");
     // SKU（1列目）から ASIN・個数・仕入原価 を確実に取得
     const parts=(c[0]||"").split("-");
     let asin="", qty=1, cost=0, ai=-1;
@@ -2498,7 +2507,7 @@ function dailySectionHtml(uid){
       cell("cost",90)+cell("mikomi",90)+cell("hours",55)+cell("visits",55)+cell("searches",70)+`</tr>`;
   }
   const pctS=(v,g)=>{g=numv(g); if(!g)return ""; const p=v/g*100; return `<span style="font-weight:700;${p>=100?"color:#0e9f6e":""}">（${p.toFixed(0)}%）</span>`;};
-  const total=`<tr class="ntotal"><td>累計</td><td class="pl-n">${tC?yen(tC)+"円":""}</td>`+
+  const total=`<tr class="ntotal"><td>実際累計</td><td class="pl-n">${tC?yen(tC)+"円":""}</td>`+
     `<td class="pl-n">${tM?yen(tM)+"円":""}${pctS(tM,goal.gmikomi)}</td>`+
     `<td class="pl-n">${tH||""}${pctS(tH,goal.ghours)}</td>`+
     `<td class="pl-n">${tV||""}${pctS(tV,goal.gvisits)}</td>`+
@@ -2509,7 +2518,7 @@ function dailySectionHtml(uid){
   return `<div class="gpanel"><div class="gph" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📅 デイリー行動記録
     <select class="ginput" id="dailyWho" style="max-width:220px;font-size:13px;padding:6px 10px">${ROSTER.map(x=>`<option value="${x.sid}"${String(x.sid)===String(uid)?" selected":""}>${escH(x.name)}</option>`).join("")}</select>
     <span class="gpn">みんなの記録も見られます</span></div>
-    <div class="dlygoals">月間目標：見込利益 ${gIn("gmikomi","300000")}円　時間 ${gIn("ghours","100")}h　回訪 ${gIn("gvisits","100")}店　検索 ${gIn("gsearches","10000")}件
+    <div class="dlygoals">🎯 今月の目標：見込利益 ${gIn("gmikomi","300000")}円　時間 ${gIn("ghours","100")}h　回訪 ${gIn("gvisits","100")}店　検索 ${gIn("gsearches","10000")}件
     ${editable?`<button class="gbtn dlyg-save" style="margin-left:8px;padding:6px 14px;font-size:12px">目標を保存</button>`:""}</div>
     ${editable?`<div class="dly-pastewrap"><button class="drmemo-edit" id="dlyPasteOpen">📋 せどプレのデータを入れて仕入金額・見込利益を自動入力</button>
       <div id="dlyPasteBox" style="display:none;margin-top:6px">
@@ -2519,7 +2528,12 @@ function dailySectionHtml(uid){
         <button class="gbtn" id="dlyCsvGo" style="margin-top:6px;padding:6px 14px;font-size:12px;background:#6b7686">CSVファイルから</button>
         <span class="gmsg" id="dlyPasteMsg"></span>
       </div></div>`:""}
-    <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="ntbl pltbl dlytbl"><thead><tr><th>日付</th><th>仕入金額</th><th>見込利益</th><th>時間</th><th>回訪</th><th>検索</th></tr></thead><tbody>${body_}${total}</tbody></table></div>
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="ntbl pltbl dlytbl"><thead><tr><th>日付</th>
+    <th>仕入金額<div class="thsub">せどプレから自動</div></th>
+    <th>見込利益<div class="thsub">せどプレから自動</div></th>
+    <th>時間<div class="thsub">目標 ${goal.ghours?yen(numv(goal.ghours))+"h":"未設定"}</div></th>
+    <th>回訪<div class="thsub">目標 ${goal.gvisits?yen(numv(goal.gvisits))+"店":"未設定"}</div></th>
+    <th>検索<div class="thsub">目標 ${goal.gsearches?yen(numv(goal.gsearches))+"件":"未設定"}</div></th></tr></thead><tbody>${body_}${total}</tbody></table></div>
     ${editable?`<button class="gbtn" id="dlySave" style="margin-top:8px">デイリーを保存</button><span class="gmsg" id="dlyMsg"></span>`:""}
   </div>`;
 }
