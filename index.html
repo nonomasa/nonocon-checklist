@@ -270,6 +270,7 @@
   .dlypace{font-size:12px;color:#5a6472;background:#f7f9fc;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.9}
   .dly-pastewrap{margin-bottom:8px}
   .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:nowrap}
+  .ghwhen{font-size:9.5px;text-decoration:none;color:#b3bac6}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0e9f6e;color:#fff;font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:all .3s;z-index:99999;pointer-events:none}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   .qo-top{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px}
@@ -454,7 +455,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 23:29</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 23:36</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2436,10 +2437,17 @@ function trendTableHtml(uid){
     // 目標の修正チェーン（旧→…→現在の一つ前）。藤田さんのように目標がずれていく様子を残す
     const fmtMan=v=>{const n=numv(v); if(!n) return "—"; return n%10000===0?(n/10000)+"万":yen(n);};
     const chainOf=k=>{
-      const hs=((NUMSALL&&NUMSALL.ghist)||[]).filter(h=>String(h.uid)===String(uid)&&h.ym===ym).filter(h=>k==="gsales"?(h.oldS!==h.newS&&h.oldS):(h.oldP!==h.newP&&h.oldP));
+      const ov=h=>k==="gsales"?h.oldS:h.oldP, nv=h=>k==="gsales"?h.newS:h.newP;
+      const hs=((NUMSALL&&NUMSALL.ghist)||[]).filter(h=>String(h.uid)===String(uid)&&h.ym===ym).filter(h=>ov(h)!==nv(h)&&(ov(h)||nv(h)));
       if(!hs.length) return "";
-      const vals=[k==="gsales"?hs[0].oldS:hs[0].oldP,...hs.map(h=>k==="gsales"?h.newS:h.newP)];
-      return `<div class="ghchain" title="目標の修正履歴（古→新）">${vals.slice(0,-1).map(fmtMan).join("→")}→</div>`;
+      // 各値と「いつ立てた目標か」：新値=その履歴の日付。記録前からの初期値は日付なし
+      const items=[];
+      if(ov(hs[0])) items.push({v:ov(hs[0]),at:null});
+      hs.forEach(h=>{ if(nv(h)) items.push({v:nv(h),at:h.at}); });
+      const past=items.slice(0,-1); // 最後は現在値（セルに表示中）なので除外
+      if(!past.length) return "";
+      const lbl=at=>{ if(!at) return ""; const m=String(at).match(/^(\d{4})-(\d{2})/); return m?`<span class="ghwhen">（${(+m[1])%100}年${+m[2]}月）</span>`:""; };
+      return `<div class="ghchain" title="目標の修正履歴（古→新、カッコ内は立てた時期）">${past.map(x=>fmtMan(x.v)+lbl(x.at)).join("→")}→</div>`;
     };
     const gsCell=(editable&&future)?`<td class="pl-n">${chainOf("gsales")}<input class="ginput tgoal" data-ym="${escH(ym)}" data-k="gsales" inputmode="numeric" style="width:110px;text-align:right;padding:5px 8px" value="${numv(meta.gsales)||""}"></td>`:`<td class="pl-n">${chainOf("gsales")}${gS?yen(gS)+"円":""}</td>`;
     const gpCell=(editable&&future)?`<td class="pl-n">${chainOf("gprofit")}<input class="ginput tgoal" data-ym="${escH(ym)}" data-k="gprofit" inputmode="numeric" style="width:100px;text-align:right;padding:5px 8px" value="${numv(meta.gprofit)||""}"></td>`:`<td class="pl-n">${chainOf("gprofit")}${gP?yen(gP)+"円":""}</td>`;
