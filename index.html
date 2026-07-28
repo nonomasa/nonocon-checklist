@@ -264,12 +264,21 @@
   .qo1{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc}
   .qo-mine{border-color:#f9a56a;background:#fff7ed}
   .dlygoals{font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-  .dlytbl thead th{position:sticky;top:0;background:#eef1f5;z-index:2;box-shadow:0 1px 0 var(--line)}
+  .dlytbl thead th{position:sticky;top:0;background:#eef1f5;z-index:3;box-shadow:0 1px 0 var(--line)}
+  .dlytbl tbody td:first-child{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 var(--line)}
+  .dlytbl thead th:first-child{position:sticky;left:0;z-index:4}
+  .dlytbl tr.djun td:first-child{background:#eef3fb}
+  .dlytbl tr.ntotal td:first-child{background:#f2f4f7}
   .thsub{font-size:10px;color:#8a93a3;font-weight:400;white-space:nowrap}
   .djun td{background:#eef3fb;font-weight:700;color:#2f4a76;border-top:2px solid #c9d6ea}
   .dlypace{font-size:12px;color:#5a6472;background:#f7f9fc;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.9}
   .dly-pastewrap{margin-bottom:8px}
-  .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:nowrap}
+  .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:normal;max-width:300px;line-height:1.6}
+  .ttrend-wrap{overflow:auto;max-height:70vh}
+  .ttrend thead th{position:sticky;top:0;background:#eef1f5;z-index:3;box-shadow:0 1px 0 var(--line)}
+  .ttrend tbody td:first-child{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 var(--line)}
+  .ttrend thead th:first-child{position:sticky;left:0;z-index:4}
+  .ttrend tr.ntotal td:first-child{background:#f2f4f7}
   .ghwhen{font-size:9.5px;text-decoration:none;color:#b3bac6}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0e9f6e;color:#fff;font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:all .3s;z-index:99999;pointer-events:none}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -455,7 +464,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 23:36</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 23:48</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2456,7 +2465,7 @@ function trendTableHtml(uid){
       gpCell+`<td class="pl-n">${aP?yen(aP)+"円":""}</td><td class="pl-n"${pctCls(pPct)}>${pPct!=null?pPct.toFixed(0)+"%":""}</td>`+
       `<td class="pl-n">${rate!=null?rate.toFixed(0)+"%":""}</td></tr>`;
   });
-  return `<div style="overflow-x:auto"><table class="ntbl pltbl"><thead><tr><th>月</th><th>目標月商</th><th>実績月商</th><th>進捗率</th><th>目標月利</th><th>実績月利</th><th>月利達成</th><th>利益率</th></tr></thead><tbody>${rows}</tbody></table></div>
+  return `<div class="ttrend-wrap"><table class="ntbl pltbl ttrend"><thead><tr><th>月</th><th>目標月商</th><th>実績月商</th><th>進捗率</th><th>目標月利</th><th>実績月利</th><th>月利達成</th><th>利益率</th></tr></thead><tbody>${rows}</tbody></table></div>
   ${editable?`<button class="gbtn" id="tgoalSave" style="margin-top:8px">目標をまとめて保存</button><span class="gmsg" id="tgoalMsg"></span>`:""}
   <div class="nhint">${editable?"今日以降の月は目標月商・目標月利を直接入力できます（卒業目標月まで表示）。":""}実績は旬ごとの報告の合計で自動計算。修正目標を入れた月はそちらが優先表示されます。</div>`;
 }
