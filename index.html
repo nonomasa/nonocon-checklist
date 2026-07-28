@@ -233,6 +233,41 @@
     .ph-tile img{max-height:48vh}
     .slide-nav button{padding:12px 24px;font-size:15px}
   }
+  /* 仕入れクイズ */
+  .quizwrap{max-width:680px;margin:0 auto}
+  .quizintro{background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.7;color:#7c3a12;margin-bottom:14px}
+  .quizform{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:18px}
+  .gh2{font-size:14px;font-weight:800;color:#3d4654;margin-bottom:10px}
+  .qphoto-drop{border:2px dashed #c9cfd7;border-radius:10px;padding:20px;text-align:center;color:#8a93a3;cursor:pointer;font-size:13px;background:#fff}
+  .qphoto-drop:hover,.qphoto-drop.drop-on{border-color:#f97316;color:#f97316;background:#fff4ec}
+  .qphoto-prev{max-width:100%;max-height:260px;border-radius:10px;margin-top:8px;display:block}
+  .quizempty{text-align:center;color:#6b7686;padding:30px;font-size:14px}
+  .qcard{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:18px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+  .qcardh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .qdate{font-size:12px;color:var(--sub);white-space:nowrap}
+  .qtitle{font-size:16px}
+  .qdel{font-size:11px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#dc2626;cursor:pointer}
+  .qmemo{font-size:14px;color:#3d4654;margin-bottom:8px}
+  .qphoto img{max-width:100%;max-height:360px;border-radius:10px;display:block;margin:0 auto}
+  .qans{background:#f7f9fc;border-radius:10px;padding:12px;margin-top:12px}
+  .qans-h{font-size:13px;font-weight:800;color:#3d4654;margin-bottom:8px}
+  .qdec-btns{display:flex;gap:10px;margin-bottom:6px}
+  .qdec{flex:1;padding:12px;border:2px solid var(--line);border-radius:10px;background:#fff;font-size:15px;font-weight:700;color:#6b7686;cursor:pointer}
+  .qdec.on.buy{border-color:#0e9f6e;background:#eafaf2;color:#0e9f6e}
+  .qdec.on.no{border-color:#dc2626;background:#fdeaea;color:#dc2626}
+  .qans-drop{margin-top:2px;padding:14px}
+  .qans-prev,.qans-photo img{max-width:100%;max-height:220px;border-radius:8px;margin-top:8px;display:block}
+  .qothers{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .qothers-h{font-size:13px;font-weight:800;color:#3d4654;margin-bottom:8px}
+  .qo1{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc}
+  .qo-top{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px}
+  .qo-dec{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
+  .qo-dec.buy{background:#eafaf2;color:#0e9f6e}
+  .qo-dec.no{background:#fdeaea;color:#dc2626}
+  .qo-photo img{max-width:100%;max-height:240px;border-radius:8px;display:block;margin:4px 0}
+  .qo-memo{font-size:13px;line-height:1.7;white-space:pre-wrap;color:#3d4654}
+  .qlock{margin-top:12px;text-align:center;color:#8a93a3;font-size:13px;background:#f2f4f7;border-radius:8px;padding:12px}
+  @media (max-width:640px){ .quizwrap{max-width:100%} }
   .slide-cover{font-size:32px;font-weight:800;text-align:center;line-height:1.6}
   .slide-cover span{font-size:16px;font-weight:400;color:#9aa0ad}
   .slide-nav{display:flex;justify-content:center;gap:20px;padding:18px}
@@ -403,7 +438,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-27 11:28</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 14:05</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -979,6 +1014,10 @@ const BRAND   = DATA.length+2; // ブランド解除タブ
 const PALL    = DATA.length+3; // みんなの進捗タブ
 const MEMBERS = DATA.length+4; // メンバー情報タブ
 const ADMIN   = DATA.length+5; // 管理タブ（キー保持者のみ表示）
+const QUIZ    = DATA.length+6; // 仕入れクイズタブ
+let QUIZALL   = null;          // クイズ一覧キャッシュ
+let quizNewPhoto = null;       // 出題フォームで選択中の写真 {data,mime}
+let quizAnsPhoto = {};         // 回答フォームで選択中の写真 quizId→{data,mime}
 let pallCache = null;          // みんなの進捗のキャッシュ
 let adminStepSel = "";         // 管理：ステップ別ビューで選択中のステップID
 let lvFilter = 0;              // ステージフィルタ（0=すべて, 1〜3=⭐の数）
@@ -1015,6 +1054,11 @@ function renderTabs(){
   db.innerHTML=`店舗同行`;
   db.onclick=()=>{chap=DOKO;render();};
   el.appendChild(db);
+  const qb=document.createElement("button");
+  qb.className="tab"+(chap===QUIZ?" on":"");
+  qb.innerHTML=`仕入れクイズ`;
+  qb.onclick=()=>{chap=QUIZ;render();};
+  el.appendChild(qb);
   const kb=document.createElement("button");
   kb.className="tab"+(chap===BRAND?" on":"");
   kb.innerHTML=`ブランド解除`;
@@ -2873,6 +2917,168 @@ async function fillKaijo(){
   });
 }
 
+/* ---------- 仕入れクイズタブ ---------- */
+function todayStr(){const d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function readImgB64(file){
+  return new Promise((res,rej)=>{
+    if(!file){ rej("no file"); return; }
+    if(file.size>12*1024*1024){ rej("12MB以下の画像にしてください"); return; }
+    const fr=new FileReader();
+    fr.onload=()=>res({data:String(fr.result).split(",")[1], mime:file.type||"image/jpeg", url:String(fr.result)});
+    fr.onerror=()=>rej("読み込み失敗");
+    fr.readAsDataURL(file);
+  });
+}
+function pickImage(){
+  return new Promise(res=>{
+    const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*";
+    inp.onchange=()=>res(inp.files[0]||null); inp.click();
+  });
+}
+async function renderQuiz(){
+  const body=document.getElementById("body");
+  if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと仕入れクイズを使えます</div>'; return; }
+  if(QUIZALL===null){
+    body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
+    try{ const d=await jsonp({action:"qall"}); QUIZALL=(d&&d.quizzes)||[]; }
+    catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; QUIZALL=null; return; }
+    if(chap!==QUIZ) return;
+  }
+  const isAdmin=!!ADMIN_KEY;
+  let html='<div class="quizwrap">';
+  html+='<div class="quizintro">📸 <b>仕入れ写真</b>を見て「仕入れる／仕入れない」を判断！<br>販売価格・仕入値がわかる写真と、<b>何をどう見て判断したか</b>のメモを添えて回答しよう。<div class="gpn" style="margin-top:4px">🔒 他の人の回答は、自分が回答すると見られます。</div></div>';
+  if(isAdmin){
+    html+=`<div class="quizform">
+      <div class="gh2">＋ クイズを出題する（管理者）</div>
+      <div id="qphotoDrop" class="qphoto-drop">📷 仕入れ写真をクリック or ドラッグで選ぶ</div>
+      <img id="qphotoPrev" class="qphoto-prev" style="display:none">
+      <input class="ginput" id="qtitle" placeholder="タイトル（任意）例：イオンのおもちゃ売場" style="margin-top:8px">
+      <input class="ginput" id="qmemo" placeholder="ひとことメモ（任意）例：この棚、仕入れる？" style="margin-top:6px">
+      <button class="gbtn" id="qsaveBtn" style="margin-top:8px">出題する</button><span class="gmsg" id="qsaveMsg"></span>
+    </div>`;
+  }
+  const quizzes=[...QUIZALL].sort((a,b)=>String(b.date+b.id).localeCompare(String(a.date+a.id)));
+  if(!quizzes.length){ html+='<div class="quizempty">まだクイズがありません'+(isAdmin?'。上のフォームから出題してください。':'。ののさんの出題を待ちましょう！')+'</div>'; }
+  quizzes.forEach(q=>{ html+=quizCard(q,isAdmin); });
+  html+='</div>';
+  body.innerHTML=html;
+  bindQuiz();
+}
+function quizCard(q,isAdmin){
+  const answers=q.answers||[];
+  const myAns=answers.find(a=>String(a.uid)===String(me.sid));
+  const answered=!!myAns;
+  const canSeeOthers=answered||isAdmin;
+  const others=answers.filter(a=>String(a.uid)!==String(me.sid));
+  const buyN=answers.filter(a=>a.decision==="仕入れる").length;
+  const noN=answers.filter(a=>a.decision==="仕入れない").length;
+  const dec=myAns?myAns.decision:"";
+  const bigUrl=q.photo?q.photo.replace("/thumbnail?id=","/uc?id=").replace("&sz=w1000",""):"";
+  let h=`<div class="qcard">`;
+  h+=`<div class="qcardh"><span class="qdate">${escH(dokoDateLabel(q.date))}</span>${q.title?`<b class="qtitle">${escH(q.title)}</b>`:""}${(String(q.uid)===String(me.sid)||isAdmin)?`<span style="flex:1"></span><button class="qdel" data-id="${q.id}">削除</button>`:""}</div>`;
+  if(q.memo) h+=`<div class="qmemo">💬 ${escH(q.memo)}</div>`;
+  if(q.photo) h+=`<div class="qphoto"><a href="${bigUrl}" target="_blank" rel="noopener"><img src="${q.photo}" alt="仕入れ写真"></a></div>`;
+  h+=`<div class="qans">
+    <div class="qans-h">🙋 あなたの判断</div>
+    <div class="qdec-btns">
+      <button class="qdec ${dec==="仕入れる"?"on buy":""}" data-q="${q.id}" data-dec="仕入れる">⭕ 仕入れる</button>
+      <button class="qdec ${dec==="仕入れない"?"on no":""}" data-q="${q.id}" data-dec="仕入れない">❌ 仕入れない</button>
+    </div>
+    <label class="glbl">販売価格・仕入値がわかる写真（せどプレ等）</label>
+    <div class="qphoto-drop qans-drop" data-q="${q.id}">📷 ${myAns&&myAns.photo?"写真を差し替える":"クリック or ドラッグで選ぶ"}</div>
+    <img class="qphoto-prev qans-prev" data-q="${q.id}" style="display:none">
+    ${myAns&&myAns.photo?`<div class="qphoto qans-photo"><img src="${myAns.photo}"></div>`:""}
+    <label class="glbl">何をどう見て判断した？</label>
+    <textarea class="ginput qans-memo" data-q="${q.id}" rows="3" placeholder="例：ランキング○位、利益率○%、月○個回転、ライバル○人、価格推移…">${myAns?escH(myAns.memo):""}</textarea>
+    <button class="gbtn qans-save" data-q="${q.id}" style="margin-top:8px">${answered?"回答を更新":"回答する"}</button><span class="gmsg qans-msg" data-q="${q.id}"></span>
+  </div>`;
+  if(canSeeOthers){
+    h+=`<div class="qothers"><div class="qothers-h">👥 みんなの回答（⭕${buyN}／❌${noN}）</div>`;
+    if(others.length){
+      others.forEach(a=>{
+        h+=`<div class="qo1"><div class="qo-top"><span class="qo-dec ${a.decision==="仕入れる"?"buy":"no"}">${escH(a.decision||"—")}</span><b>${escH(a.name)}</b><span class="dwho">${escH(a.updated)}</span></div>`;
+        if(a.photo) h+=`<div class="qo-photo"><a href="${a.photo}" target="_blank" rel="noopener"><img src="${a.photo}"></a></div>`;
+        if(a.memo) h+=`<div class="qo-memo">${escH(a.memo)}</div>`;
+        h+=`</div>`;
+      });
+    }else{ h+=`<div class="gpn">まだ他の人の回答はありません</div>`; }
+    h+=`</div>`;
+  }else{
+    h+=`<div class="qlock">🔒 他の人の回答は、あなたが回答すると見られます</div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function bindQuiz(){
+  const body=document.getElementById("body");
+  // 出題フォーム
+  const drop=body.querySelector("#qphotoDrop");
+  if(drop){
+    const prev=body.querySelector("#qphotoPrev");
+    const setPhoto=async(file)=>{ try{ const r=await readImgB64(file); quizNewPhoto={data:r.data,mime:r.mime}; prev.src=r.url; prev.style.display=""; drop.textContent="📷 写真を変更する"; }catch(e){ alert(e); } };
+    drop.onclick=async()=>{ const f=await pickImage(); if(f) setPhoto(f); };
+    drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drop-on"); };
+    drop.ondragleave=()=>drop.classList.remove("drop-on");
+    drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drop-on"); const f=e.dataTransfer.files[0]; if(f) setPhoto(f); };
+    const saveBtn=body.querySelector("#qsaveBtn");
+    saveBtn.onclick=async()=>{
+      const msg=body.querySelector("#qsaveMsg");
+      if(!quizNewPhoto){ msg.textContent="仕入れ写真を選んでください"; return; }
+      saveBtn.disabled=true; msg.textContent="出題中…";
+      try{
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:body.querySelector("#qtitle").value.trim(),memo:body.querySelector("#qmemo").value.trim(),uid:me.sid,name:me.name,data:quizNewPhoto.data,mime:quizNewPhoto.mime})})).json();
+        if(d&&d.ok){ quizNewPhoto=null; QUIZALL=null; renderQuiz(); return; }
+        msg.textContent="失敗："+(d&&d.error||"不明"); saveBtn.disabled=false;
+      }catch(e){ msg.textContent="通信エラー"; saveBtn.disabled=false; }
+    };
+  }
+  // 削除
+  body.querySelectorAll(".qdel").forEach(b=>{
+    b.onclick=async()=>{
+      if(!confirm("このクイズと全回答を削除しますか？")) return;
+      try{ const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"qdel",pass:PASS,key:ADMIN_KEY,id:b.dataset.id,uid:me.sid})})).json();
+        if(d&&d.ok){ QUIZALL=null; renderQuiz(); return; } alert("削除失敗："+(d&&d.error||"不明")); }catch(e){ alert("通信エラー"); }
+    };
+  });
+  // 判断ボタン（トグル）
+  body.querySelectorAll(".qdec").forEach(b=>{
+    b.onclick=()=>{
+      body.querySelectorAll(`.qdec[data-q="${b.dataset.q}"]`).forEach(x=>x.classList.remove("on","buy","no"));
+      b.classList.add("on", b.dataset.dec==="仕入れる"?"buy":"no");
+    };
+  });
+  // 回答写真
+  body.querySelectorAll(".qans-drop").forEach(drop=>{
+    const qid=drop.dataset.q;
+    const prev=body.querySelector(`.qans-prev[data-q="${qid}"]`);
+    const setPhoto=async(file)=>{ try{ const r=await readImgB64(file); quizAnsPhoto[qid]={data:r.data,mime:r.mime}; prev.src=r.url; prev.style.display=""; drop.textContent="📷 写真を変更する"; }catch(e){ alert(e); } };
+    drop.onclick=async()=>{ const f=await pickImage(); if(f) setPhoto(f); };
+    drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drop-on"); };
+    drop.ondragleave=()=>drop.classList.remove("drop-on");
+    drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drop-on"); const f=e.dataTransfer.files[0]; if(f) setPhoto(f); };
+  });
+  // 回答保存
+  body.querySelectorAll(".qans-save").forEach(btn=>{
+    btn.onclick=async()=>{
+      const qid=btn.dataset.q;
+      const msg=body.querySelector(`.qans-msg[data-q="${qid}"]`);
+      const decBtn=body.querySelector(`.qdec.on[data-q="${qid}"]`);
+      if(!decBtn){ msg.textContent="「仕入れる／仕入れない」を選んでください"; return; }
+      const memo=body.querySelector(`.qans-memo[data-q="${qid}"]`).value.trim();
+      const ph=quizAnsPhoto[qid];
+      btn.disabled=true; msg.textContent="保存中…";
+      try{
+        const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo};
+        if(ph){ payload.data=ph.data; payload.mime=ph.mime; }
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)})).json();
+        if(d&&d.ok){ delete quizAnsPhoto[qid]; QUIZALL=null; renderQuiz(); return; }
+        msg.textContent="失敗："+(d&&d.error||"不明"); btn.disabled=false;
+      }catch(e){ msg.textContent="通信エラー"; btn.disabled=false; }
+    };
+  });
+}
+
 function render(){
   if(chap < DATA.length && chapterHidden(chap)) chap = 0;
   renderTabs();
@@ -2885,6 +3091,11 @@ function render(){
   if(chap===DOKO){
     pc.style.display="none";
     renderDoko();
+    return;
+  }
+  if(chap===QUIZ){
+    pc.style.display="none";
+    renderQuiz();
     return;
   }
   if(chap===BRAND){
