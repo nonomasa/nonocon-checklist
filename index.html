@@ -263,6 +263,8 @@
   .qothers-h{font-size:13px;font-weight:800;color:#3d4654;margin-bottom:8px}
   .qo1{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc}
   .qo-mine{border-color:#f9a56a;background:#fff7ed}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0e9f6e;color:#fff;font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:all .3s;z-index:99999;pointer-events:none}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   .qo-top{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px}
   .qo-dec{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px}
   .qo-dec.buy{background:#eafaf2;color:#0e9f6e}
@@ -445,7 +447,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 17:17</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 18:07</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2927,6 +2929,12 @@ async function fillKaijo(){
 
 /* ---------- 仕入れクイズタブ ---------- */
 function todayStr(){const d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function showToast(text){
+  const t=document.createElement("div"); t.className="toast"; t.textContent=text;
+  document.body.appendChild(t);
+  setTimeout(()=>t.classList.add("on"),30);
+  setTimeout(()=>{ t.classList.remove("on"); setTimeout(()=>t.remove(),400); },2200);
+}
 function readImgB64(file){
   return new Promise((res,rej)=>{
     if(!file){ rej("no file"); return; }
@@ -3091,7 +3099,7 @@ function bindQuiz(){
         if(quizNewPhoto){ payload.data=quizNewPhoto.data; payload.mime=quizNewPhoto.mime; }
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
           body:JSON.stringify(payload)})).json();
-        if(d&&d.ok){ quizNewPhoto=null; quizEditId=null; QUIZALL=null; renderQuiz(); return; }
+        if(d&&d.ok){ const wasEdit=!!quizEditId; quizNewPhoto=null; quizEditId=null; QUIZALL=null; renderQuiz(); showToast(wasEdit?"✅ クイズを更新しました":"✅ 出題しました"); return; }
         let em=(d&&d.error)||"不明";
         if(/unauthorized/.test(em)) em="認証エラー：ページ上部の🔑合言葉を入力してください（それでもダメなら #admin を付けて開き直し、管理キーを入れ直し）";
         msg.textContent="失敗："+em; saveBtn.disabled=false;
@@ -3131,7 +3139,7 @@ function bindQuiz(){
       try{
         const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo,cost:cost,price:price};
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)})).json();
-        if(d&&d.ok){ QUIZALL=null; renderQuiz(); return; }
+        if(d&&d.ok){ QUIZALL=null; renderQuiz(); showToast("✅ 回答を保存しました"); return; }
         msg.textContent="失敗："+(d&&d.error||"不明"); btn.disabled=false;
       }catch(e){ msg.textContent="通信エラー"; btn.disabled=false; }
     };
