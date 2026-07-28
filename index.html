@@ -263,6 +263,7 @@
   .qothers-h{font-size:13px;font-weight:800;color:#3d4654;margin-bottom:8px}
   .qo1{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;background:#fafbfc}
   .qo-mine{border-color:#f9a56a;background:#fff7ed}
+  .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:nowrap}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0e9f6e;color:#fff;font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:all .3s;z-index:99999;pointer-events:none}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   .qo-top{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:5px}
@@ -447,7 +448,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 22:09</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 22:17</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2391,10 +2392,11 @@ function trendTableHtml(uid){
   const cur=ymNow();
   let yms=[...new Set([...nums.map(n=>n.ym),...metas.filter(m=>numv(m.gsales)||numv(m.gprofit)).map(m=>m.ym)])];
   if(editable){
-    // 今日から卒業目標月（未設定なら6ヶ月先）までの行を出して、目標をまとめて入力できるようにする
-    let end=null;
-    metas.forEach(m=>{ if(m.gradMonth&&ymSortKey(m.gradMonth)) end=(!end||ymSortKey(m.gradMonth)>ymSortKey(end))?m.gradMonth:end; });
-    if(!end||ymSortKey(end)<=ymSortKey(cur)) end=ymShift(cur,6);
+    // スタンダード=2027年3月まで／フルサポート(FS)=2027年7月まで。卒業目標月がさらに先ならそちら
+    const mem=ROSTER.find(x=>String(x.sid)===String(uid));
+    const isFS=mem&&String(mem.cohort||"").indexOf("FS")>=0;
+    let end=isFS?"2027年7月":"2027年3月";
+    metas.forEach(m=>{ if(m.gradMonth&&ymSortKey(m.gradMonth)>ymSortKey(end)) end=m.gradMonth; });
     let m=cur;
     for(let i=0;i<36&&ymSortKey(m)<=ymSortKey(end);i++){ if(!yms.includes(m)) yms.push(m); m=ymShift(m,1); }
   }
@@ -2412,8 +2414,16 @@ function trendTableHtml(uid){
     const rate=aS?(aP/aS*100):null;
     const pctCls=v=>v==null?"":(v>=100?' style="color:#0e9f6e;font-weight:700"':(v<70?' style="color:#dc2626;font-weight:700"':' style="font-weight:700"'));
     const future=ymSortKey(ym)>=ymSortKey(cur);
-    const gsCell=(editable&&future)?`<td class="pl-n"><input class="ginput tgoal" data-ym="${escH(ym)}" data-k="gsales" inputmode="numeric" style="width:110px;text-align:right;padding:5px 8px" value="${numv(meta.gsales)||""}"></td>`:`<td class="pl-n">${gS?yen(gS)+"円":""}</td>`;
-    const gpCell=(editable&&future)?`<td class="pl-n"><input class="ginput tgoal" data-ym="${escH(ym)}" data-k="gprofit" inputmode="numeric" style="width:100px;text-align:right;padding:5px 8px" value="${numv(meta.gprofit)||""}"></td>`:`<td class="pl-n">${gP?yen(gP)+"円":""}</td>`;
+    // 目標の修正チェーン（旧→…→現在の一つ前）。藤田さんのように目標がずれていく様子を残す
+    const fmtMan=v=>{const n=numv(v); if(!n) return "—"; return n%10000===0?(n/10000)+"万":yen(n);};
+    const chainOf=k=>{
+      const hs=((NUMSALL&&NUMSALL.ghist)||[]).filter(h=>String(h.uid)===String(uid)&&h.ym===ym).filter(h=>k==="gsales"?(h.oldS!==h.newS):(h.oldP!==h.newP));
+      if(!hs.length) return "";
+      const vals=[k==="gsales"?hs[0].oldS:hs[0].oldP,...hs.map(h=>k==="gsales"?h.newS:h.newP)];
+      return `<div class="ghchain" title="目標の修正履歴（古→新）">${vals.slice(0,-1).map(fmtMan).join("→")}→</div>`;
+    };
+    const gsCell=(editable&&future)?`<td class="pl-n">${chainOf("gsales")}<input class="ginput tgoal" data-ym="${escH(ym)}" data-k="gsales" inputmode="numeric" style="width:110px;text-align:right;padding:5px 8px" value="${numv(meta.gsales)||""}"></td>`:`<td class="pl-n">${chainOf("gsales")}${gS?yen(gS)+"円":""}</td>`;
+    const gpCell=(editable&&future)?`<td class="pl-n">${chainOf("gprofit")}<input class="ginput tgoal" data-ym="${escH(ym)}" data-k="gprofit" inputmode="numeric" style="width:100px;text-align:right;padding:5px 8px" value="${numv(meta.gprofit)||""}"></td>`:`<td class="pl-n">${chainOf("gprofit")}${gP?yen(gP)+"円":""}</td>`;
     rows+=`<tr${ym===cur?' style="background:#fff7ed"':''}><td style="white-space:nowrap">${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>`+
       gsCell+`<td class="pl-n">${aS?yen(aS)+"円":""}</td><td class="pl-n"${pctCls(pct)}>${pct!=null?pct.toFixed(0)+"%":""}</td>`+
       gpCell+`<td class="pl-n">${aP?yen(aP)+"円":""}</td><td class="pl-n"${pctCls(pPct)}>${pPct!=null?pPct.toFixed(0)+"%":""}</td>`+
