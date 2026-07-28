@@ -440,7 +440,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 14:15</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 15:28</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2924,9 +2924,27 @@ function todayStr(){const d=new Date();return d.getFullYear()+"-"+("0"+(d.getMon
 function readImgB64(file){
   return new Promise((res,rej)=>{
     if(!file){ rej("no file"); return; }
-    if(file.size>12*1024*1024){ rej("12MB以下の画像にしてください"); return; }
     const fr=new FileReader();
-    fr.onload=()=>res({data:String(fr.result).split(",")[1], mime:file.type||"image/jpeg", url:String(fr.result)});
+    fr.onload=()=>{
+      const raw=String(fr.result);
+      // ブラウザで自動縮小（長辺1600px・JPEG化）→ サイズ超過やHEICもここで解決
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=1600;
+        let w=img.naturalWidth,h=img.naturalHeight;
+        if(w>MAX||h>MAX){ const k=MAX/Math.max(w,h); w=Math.round(w*k); h=Math.round(h*k); }
+        const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+        cv.getContext("2d").drawImage(img,0,0,w,h);
+        const out=cv.toDataURL("image/jpeg",0.85);
+        res({data:out.split(",")[1], mime:"image/jpeg", url:out});
+      };
+      img.onerror=()=>{
+        // 画像として読めない形式：縮小せず元のまま（12MB制限のみ）
+        if(file.size>12*1024*1024){ rej("この写真は大きすぎます。スクショを撮り直すかJPEGに変換してください"); return; }
+        res({data:raw.split(",")[1], mime:file.type||"image/jpeg", url:raw});
+      };
+      img.src=raw;
+    };
     fr.onerror=()=>rej("読み込み失敗");
     fr.readAsDataURL(file);
   });
@@ -2955,6 +2973,7 @@ async function renderQuiz(){
       <div id="qphotoDrop" class="qphoto-drop">📷 仕入れ写真をクリック or ドラッグで選ぶ</div>
       <img id="qphotoPrev" class="qphoto-prev" style="display:none">
       <input class="ginput" id="qtitle" placeholder="タイトル（任意）例：イオンのおもちゃ売場" style="margin-top:8px">
+      <input class="ginput" id="qjan" inputmode="numeric" placeholder="JAN（任意）例：4988602178241" style="margin-top:6px">
       <input class="ginput" id="qmemo" placeholder="ひとことメモ（任意）例：この棚、仕入れる？" style="margin-top:6px">
       <button class="gbtn" id="qsaveBtn" style="margin-top:8px">出題する</button><span class="gmsg" id="qsaveMsg"></span>
     </div>`;
@@ -2979,6 +2998,7 @@ function quizCard(q,isAdmin){
   let h=`<div class="qcard">`;
   h+=`<div class="qcardh"><span class="qdate">${escH(dokoDateLabel(q.date))}</span>${q.title?`<b class="qtitle">${escH(q.title)}</b>`:""}${(String(q.uid)===String(me.sid)||isAdmin)?`<span style="flex:1"></span><button class="qdel" data-id="${q.id}">削除</button>`:""}</div>`;
   if(q.memo) h+=`<div class="qmemo">💬 ${escH(q.memo)}</div>`;
+  if(q.jan) h+=`<div class="qo-jan">🔖 JAN ${escH(q.jan)} <a href="https://www.amazon.co.jp/s?k=${encodeURIComponent(q.jan)}" target="_blank" rel="noopener">Amazon検索↗</a></div>`;
   if(q.photo) h+=`<div class="qphoto"><a href="${bigUrl}" target="_blank" rel="noopener"><img src="${q.photo}" alt="仕入れ写真"></a></div>`;
   h+=`<div class="qans">
     <div class="qans-h">🙋 あなたの判断</div>
@@ -2986,8 +3006,6 @@ function quizCard(q,isAdmin){
       <button class="qdec ${dec==="仕入れる"?"on buy":""}" data-q="${q.id}" data-dec="仕入れる">⭕ 仕入れる</button>
       <button class="qdec ${dec==="仕入れない"?"on no":""}" data-q="${q.id}" data-dec="仕入れない">❌ 仕入れない</button>
     </div>
-    <label class="glbl">JAN（商品バーコードの数字・任意）</label>
-    <input class="ginput qans-jan" data-q="${q.id}" inputmode="numeric" placeholder="例：4988602178241" value="${myAns?escH(myAns.jan||""):""}">
     <label class="glbl">販売価格・仕入値がわかる写真（せどプレ等）</label>
     <div class="qphoto-drop qans-drop" data-q="${q.id}">📷 ${myAns&&myAns.photo?"写真を差し替える":"クリック or ドラッグで選ぶ"}</div>
     <img class="qphoto-prev qans-prev" data-q="${q.id}" style="display:none">
@@ -3001,7 +3019,6 @@ function quizCard(q,isAdmin){
     if(others.length){
       others.forEach(a=>{
         h+=`<div class="qo1"><div class="qo-top"><span class="qo-dec ${a.decision==="仕入れる"?"buy":"no"}">${escH(a.decision||"—")}</span><b>${escH(a.name)}</b><span class="dwho">${escH(a.updated)}</span></div>`;
-        if(a.jan) h+=`<div class="qo-jan">🔖 JAN ${escH(a.jan)} <a href="https://www.amazon.co.jp/s?k=${encodeURIComponent(a.jan)}" target="_blank" rel="noopener">Amazon検索↗</a></div>`;
         if(a.photo) h+=`<div class="qo-photo"><a href="${a.photo}" target="_blank" rel="noopener"><img src="${a.photo}"></a></div>`;
         if(a.memo) h+=`<div class="qo-memo">${escH(a.memo)}</div>`;
         h+=`</div>`;
@@ -3032,10 +3049,10 @@ function bindQuiz(){
       saveBtn.disabled=true; msg.textContent="出題中…";
       try{
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify({action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:body.querySelector("#qtitle").value.trim(),memo:body.querySelector("#qmemo").value.trim(),uid:me.sid,name:me.name,data:quizNewPhoto.data,mime:quizNewPhoto.mime})})).json();
+          body:JSON.stringify({action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:body.querySelector("#qtitle").value.trim(),memo:body.querySelector("#qmemo").value.trim(),jan:(body.querySelector("#qjan").value||"").replace(/[^0-9]/g,""),uid:me.sid,name:me.name,data:quizNewPhoto.data,mime:quizNewPhoto.mime})})).json();
         if(d&&d.ok){ quizNewPhoto=null; QUIZALL=null; renderQuiz(); return; }
         msg.textContent="失敗："+(d&&d.error||"不明"); saveBtn.disabled=false;
-      }catch(e){ msg.textContent="通信エラー"; saveBtn.disabled=false; }
+      }catch(e){ msg.textContent="通信エラー："+String(e).slice(0,80); saveBtn.disabled=false; }
     };
   }
   // 削除
@@ -3074,8 +3091,7 @@ function bindQuiz(){
       const ph=quizAnsPhoto[qid];
       btn.disabled=true; msg.textContent="保存中…";
       try{
-        const jan=(body.querySelector(`.qans-jan[data-q="${qid}"]`).value||"").replace(/[^0-9]/g,"");
-        const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo,jan:jan};
+        const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo};
         if(ph){ payload.data=ph.data; payload.mime=ph.mime; }
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)})).json();
         if(d&&d.ok){ delete quizAnsPhoto[qid]; QUIZALL=null; renderQuiz(); return; }
