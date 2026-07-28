@@ -453,7 +453,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 23:11</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 23:17</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2529,6 +2529,7 @@ function dailySectionHtml(uid){
     <span class="gpn">みんなの記録も見られます</span></div>
     <div class="dlygoals">🎯 今月の目標：見込利益 ${gIn("gmikomi","300000")}円　時間 ${gIn("ghours","100")}h　回訪 ${gIn("gvisits","100")}店　検索 ${gIn("gsearches","10000")}件
     ${editable?`<button class="gbtn dlyg-save" style="margin-left:8px;padding:6px 14px;font-size:12px">目標を保存</button>`:""}</div>
+    ${editable?`<div class="nhint" style="margin-bottom:6px">目標を入れるのは上の🎯欄だけ。下の表には<b>毎日の実際</b>を入力します（仕入金額・見込利益はせどプレ取り込みで自動）</div>`:""}
     ${editable?`<div class="dly-pastewrap"><button class="drmemo-edit" id="dlyPasteOpen">📋 せどプレのデータを入れて仕入金額・見込利益を自動入力</button>
       <div id="dlyPasteBox" style="display:none;margin-top:6px">
         <div class="nhint">せどプレの仕入れリストを行コピー（何日分まとめてもOK）→貼り付け、またはCSVを選択。仕入日ごとに自動で振り分けます（原価×個数＝仕入金額、粗利×個数＝見込利益）</div>
@@ -2540,9 +2541,9 @@ function dailySectionHtml(uid){
     <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="ntbl pltbl dlytbl"><thead><tr><th>日付</th>
     <th>仕入金額<div class="thsub">せどプレから自動</div></th>
     <th>見込利益<div class="thsub">せどプレから自動</div></th>
-    <th>時間<div class="thsub">目標 ${goal.ghours?yen(numv(goal.ghours))+"h":"未設定"}</div></th>
-    <th>回訪<div class="thsub">目標 ${goal.gvisits?yen(numv(goal.gvisits))+"店":"未設定"}</div></th>
-    <th>検索<div class="thsub">目標 ${goal.gsearches?yen(numv(goal.gsearches))+"件":"未設定"}</div></th></tr></thead><tbody>${body_}${total}</tbody></table></div>
+    <th>時間<div class="thsub">実際↓／目標 ${goal.ghours?yen(numv(goal.ghours))+"h":"未設定"}</div></th>
+    <th>回訪<div class="thsub">実際↓／目標 ${goal.gvisits?yen(numv(goal.gvisits))+"店":"未設定"}</div></th>
+    <th>検索<div class="thsub">実際↓／目標 ${goal.gsearches?yen(numv(goal.gsearches))+"件":"未設定"}</div></th></tr></thead><tbody>${body_}${total}</tbody></table></div>
     ${editable?`<button class="gbtn" id="dlySave" style="margin-top:8px">デイリーを保存</button><span class="gmsg" id="dlyMsg"></span>`:""}
   </div>`;
 }
