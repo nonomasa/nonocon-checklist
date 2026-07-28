@@ -454,7 +454,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 23:21</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 23:29</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2499,20 +2499,24 @@ function dailySectionHtml(uid){
   let body_="";
   let jC=0,jM=0,jH=0,jV=0,jS=0; // 旬ごとの小計
   const junName=d=>d<=10?"上旬":(d<=20?"中旬":"下旬");
+  const junIdx=d=>d<=10?1:(d<=20?2:3);
+  const curJun=(numsMonth===ymNow())?junIdx(new Date().getDate()):0; // 今月なら現在の旬だけ開く
   for(let d=1;d<=dim;d++){
     const ds=Y+"-"+pad(MO)+"-"+pad(d);
     const r=byDate[ds]||{};
     jC+=r.cost||0; jM+=r.mikomi||0; jH+=r.hours||0; jV+=r.visits||0; jS+=r.searches||0;
     const wd=new Date(Y,MO-1,d).getDay();
     const wdCol=wd===0?"color:#dc2626":(wd===6?"color:#2563eb":"");
+    const jn=junIdx(d);
+    const hide=jn!==curJun?' class="djhide" style="display:none"':'';
     const cell=(k,w)=>editable
       ? `<td class="pl-n"><input class="ginput dly" data-date="${ds}" data-k="${k}" inputmode="numeric" style="width:${w}px;text-align:right;padding:4px 6px" value="${r[k]||""}"></td>`
       : `<td class="pl-n">${r[k]?yen(r[k]):""}</td>`;
-    body_+=`<tr${ds===today?' style="background:#fff7ed"':''}><td style="white-space:nowrap;${wdCol}">${MO}/${d}（${WD[wd]}）</td>`+
+    body_+=`<tr data-jun="${jn}"${jn!==curJun?' style="display:none"':(ds===today?' style="background:#fff7ed"':'')}${ds===today&&jn===curJun?'':''}><td style="white-space:nowrap;${wdCol}">${MO}/${d}（${WD[wd]}）</td>`+
       cell("cost",90)+cell("mikomi",90)+cell("hours",55)+cell("visits",55)+cell("searches",70)+`</tr>`;
-    // 旬の区切り（10日・20日・月末）で小計行を挟む
+    // 旬の区切り（10日・20日・月末）で小計行を挟む（クリックで開閉）
     if(d===10||d===20||d===dim){
-      body_+=`<tr class="djun"><td>▶ ${junName(d)}計</td><td class="pl-n">${jC?yen(jC)+"円":""}</td><td class="pl-n">${jM?yen(jM)+"円":""}</td><td class="pl-n">${jH||""}</td><td class="pl-n">${jV||""}</td><td class="pl-n">${jS?yen(jS):""}</td></tr>`;
+      body_+=`<tr class="djun" data-juntgl="${jn}" style="cursor:pointer" title="クリックで${junName(d)}の日次を開閉"><td><span class="djarrow">${jn===curJun?"▼":"▶"}</span> ${junName(d)}計</td><td class="pl-n">${jC?yen(jC)+"円":""}</td><td class="pl-n">${jM?yen(jM)+"円":""}</td><td class="pl-n">${jH||""}</td><td class="pl-n">${jV||""}</td><td class="pl-n">${jS?yen(jS):""}</td></tr>`;
       jC=0;jM=0;jH=0;jV=0;jS=0;
     }
   }
@@ -2603,6 +2607,15 @@ function bindDaily(){
     };
     inp.click();
   };
+  document.querySelectorAll(".djun[data-juntgl]").forEach(tr=>{
+    tr.onclick=()=>{
+      const jn=tr.dataset.juntgl;
+      const rows=document.querySelectorAll(`.dlytbl tr[data-jun="${jn}"]`);
+      const open=rows.length&&rows[0].style.display==="none";
+      rows.forEach(r=>{ r.style.display=open?"":"none"; });
+      const a=tr.querySelector(".djarrow"); if(a) a.textContent=open?"▼":"▶";
+    };
+  });
   const ft=document.getElementById("dlygFromTrend");
   if(ft) ft.onclick=()=>{
     const meta=((NUMSALL&&NUMSALL.metas)||[]).find(m=>String(m.uid)===String(me.sid)&&m.ym===numsMonth)||{};
@@ -2681,11 +2694,13 @@ async function renderNums(){
       <div><label class="glbl">その他経費（円）</label><input class="ginput" id="n_expense" inputmode="numeric" value="${(numsDraft&&numsDraft.expense!==undefined)?V("expense"):(meta.expense?V("expense"):"5390")}">
       <div class="nhint">未入力時は大口登録料5,390円のみ自動計上。正確にするならプライスター「売上分析」のその他経費の額を転記（FBA保管料・配送料金込み）</div></div>
     </div>
-    <div class="nrow3" style="margin-top:10px">
+    ${(()=>{const hasRev=!!(V("gsales2")||V("gprofit2"));return `
+    <button class="drmemo-edit" id="revToggle" style="margin-top:10px">${hasRev?"▼":"▶"} 修正目標（旬の途中で立て直す時だけ）</button>
+    <div class="nrow3" id="revBox" style="margin-top:10px;${hasRev?"":"display:none"}">
       <div><label class="glbl">修正目標月商（円・任意）</label><input class="ginput" id="n_gsales2" inputmode="numeric" placeholder="旬の途中で見直したら入力" value="${V("gsales2")}"></div>
       <div><label class="glbl">修正目標粗利（円・任意）</label><input class="ginput" id="n_gprofit2" inputmode="numeric" placeholder="当初目標は残ります" value="${V("gprofit2")}"></div>
       <div><div class="nhint" style="margin-top:22px">上旬・中旬で数字がズレた時の立て直し用。入力すると進捗率は修正目標ベースになり、当初目標も並記されます</div></div>
-    </div></div>`;
+    </div>`;})()}</div>`;
 
   html+=`<div id="dailyWrap">${dailySectionHtml(dailyWho||me.sid)}</div>`;
 
@@ -2764,6 +2779,8 @@ async function renderNums(){
   body.querySelectorAll(".tdadd").forEach(b=>{
     b.onclick=()=>{ b.insertAdjacentHTML("beforebegin",tdRowHtml()); bindTdRow(b.previousElementSibling); };
   });
+  const rt=document.getElementById("revToggle");
+  if(rt) rt.onclick=()=>{ const b=document.getElementById("revBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; rt.textContent=(open?"▼":"▶")+" 修正目標（旬の途中で立て直す時だけ）"; };
   const tw=document.getElementById("trendWho");
   if(tw) tw.onchange=()=>{ trendWho=tw.value; document.getElementById("trendBox").innerHTML=trendTableHtml(trendWho); bindTrendGoals(); };
   bindTrendGoals();
