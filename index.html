@@ -267,6 +267,7 @@
   .dlytbl thead th{position:sticky;top:0;background:#eef1f5;z-index:2;box-shadow:0 1px 0 var(--line)}
   .thsub{font-size:10px;color:#8a93a3;font-weight:400;white-space:nowrap}
   .djun td{background:#eef3fb;font-weight:700;color:#2f4a76;border-top:2px solid #c9d6ea}
+  .dlypace{font-size:12px;color:#5a6472;background:#f7f9fc;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.9}
   .dly-pastewrap{margin-bottom:8px}
   .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:nowrap}
   .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0e9f6e;color:#fff;font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:0;transition:all .3s;z-index:99999;pointer-events:none}
@@ -453,7 +454,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 23:17</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-28 23:21</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2491,16 +2492,16 @@ function dailySectionHtml(uid){
   const rows=((DAILYALL&&DAILYALL.rows)||[]).filter(r=>String(r.uid)===String(uid)&&r.date.indexOf(Y+"-"+pad(MO))===0);
   const byDate={}; rows.forEach(r=>{byDate[r.date]=r;});
   const goal=((DAILYALL&&DAILYALL.goals)||[]).find(g=>String(g.uid)===String(uid)&&g.ym===numsMonth)||{};
+  let tC=0,tM=0,tH=0,tV=0,tS=0;
+  rows.forEach(r=>{ tC+=r.cost||0; tM+=r.mikomi||0; tH+=r.hours||0; tV+=r.visits||0; tS+=r.searches||0; });
   const WD=["日","月","火","水","木","金","土"];
   const today=todayStr();
   let body_="";
-  let tC=0,tM=0,tH=0,tV=0,tS=0;
   let jC=0,jM=0,jH=0,jV=0,jS=0; // 旬ごとの小計
   const junName=d=>d<=10?"上旬":(d<=20?"中旬":"下旬");
   for(let d=1;d<=dim;d++){
     const ds=Y+"-"+pad(MO)+"-"+pad(d);
     const r=byDate[ds]||{};
-    tC+=r.cost||0; tM+=r.mikomi||0; tH+=r.hours||0; tV+=r.visits||0; tS+=r.searches||0;
     jC+=r.cost||0; jM+=r.mikomi||0; jH+=r.hours||0; jV+=r.visits||0; jS+=r.searches||0;
     const wd=new Date(Y,MO-1,d).getDay();
     const wdCol=wd===0?"color:#dc2626":(wd===6?"color:#2563eb":"");
@@ -2528,7 +2529,28 @@ function dailySectionHtml(uid){
     <select class="ginput" id="dailyWho" style="max-width:220px;font-size:13px;padding:6px 10px">${ROSTER.map(x=>`<option value="${x.sid}"${String(x.sid)===String(uid)?" selected":""}>${escH(x.name)}</option>`).join("")}</select>
     <span class="gpn">みんなの記録も見られます</span></div>
     <div class="dlygoals">🎯 今月の目標：見込利益 ${gIn("gmikomi","300000")}円　時間 ${gIn("ghours","100")}h　回訪 ${gIn("gvisits","100")}店　検索 ${gIn("gsearches","10000")}件
-    ${editable?`<button class="gbtn dlyg-save" style="margin-left:8px;padding:6px 14px;font-size:12px">目標を保存</button>`:""}</div>
+    ${editable?`<button class="gbtn dlyg-save" style="margin-left:8px;padding:6px 14px;font-size:12px">目標を保存</button>
+    <button class="gbtn" id="dlygFromTrend" style="padding:6px 14px;font-size:12px;background:#6b7686" title="月次推移で立てた目標粗利をここに入れる">月次推移から反映</button>`:""}</div>
+    ${(()=>{  // 日割りペースと着地予測
+      const passedDays=(numsMonth===ymNow())?new Date().getDate():dim;
+      const lines=[];
+      const pace=(label,goalV,actV,unit)=>{
+        const g=numv(goalV); if(!g) return;
+        const perDay=g/dim;
+        let t=`${label}：1日あたり ${unit==="円"?yen(Math.round(perDay))+"円":(Math.round(perDay*10)/10)+unit}`;
+        if(actV>0&&passedDays>0&&numsMonth===ymNow()){
+          const land=actV/passedDays*dim;
+          const okc=land>=g?"#0e9f6e":"#dc2626";
+          t+=`　→ 今のペースだと月末 <b style="color:${okc}">${unit==="円"?yen(Math.round(land))+"円":Math.round(land)+unit}</b>`;
+        }
+        lines.push(t);
+      };
+      pace("見込利益",goal.gmikomi,tM,"円");
+      pace("時間",goal.ghours,tH,"h");
+      pace("回訪",goal.gvisits,tV,"店");
+      pace("検索",goal.gsearches,tS,"件");
+      return lines.length?`<div class="dlypace">${lines.join("　｜　")}</div>`:"";
+    })()}
     ${editable?`<div class="nhint" style="margin-bottom:6px">目標を入れるのは上の🎯欄だけ。下の表には<b>毎日の実際</b>を入力します（仕入金額・見込利益はせどプレ取り込みで自動）</div>`:""}
     ${editable?`<div class="dly-pastewrap"><button class="drmemo-edit" id="dlyPasteOpen">📋 せどプレのデータを入れて仕入金額・見込利益を自動入力</button>
       <div id="dlyPasteBox" style="display:none;margin-top:6px">
@@ -2580,6 +2602,13 @@ function bindDaily(){
       }catch(e){ alert(String(e)); }
     };
     inp.click();
+  };
+  const ft=document.getElementById("dlygFromTrend");
+  if(ft) ft.onclick=()=>{
+    const meta=((NUMSALL&&NUMSALL.metas)||[]).find(m=>String(m.uid)===String(me.sid)&&m.ym===numsMonth)||{};
+    const v=(meta.gprofit2||meta.gprofit||"").toString().replace(/[^0-9]/g,"");
+    if(!v){ alert("月次推移（または①今月の目標）に目標粗利がまだ入っていません"); return; }
+    const i=document.querySelector('.dlyg[data-k="gmikomi"]'); if(i){ i.value=v; showToast("目標粗利 "+yen(+v)+"円 を反映（保存を忘れずに）"); }
   };
   const gs=document.querySelector(".dlyg-save");
   if(gs) gs.onclick=async()=>{
