@@ -271,6 +271,7 @@
   .dlytbl tr.ntotal td:first-child{background:#f2f4f7}
   .thsub{font-size:10px;color:#8a93a3;font-weight:400;white-space:nowrap}
   .djun td{background:#eef3fb;font-weight:700;color:#2f4a76;border-top:2px solid #c9d6ea}
+  .whobar{display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap;font-size:16px}
   .lgf{margin-bottom:8px}
   .lg-view{font-size:13.5px;line-height:1.7;white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
   .dlypace{font-size:12px;color:#5a6472;background:#f7f9fc;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.9}
@@ -466,7 +467,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-29 19:31</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-29 20:22</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2588,9 +2589,8 @@ function dailySectionHtml(uid){
   const gIn=(k,ph)=>editable
     ? `<input class="ginput dlyg" data-k="${k}" inputmode="numeric" style="width:90px;text-align:right;padding:5px 8px" placeholder="${ph}" value="${goal[k]||""}">`
     : `<b>${goal[k]?yen(numv(goal[k])):"—"}</b>`;
-  return `<div class="gpanel"><div class="gph" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📅 デイリー行動記録
-    <select class="ginput" id="dailyWho" style="max-width:220px;font-size:13px;padding:6px 10px">${(()=>{const L=ROSTER.map(x=>[String(x.sid),x.name]); if(!L.some(x=>x[0]===String(uid))) L.unshift([String(uid),(uid===String(me.sid))?me.name:uid]); if(me&&!L.some(x=>x[0]===String(me.sid))) L.unshift([String(me.sid),me.name]); return L.map(x=>`<option value="${x[0]}"${x[0]===String(uid)?" selected":""}>${escH(x[1])}</option>`).join("");})()}</select>
-    <span class="gpn">みんなの記録も見られます</span></div>
+  const dNm=(ROSTER.find(x=>String(x.sid)===String(uid))||{}).name||"";
+  return `<div class="gpanel"><div class="gph">📅 デイリー行動記録${editable?"":` <span class="gpn">（${escH(dNm)}さん）</span>`}</div>
     <div class="dlygoals">🎯 今月の目標：見込利益 ${gIn("gmikomi","300000")}円　時間 ${gIn("ghours","100")}h　回訪 ${gIn("gvisits","100")}店　検索 ${gIn("gsearches","10000")}件
     ${editable?`<button class="gbtn dlyg-save" style="margin-left:8px;padding:6px 14px;font-size:12px">目標を保存</button>
     <button class="gbtn" id="dlygFromTrend" style="padding:6px 14px;font-size:12px;background:#6b7686" title="月次推移で立てた目標粗利をここに入れる">月次推移から反映</button>`:""}</div>
@@ -2634,7 +2634,7 @@ function dailySectionHtml(uid){
 }
 function bindDaily(){
   const sel=document.getElementById("dailyWho");
-  if(sel) sel.onchange=()=>{ numsWho=sel.value; trendWho=sel.value; dailyWho=sel.value; renderNums(); };
+  if(sel) sel.onchange=()=>{ numsWho=sel.value; renderNums(); };
   const po=document.getElementById("dlyPasteOpen");
   if(po) po.onclick=()=>{ const b=document.getElementById("dlyPasteBox"); b.style.display=b.style.display==="none"?"":"none"; };
   const applyDailyItems=items=>{
@@ -2738,16 +2738,21 @@ async function renderNums(){
   const nm=numsFor(me.sid,numsMonth);
   const viewUid=String(numsWho||me.sid);
   const selfView=viewUid===String(me.sid);
-  const viewName=(ROSTER.find(x=>String(x.sid)===viewUid)||{name:me.name}).name;
+  const viewName=(()=>{ if(selfView) return me.name;
+    const r=ROSTER.find(x=>String(x.sid)===viewUid); if(r) return r.name;
+    const d=(NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).find(x=>String(x.uid)===viewUid);
+    return d?d.name:viewUid; })();
   const V=k=>escH((numsDraft&&numsDraft[k]!==undefined)?numsDraft[k]:(meta[k]||""));
   let html=`<div class="nbar"><button class="nnav" id="nprev0">◀</button><span class="nmonth">${numsMonth}</span><button class="nnav" id="nnext0">▶</button></div>`;
 
+  // メンバー選択（ここで選ぶとタブ全体がその人の表示に切り替わる）
+  const whoUids=(()=>{const set=new Map(); if(me)set.set(String(me.sid),me.name+"（自分）"); ROSTER.forEach(x=>{if(!set.has(String(x.sid)))set.set(String(x.sid),x.name);}); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); return [...set.entries()];})();
+  html+=`<div class="whobar">👤 <select class="ginput" id="numsWhoSel" style="max-width:240px;font-size:14px;padding:8px 12px;font-weight:700">${whoUids.map(([u,n])=>`<option value="${u}"${String(u)===viewUid?" selected":""}>${escH(n)}</option>`).join("")}</select>
+    <span class="gpn">${selfView?"みんなの目的・目標・記録も見られます":`${escH(viewName)}さんの表示中（入力は自分を選んだ時だけ）`}</span></div>`;
+
   // 月次推移（北野シート型）。誰の分でも見られる
-  const trendUids=(()=>{const set=new Map(); ROSTER.forEach(x=>set.set(String(x.sid),x.name)); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); if(me&&!set.has(String(me.sid)))set.set(String(me.sid),me.name); return [...set.entries()];})();
   html+=lifeGoalHtml(viewUid);
-  html+=`<div class="gpanel"><div class="gph" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📈 月次推移
-    <select class="ginput" id="trendWho" style="max-width:220px;font-size:13px;padding:6px 10px">${trendUids.map(([u,n])=>`<option value="${u}"${String(u)===viewUid?" selected":""}>${escH(n)}</option>`).join("")}</select>
-    <span class="gpn">みんなの推移も見られます</span></div>
+  html+=`<div class="gpanel"><div class="gph">📈 月次推移${selfView?"":` <span class="gpn">（${escH(viewName)}さん）</span>`}</div>
     <div id="trendBox">${trendTableHtml(viewUid)}</div></div>`;
 
   if(!selfView){
@@ -2866,7 +2871,9 @@ async function renderNums(){
     showToast(n+"ヶ月分の目標月利を計算しました（まとめて保存を忘れずに）");
   };
   const tw=document.getElementById("trendWho");
-  if(tw) tw.onchange=()=>{ numsWho=tw.value; trendWho=tw.value; dailyWho=tw.value; renderNums(); };
+  if(tw) tw.onchange=()=>{ numsWho=tw.value; renderNums(); };
+  const ws=document.getElementById("numsWhoSel");
+  if(ws) ws.onchange=()=>{ numsWho=ws.value; renderNums(); };
   bindTrendGoals();
   bindLifeGoal();
   bindDaily();
