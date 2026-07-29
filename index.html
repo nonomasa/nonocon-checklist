@@ -466,7 +466,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-29 19:23</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-29 19:31</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1263,6 +1263,7 @@ let NUMSALL=null;          // {nums:[], metas:[]}
 let trendWho=null;          // 月次推移で表示中のメンバー
 let DAILYALL=null;          // {rows:[], goals:[]}
 let dailyWho=null;          // デイリーで表示中のメンバー
+let numsWho=null;           // 数字報告タブ全体で表示中のメンバー（1人選ぶと全部切り替わる）
 let numsMonth=null;        // 表示中の年月 "2026年7月"
 let numsParsed=null;       // CSV解析結果 {上旬:{sales,profit,cnt},...}
 let numsDraft=null;        // 未保存の入力値（再描画で消えないように保持）
@@ -2588,7 +2589,7 @@ function dailySectionHtml(uid){
     ? `<input class="ginput dlyg" data-k="${k}" inputmode="numeric" style="width:90px;text-align:right;padding:5px 8px" placeholder="${ph}" value="${goal[k]||""}">`
     : `<b>${goal[k]?yen(numv(goal[k])):"—"}</b>`;
   return `<div class="gpanel"><div class="gph" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📅 デイリー行動記録
-    <select class="ginput" id="dailyWho" style="max-width:220px;font-size:13px;padding:6px 10px">${ROSTER.map(x=>`<option value="${x.sid}"${String(x.sid)===String(uid)?" selected":""}>${escH(x.name)}</option>`).join("")}</select>
+    <select class="ginput" id="dailyWho" style="max-width:220px;font-size:13px;padding:6px 10px">${(()=>{const L=ROSTER.map(x=>[String(x.sid),x.name]); if(!L.some(x=>x[0]===String(uid))) L.unshift([String(uid),(uid===String(me.sid))?me.name:uid]); if(me&&!L.some(x=>x[0]===String(me.sid))) L.unshift([String(me.sid),me.name]); return L.map(x=>`<option value="${x[0]}"${x[0]===String(uid)?" selected":""}>${escH(x[1])}</option>`).join("");})()}</select>
     <span class="gpn">みんなの記録も見られます</span></div>
     <div class="dlygoals">🎯 今月の目標：見込利益 ${gIn("gmikomi","300000")}円　時間 ${gIn("ghours","100")}h　回訪 ${gIn("gvisits","100")}店　検索 ${gIn("gsearches","10000")}件
     ${editable?`<button class="gbtn dlyg-save" style="margin-left:8px;padding:6px 14px;font-size:12px">目標を保存</button>
@@ -2633,7 +2634,7 @@ function dailySectionHtml(uid){
 }
 function bindDaily(){
   const sel=document.getElementById("dailyWho");
-  if(sel) sel.onchange=()=>{ dailyWho=sel.value; const w=document.getElementById("dailyWrap"); if(w){ w.innerHTML=dailySectionHtml(dailyWho); bindDaily(); } };
+  if(sel) sel.onchange=()=>{ numsWho=sel.value; trendWho=sel.value; dailyWho=sel.value; renderNums(); };
   const po=document.getElementById("dlyPasteOpen");
   if(po) po.onclick=()=>{ const b=document.getElementById("dlyPasteBox"); b.style.display=b.style.display==="none"?"":"none"; };
   const applyDailyItems=items=>{
@@ -2735,18 +2736,28 @@ async function renderNums(){
   }
   const meta=metaFor(me.sid,numsMonth)||{};
   const nm=numsFor(me.sid,numsMonth);
+  const viewUid=String(numsWho||me.sid);
+  const selfView=viewUid===String(me.sid);
+  const viewName=(ROSTER.find(x=>String(x.sid)===viewUid)||{name:me.name}).name;
   const V=k=>escH((numsDraft&&numsDraft[k]!==undefined)?numsDraft[k]:(meta[k]||""));
   let html=`<div class="nbar"><button class="nnav" id="nprev0">◀</button><span class="nmonth">${numsMonth}</span><button class="nnav" id="nnext0">▶</button></div>`;
 
   // 月次推移（北野シート型）。誰の分でも見られる
   const trendUids=(()=>{const set=new Map(); ROSTER.forEach(x=>set.set(String(x.sid),x.name)); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); if(me&&!set.has(String(me.sid)))set.set(String(me.sid),me.name); return [...set.entries()];})();
-  html+=lifeGoalHtml(trendWho||me.sid);
+  html+=lifeGoalHtml(viewUid);
   html+=`<div class="gpanel"><div class="gph" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📈 月次推移
-    <select class="ginput" id="trendWho" style="max-width:220px;font-size:13px;padding:6px 10px">${trendUids.map(([u,n])=>`<option value="${u}"${String(u)===String(trendWho||me.sid)?" selected":""}>${escH(n)}</option>`).join("")}</select>
+    <select class="ginput" id="trendWho" style="max-width:220px;font-size:13px;padding:6px 10px">${trendUids.map(([u,n])=>`<option value="${u}"${String(u)===viewUid?" selected":""}>${escH(n)}</option>`).join("")}</select>
     <span class="gpn">みんなの推移も見られます</span></div>
-    <div id="trendBox">${trendTableHtml(trendWho||me.sid)}</div></div>`;
+    <div id="trendBox">${trendTableHtml(viewUid)}</div></div>`;
 
-  html+=`<div class="gpanel"><div class="gph">① 今月の目標</div>
+  if(!selfView){
+    const mv=metaFor(viewUid,numsMonth)||{};
+    const nv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+    html+=`<div class="gpanel"><div class="gph">① 今月の目標 <span class="gpn">（${escH(viewName)}さん・閲覧のみ）</span></div>
+      <div style="font-size:14px">目標月商 <b>${nv(mv.gsales)?yen(nv(mv.gsales))+"円":"未設定"}</b>　目標粗利 <b>${nv(mv.gprofit)?yen(nv(mv.gprofit))+"円":"未設定"}</b>
+      ${(nv(mv.gsales2)||nv(mv.gprofit2))?`<div class="gpn" style="margin-top:4px">修正目標：月商 ${nv(mv.gsales2)?yen(nv(mv.gsales2))+"円":"—"}／粗利 ${nv(mv.gprofit2)?yen(nv(mv.gprofit2))+"円":"—"}</div>`:""}</div></div>`;
+  }
+  if(selfView) html+=`<div class="gpanel"><div class="gph">① 今月の目標</div>
     <div class="nrow3">
       <div><label class="glbl">目標月商（円）</label><input class="ginput" id="n_gsales" inputmode="numeric" placeholder="5000000" value="${V("gsales")}"></div>
       <div><label class="glbl">目標粗利（円）</label><input class="ginput" id="n_gprofit" inputmode="numeric" placeholder="1000000" value="${V("gprofit")}"></div>
@@ -2761,7 +2772,7 @@ async function renderNums(){
       <div><div class="nhint" style="margin-top:22px">上旬・中旬で数字がズレた時の立て直し用。入力すると進捗率は修正目標ベースになり、当初目標も並記されます</div></div>
     </div>`;})()}</div>`;
 
-  html+=`<div id="dailyWrap">${dailySectionHtml(dailyWho||me.sid)}</div>`;
+  html+=`<div id="dailyWrap">${dailySectionHtml(viewUid)}</div>`;
 
   const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
   const gS1=numv(meta.gsales), gP1=numv(meta.gprofit);
@@ -2780,7 +2791,8 @@ async function renderNums(){
   };
   const tots=JUNS.filter(j=>junDone(numsMonth,j)).reduce((a,j)=>{const x=srcOf(j);if(x){a.s+=x.sales;a.p+=x.profit;a.c+=x.cnt;a.any=true;}return a;},{s:0,p:0,c:0,any:false});
   const totalRow=tots.any?`<tr class="ntotal"><td>合計</td><td>${yen(tots.s)}円</td>${pctTd(tots.s,gS0)}<td>${yen(tots.p)}円</td>${pctTd(tots.p,gP0)}<td>${yen(tots.c)}個</td></tr>`:"";
-  html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
+  if(!selfView) html+=`<div class="gpanel"><div class="gpn">CSV取り込みや振り返りの入力エリアは、自分を選択中のみ表示されます。${escH(viewName)}さんの報告の中身は下の「みんなの報告」で開けます</div></div>`;
+  if(selfView) html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
     <div class="ncsvrow"><button class="gbtn" id="ncsvBtn">CSVを選ぶ</button><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
     <table class="ntbl"><thead><tr><th></th><th>売上</th><th>累計進捗率</th><th>粗利</th><th>累計進捗率</th><th>個数</th></tr></thead><tbody>
       ${JUNS.map(junRow).join("")}${totalRow}
@@ -2802,7 +2814,7 @@ async function renderNums(){
       <label class="glbl">良かったこと</label><textarea class="ginput" id="${gi}" rows="2">${V(gi.slice(2))}</textarea>
       <label class="glbl">反省点</label><textarea class="ginput" id="${bi}" rows="2">${V(bi.slice(2))}</textarea>
     </div>`;
-  html+=`<div class="gpanel"><div class="gph">③ 行動目標・振り返り <span class="gpn">（書いた分だけ報告に載ります）</span></div>
+  if(selfView) html+=`<div class="gpanel"><div class="gph">③ 行動目標・振り返り <span class="gpn">（書いた分だけ報告に載ります）</span></div>
     <div class="ncard nmonth-card">
       <div class="ncardh">月全体</div>
       <label class="glbl">todo <span class="gpn">達成したら☑・コメントに達成メモや未達の理由</span></label>
@@ -2854,14 +2866,15 @@ async function renderNums(){
     showToast(n+"ヶ月分の目標月利を計算しました（まとめて保存を忘れずに）");
   };
   const tw=document.getElementById("trendWho");
-  if(tw) tw.onchange=()=>{ trendWho=tw.value; document.getElementById("trendBox").innerHTML=trendTableHtml(trendWho); bindTrendGoals(); const lw=document.getElementById("lgWrap"); if(lw){ lw.outerHTML=lifeGoalHtml(trendWho); bindLifeGoal(); } };
+  if(tw) tw.onchange=()=>{ numsWho=tw.value; trendWho=tw.value; dailyWho=tw.value; renderNums(); };
   bindTrendGoals();
   bindLifeGoal();
   bindDaily();
   document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;numsDraft=null;renderNums();};
   document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;numsDraft=null;renderNums();};
 
-  document.getElementById("ncsvBtn").onclick=()=>{
+  const ncsvB=document.getElementById("ncsvBtn");
+  if(ncsvB) ncsvB.onclick=()=>{
     const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
     inp.onchange=async()=>{
       const f=inp.files[0]; if(!f) return;
@@ -2915,7 +2928,8 @@ async function renderNums(){
   const saveBtn=document.getElementById("nnumSave");
   if(saveBtn) saveBtn.onclick=()=>saveAll(saveBtn,document.getElementById("ncsvMsg"));
 
-  document.getElementById("nzaikoBtn").onclick=()=>{
+  const nzB=document.getElementById("nzaikoBtn");
+  if(nzB) nzB.onclick=()=>{
     const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv"; inp.multiple=true;
     inp.onchange=async()=>{
       const files=[...inp.files]; if(!files.length) return;
@@ -2936,7 +2950,7 @@ async function renderNums(){
     inp.click();
   };
   const metaBtn=document.getElementById("nmetaSave");
-  metaBtn.onclick=()=>saveAll(metaBtn,document.getElementById("nmetaMsg"));
+  if(metaBtn) metaBtn.onclick=()=>saveAll(metaBtn,document.getElementById("nmetaMsg"));
 
   body.querySelectorAll(".nmemh").forEach(h=>{
     h.onclick=()=>{
