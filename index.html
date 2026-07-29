@@ -466,7 +466,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-29 16:43</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-29 19:23</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2502,7 +2502,11 @@ function trendTableHtml(uid){
       gpCell+`<td class="pl-n">${aP?yen(aP)+"円":""}</td><td class="pl-n"${pctCls(pPct)}>${pPct!=null?pPct.toFixed(0)+"%":""}</td>`+
       `<td class="pl-n">${rate!=null?rate.toFixed(0)+"%":""}</td></tr>`;
   });
-  return `<div class="ttrend-wrap"><table class="ntbl pltbl ttrend"><thead><tr><th>月</th><th>目標月商</th><th>実績月商</th><th>進捗率</th><th>目標月利</th><th>実績月利</th><th>月利達成</th><th>利益率</th></tr></thead><tbody>${rows}</tbody></table></div>
+  const rateCtl=editable?`<div class="dlygoals" style="margin-bottom:6px">目標月利を月商の
+    <input class="ginput" id="tgRate" inputmode="numeric" style="width:60px;text-align:right;padding:5px 8px" value="${localStorage.getItem("nonocon_gprate")||""}" placeholder="15">％で
+    <button class="gbtn" id="tgRateGo" style="padding:6px 14px;font-size:12px">自動計算</button>
+    <span class="gpn">全ての月の目標月利＝目標月商×％で入ります（あとから個別に手直しOK）</span></div>`:"";
+  return `${rateCtl}<div class="ttrend-wrap"><table class="ntbl pltbl ttrend"><thead><tr><th>月</th><th>目標月商</th><th>実績月商</th><th>進捗率</th><th>目標月利</th><th>実績月利</th><th>月利達成</th><th>利益率</th></tr></thead><tbody>${rows}</tbody></table></div>
   ${editable?`<button class="gbtn" id="tgoalSave" style="margin-top:8px">目標をまとめて保存</button><span class="gmsg" id="tgoalMsg"></span>`:""}
   <div class="nhint">${editable?"今日以降の月は目標月商・目標月利を直接入力できます（卒業目標月まで表示）。":""}実績は旬ごとの報告の合計で自動計算。修正目標を入れた月はそちらが優先表示されます。</div>`;
 }
@@ -2836,6 +2840,19 @@ async function renderNums(){
   });
   const rt=document.getElementById("revToggle");
   if(rt) rt.onclick=()=>{ const b=document.getElementById("revBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; rt.textContent=(open?"▼":"▶")+" 修正目標（旬の途中で立て直す時だけ）"; };
+  const rg=document.getElementById("tgRateGo");
+  if(rg) rg.onclick=()=>{
+    const rate=parseFloat(document.getElementById("tgRate").value);
+    if(!rate||rate<=0||rate>=100){ alert("％を入力してください（例：15）"); return; }
+    localStorage.setItem("nonocon_gprate",String(rate));
+    let n=0;
+    document.querySelectorAll('#trendBox .tgoal[data-k="gsales"]').forEach(i=>{
+      const gs=parseFloat(i.value.replace(/,/g,""));
+      const gp=document.querySelector(`.tgoal[data-ym="${i.dataset.ym}"][data-k="gprofit"]`);
+      if(gs&&gp){ gp.value=Math.round(gs*rate/100); n++; }
+    });
+    showToast(n+"ヶ月分の目標月利を計算しました（まとめて保存を忘れずに）");
+  };
   const tw=document.getElementById("trendWho");
   if(tw) tw.onchange=()=>{ trendWho=tw.value; document.getElementById("trendBox").innerHTML=trendTableHtml(trendWho); bindTrendGoals(); const lw=document.getElementById("lgWrap"); if(lw){ lw.outerHTML=lifeGoalHtml(trendWho); bindLifeGoal(); } };
   bindTrendGoals();
