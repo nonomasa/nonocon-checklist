@@ -271,6 +271,8 @@
   .dlytbl tr.ntotal td:first-child{background:#f2f4f7}
   .thsub{font-size:10px;color:#8a93a3;font-weight:400;white-space:nowrap}
   .djun td{background:#eef3fb;font-weight:700;color:#2f4a76;border-top:2px solid #c9d6ea}
+  .lgf{margin-bottom:8px}
+  .lg-view{font-size:13.5px;line-height:1.7;white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
   .dlypace{font-size:12px;color:#5a6472;background:#f7f9fc;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.9}
   .dly-pastewrap{margin-bottom:8px}
   .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:normal;max-width:300px;line-height:1.6}
@@ -464,7 +466,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-29 16:31</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-29 16:43</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -510,6 +512,7 @@ const DATA = [
   ]},
   { ch:"マインド", groups:[
     { g:"心構え", items:[
+      {id:"mind-life-goal", l:1, hot:1, t:"人生の目標ワーク（10の問い）に取り組む", n:"数字報告タブの🧭欄の「考え方の10の問い」を考えて、人生の目標・せどりの目的・必要額を書き出す"},
       {id:"mind-kirihiraku", l:1, hot:1, t:"自分で切り拓く、努力をすることを意識する", n:"大阪桐蔭に入っただけでは甲子園には行けない、プロ野球選手にはなれない。圧倒的な努力が必要"},
       {id:"mind-jikan", l:1, hot:1, t:"時間を投下する", n:"月に30時間（1日1時間）、50時間（1日2時間以下）の練習じゃ甲子園は行けないよね？子供より時間取らなくてどうするの？"},
       {id:"mind-ippatsu", l:1, t:"一発逆転はほぼないことを理解する", n:"人生も副業も一発逆転はほぼない。コツコツ積み上げたものが高確率で勝つ。宝くじのようなラッキーを狙わない"},
@@ -2411,6 +2414,40 @@ function captureNumsDraft(){
   TODO_SECS.forEach(x=>{ const v=collectTodos(x[0]); if(v!==null) numsDraft[x[0]]=JSON.stringify(v); });
 }
 
+/* 目的パネル（人生の目標・せどりの目的・必要額）。数字の「なぜ」を数字の真上に置く */
+const LIFE_Q10=["①人生の目標（人生をどう生きたいのか？何をしたい人生なのか？）","②せどり・刈り取りをする目的（①の中で何のためにせどりをやるのか？人生の目標とどう絡むのか）","③なんでせどり・刈り取りなのか？代替手段はないのか？転売である必要性は？社会貢献できるものでも良いのでは？","④自分のライスワーク・ライフワーク・ライクワークは何か？","⑤人生でやりたいことは何か（やりたいことリスト）","⑥⑤をやるにはいくら必要か（貯金額と月の収入）。いつまでにいくら貯めればいいのか","⑦1000億円持っていたら（お金の心配が一切ないなら）どんな人生を歩むか？","⑧人生で絶対にやりたくないことは何か？それを避ける方法は？","⑨今の20代・30代・40代でしかできないことは何か？今のうちに済ませておきたいことは？","⑩1年後に死ぬと分かったら、残された1年で何をやるのか？"];
+function lifeGoalHtml(uid){
+  const editable=String(uid)===String(me.sid);
+  const lg=((NUMSALL&&NUMSALL.lifegoals)||[]).find(x=>String(x.uid)===String(uid))||{};
+  const fld=(k,label,ph)=>editable
+    ? `<div class="lgf"><label class="glbl">${label}</label><textarea class="ginput lg-in" data-k="${k}" rows="2" placeholder="${ph}">${escH(lg[k]||"")}</textarea></div>`
+    : `<div class="lgf"><label class="glbl">${label}</label><div class="lg-view">${lg[k]?escH(lg[k]):'<span class="gpn">未記入</span>'}</div></div>`;
+  return `<div class="gpanel" id="lgWrap"><div class="gph">🧭 目的（何のためのせどりか）</div>
+    ${fld("life","人生の目標","例：お金のことを気にすることなく大事な人たちと過ごす")}
+    ${fld("purpose","せどり・刈り取りをする目的","例：家族が増えてもお金に困らないよう、選択肢が狭まらないようにする")}
+    ${fld("need","必要な金額といつまで","例：2028年までに貯金1,000万・月収50万。だから卒業時に月利50万")}
+    ${editable?`<button class="gbtn" id="lgSave" style="margin-top:4px">目的を保存</button><span class="gmsg" id="lgMsg"></span>`:""}
+    <button class="drmemo-edit" id="lgQToggle" style="margin-top:8px">▶ 考え方の10の問い（書く前にこれを考える）</button>
+    <div id="lgQBox" style="display:none;margin-top:8px" class="nhint">${LIFE_Q10.map(q=>`<div style="margin-bottom:6px">${escH(q)}</div>`).join("")}
+    <div style="margin-top:8px;color:#3d4654">↑を考えた上で、エッセンスだけを上の3つの欄に書けばOK。ここの目的が、下の月次推移の目標数字の根拠になります。</div></div>
+  </div>`;
+}
+function bindLifeGoal(){
+  const t=document.getElementById("lgQToggle");
+  if(t) t.onclick=()=>{ const b=document.getElementById("lgQBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; t.textContent=(open?"▼":"▶")+" 考え方の10の問い（書く前にこれを考える）"; };
+  const sv=document.getElementById("lgSave");
+  if(sv) sv.onclick=async()=>{
+    const msg=document.getElementById("lgMsg");
+    const d={}; document.querySelectorAll(".lg-in").forEach(i=>{d[i.dataset.k]=i.value.trim();});
+    sv.disabled=true; msg.textContent="保存中…";
+    try{
+      const r=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({action:"lgsave",pass:PASS,uid:me.sid,name:me.name},d))})).json();
+      if(r&&r.ok){ NUMSALL=null; await renderNums(); showToast("✅ 目的を保存しました"); return; }
+      msg.textContent="失敗："+(r&&r.error||"不明");
+    }catch(e){ msg.textContent="通信エラー"; }
+    sv.disabled=false;
+  };
+}
 /* 北野シート型の月次推移（目標/実績/進捗率/月利/利益率）。全員分を誰でも閲覧可 */
 function ymSortKey(ym){const m=String(ym).match(/(\d{4})年(\d{1,2})月/);return m?(+m[1]*100+ +m[2]):0;}
 function trendTableHtml(uid){
@@ -2699,6 +2736,7 @@ async function renderNums(){
 
   // 月次推移（北野シート型）。誰の分でも見られる
   const trendUids=(()=>{const set=new Map(); ROSTER.forEach(x=>set.set(String(x.sid),x.name)); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); if(me&&!set.has(String(me.sid)))set.set(String(me.sid),me.name); return [...set.entries()];})();
+  html+=lifeGoalHtml(trendWho||me.sid);
   html+=`<div class="gpanel"><div class="gph" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📈 月次推移
     <select class="ginput" id="trendWho" style="max-width:220px;font-size:13px;padding:6px 10px">${trendUids.map(([u,n])=>`<option value="${u}"${String(u)===String(trendWho||me.sid)?" selected":""}>${escH(n)}</option>`).join("")}</select>
     <span class="gpn">みんなの推移も見られます</span></div>
@@ -2799,8 +2837,9 @@ async function renderNums(){
   const rt=document.getElementById("revToggle");
   if(rt) rt.onclick=()=>{ const b=document.getElementById("revBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; rt.textContent=(open?"▼":"▶")+" 修正目標（旬の途中で立て直す時だけ）"; };
   const tw=document.getElementById("trendWho");
-  if(tw) tw.onchange=()=>{ trendWho=tw.value; document.getElementById("trendBox").innerHTML=trendTableHtml(trendWho); bindTrendGoals(); };
+  if(tw) tw.onchange=()=>{ trendWho=tw.value; document.getElementById("trendBox").innerHTML=trendTableHtml(trendWho); bindTrendGoals(); const lw=document.getElementById("lgWrap"); if(lw){ lw.outerHTML=lifeGoalHtml(trendWho); bindLifeGoal(); } };
   bindTrendGoals();
+  bindLifeGoal();
   bindDaily();
   document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;numsDraft=null;renderNums();};
   document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;numsDraft=null;renderNums();};
