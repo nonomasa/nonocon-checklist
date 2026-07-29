@@ -464,7 +464,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-28 23:48</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-29 16:31</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2698,7 +2698,7 @@ async function renderNums(){
   let html=`<div class="nbar"><button class="nnav" id="nprev0">◀</button><span class="nmonth">${numsMonth}</span><button class="nnav" id="nnext0">▶</button></div>`;
 
   // 月次推移（北野シート型）。誰の分でも見られる
-  const trendUids=(()=>{const set=new Map(); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); return [...set.entries()];})();
+  const trendUids=(()=>{const set=new Map(); ROSTER.forEach(x=>set.set(String(x.sid),x.name)); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); if(me&&!set.has(String(me.sid)))set.set(String(me.sid),me.name); return [...set.entries()];})();
   html+=`<div class="gpanel"><div class="gph" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📈 月次推移
     <select class="ginput" id="trendWho" style="max-width:220px;font-size:13px;padding:6px 10px">${trendUids.map(([u,n])=>`<option value="${u}"${String(u)===String(trendWho||me.sid)?" selected":""}>${escH(n)}</option>`).join("")}</select>
     <span class="gpn">みんなの推移も見られます</span></div>
