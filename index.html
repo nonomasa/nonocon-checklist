@@ -467,7 +467,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-07-29 20:22</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-07-29 23:22</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1815,6 +1815,7 @@ function productListHtml(rid,shopKey){
   return `<div class="plbox">
     <table class="ntbl pltbl"><thead><tr><th>JAN / ASIN</th><th>個数</th><th>販売価格</th><th>仕入価格</th><th>見込利益</th><th>リンク</th></tr></thead>
     <tbody>${rowsHtml}${items.length?`<tr class="ntotal"><td>合計 ${items.length}点</td><td></td><td>${totPrice?yen(totPrice)+"円":""}</td><td>${totCost?yen(totCost)+"円":""}</td><td>${yen(totProfit)}円</td><td></td></tr>`:""}</tbody></table>
+    ${items.length?`<div style="margin-top:8px"><button class="gbtn pl-keepa-all" data-rid="${rid}" data-shop="${escH(shopKey)}" style="background:#2563eb">Keepaを一括で開く↗（${items.length}件）</button><span class="gpn" style="margin-left:8px">初回はブラウザの「ポップアップを許可」が必要です</span></div>`:""}
     ${canEditDokoId(rid)?`<div class="plbtns"><button class="gbtn pl-csv" data-rid="${rid}" data-shop="${escH(shopKey)}">せどプレCSVを取り込む</button>
     <button class="gbtn pl-paste-open" data-rid="${rid}" data-shop="${escH(shopKey)}" style="background:#6b7686">行を貼り付けて取り込む</button>
     ${items.length?`<button class="pl-clear" data-rid="${rid}" data-shop="${escH(shopKey)}">クリア</button>`:""}
@@ -2356,6 +2357,12 @@ function bindRouteBox(scope){
       applyPhotoLocal(rid,shop,"products","","del-all"); refreshRouteBox(rid);
       fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
         body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"products",name:me.name,text:""})}).catch(()=>{});
+    };
+  });
+  scope.querySelectorAll(".pl-keepa-all").forEach(btn=>{
+    btn.onclick=()=>{
+      let items=[]; try{ items=JSON.parse(((PHOTOCTX[btn.dataset.rid]||{})[btn.dataset.shop]||{}).products||"[]"); }catch(e){}
+      items.forEach(p=>{ if(p.asin) window.open("https://keepa.com/#!product/5-"+encodeURIComponent(p.asin),"_blank"); });
     };
   });
   scope.querySelectorAll(".dslide").forEach(b=>{
