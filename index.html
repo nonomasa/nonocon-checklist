@@ -275,6 +275,12 @@
   li.subh{display:flex;align-items:center;gap:8px;background:#f2f4f7;border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin:4px 0 4px 18px;font-size:13.5px;font-weight:700;color:#3d4654;cursor:pointer;list-style:none}
   li.subh .gc{margin-left:auto;font-size:12px;color:var(--sub);font-weight:400}
   li.subh+li.item, li.item[data-insub]{margin-left:18px}
+  .kgrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .kgchip{display:inline-flex;align-items:center;gap:5px;background:#f4effd;color:#7c3aed;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
+  .kgchip.on{background:#eafaf2;color:#0e9f6e}
+  .kgchip i{font-style:normal;font-size:10.5px;font-weight:400;color:#9aa2af}
+  .kgchip .kgx{border:none;background:none;color:#b3bac6;cursor:pointer;font-size:14px;padding:0 0 0 2px}
+  .kgchip .kgx:hover{color:#dc2626}
   .lgf{margin-bottom:8px}
   .lg-view{font-size:13.5px;line-height:1.7;white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
   .dlypace{font-size:12px;color:#5a6472;background:#f7f9fc;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.9}
@@ -470,7 +476,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-03 17:27</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-03 17:39</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1274,6 +1280,7 @@ let trendWho=null;          // 月次推移で表示中のメンバー
 let DAILYALL=null;          // {rows:[], goals:[]}
 let dailyWho=null;          // デイリーで表示中のメンバー
 let numsWho=null;           // 数字報告タブ全体で表示中のメンバー（1人選ぶと全部切り替わる）
+let KGOALS=null;            // 解除目標 [{uid,ym,brands(JSON)}]
 let numsMonth=null;        // 表示中の年月 "2026年7月"
 let numsParsed=null;       // CSV解析結果 {上旬:{sales,profit,cnt},...}
 let numsDraft=null;        // 未保存の入力値（再描画で消えないように保持）
@@ -2432,6 +2439,32 @@ function captureNumsDraft(){
   TODO_SECS.forEach(x=>{ const v=collectTodos(x[0]); if(v!==null) numsDraft[x[0]]=JSON.stringify(v); });
 }
 
+/* 解除目標（数字報告×制限解除の連動）。目標はここで宣言、達成は制限解除タブのステータスから自動判定 */
+function kgoalBrandsOf(uid,ym){ const r=(KGOALS||[]).find(x=>String(x.uid)===String(uid)&&x.ym===ym); if(!r) return []; try{ return JSON.parse(r.brands)||[]; }catch(e){ return []; } }
+function kaijoStatusOf(uid,brand){ const r=(ALLKAIJO||[]).find(x=>String(x.uid)===String(uid)&&x.brand===brand); return r?r.status:""; }
+const kgAchieved=v=>v==="制限なし"||String(v).indexOf("解除")>=0;
+function kgoalChipsHtml(uid,editable){
+  const sel=kgoalBrandsOf(uid,numsMonth);
+  const chips=sel.map(b=>{ const st=kaijoStatusOf(uid,b); const ok=kgAchieved(st);
+    return `<span class="kgchip${ok?" on":""}" title="${escH(st||"未確認")}">${ok?"✅":"🎯"} ${escH(b)}${st&&st!=="未確認"&&!ok?`<i>${escH(st)}</i>`:""}${editable?`<button class="kgx" data-b="${escH(b)}">×</button>`:""}</span>`; }).join("");
+  const done=sel.filter(b=>kgAchieved(kaijoStatusOf(uid,b))).length;
+  const prog=sel.length?`<span class="gpn" style="margin-left:6px;font-weight:700;${done>=sel.length?"color:#0e9f6e":""}">${done}/${sel.length}達成</span>`:"";
+  const cand=(BRANDS||[]).filter(b=>!sel.includes(b.brand)&&!kgAchieved(kaijoStatusOf(uid,b.brand)));
+  const add=editable?`<select class="ginput" id="kgoalAdd" style="max-width:220px;font-size:13px;padding:6px 10px"><option value="">＋ブランドを追加</option>${cand.map(b=>`<option value="${escH(b.brand)}">${escH(b.brand)}</option>`).join("")}</select>`:"";
+  return `<div class="kgrow">${chips||(editable?"":'<span class="gpn">未設定</span>')}${add}${prog}</div>`;
+}
+function bindKgoal(){
+  const wrap=document.getElementById("kgoalWrap"); if(!wrap) return;
+  const save=async list=>{
+    try{ await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"kgsave",pass:PASS,uid:me.sid,name:me.name,ym:numsMonth,brands:JSON.stringify(list)})}); }catch(e){}
+    const r=(KGOALS||[]).find(x=>String(x.uid)===String(me.sid)&&x.ym===numsMonth);
+    if(r) r.brands=JSON.stringify(list); else (KGOALS=KGOALS||[]).push({uid:String(me.sid),ym:numsMonth,brands:JSON.stringify(list)});
+    wrap.innerHTML=kgoalChipsHtml(me.sid,true); bindKgoal(); showToast("✅ 解除目標を保存しました");
+  };
+  const ad=document.getElementById("kgoalAdd");
+  if(ad) ad.onchange=()=>{ if(!ad.value) return; const list=kgoalBrandsOf(me.sid,numsMonth); if(!list.includes(ad.value)) list.push(ad.value); save(list); };
+  wrap.querySelectorAll(".kgx").forEach(x=>{ x.onclick=()=>{ save(kgoalBrandsOf(me.sid,numsMonth).filter(b=>b!==x.dataset.b)); }; });
+}
 /* 目的パネル（人生の目標・せどりの目的・必要額）。数字の「なぜ」を数字の真上に置く */
 const LIFE_Q10=["①人生の目標（人生をどう生きたいのか？何をしたい人生なのか？）","②せどり・刈り取りをする目的（①の中で何のためにせどりをやるのか？人生の目標とどう絡むのか）","③なんでせどり・刈り取りなのか？代替手段はないのか？転売である必要性は？社会貢献できるものでも良いのでは？","④自分のライスワーク・ライフワーク・ライクワークは何か？","⑤人生でやりたいことは何か（やりたいことリスト）","⑥⑤をやるにはいくら必要か（貯金額と月の収入）。いつまでにいくら貯めればいいのか","⑦1000億円持っていたら（お金の心配が一切ないなら）どんな人生を歩むか？","⑧人生で絶対にやりたくないことは何か？それを避ける方法は？","⑨今の20代・30代・40代でしかできないことは何か？今のうちに済ませておきたいことは？","⑩1年後に死ぬと分かったら、残された1年で何をやるのか？"];
 function lifeGoalHtml(uid){
@@ -2750,6 +2783,12 @@ async function renderNums(){
     try{ DAILYALL=await jsonp({action:"dyall"}); }catch(e){ DAILYALL={rows:[],goals:[]}; }
     if(chap!==NUMS) return;
   }
+  if(KGOALS===null){
+    try{ const kg=await jsonp({action:"kgall"}); KGOALS=(kg&&kg.rows)||[]; }catch(e){ KGOALS=[]; }
+    try{ if(!BRANDS){ const rb=await jsonp({action:"kbrands"}); BRANDS=(rb&&rb.brands)||[]; } }catch(e){ BRANDS=BRANDS||[]; }
+    try{ if(ALLKAIJO===null){ const rk=await jsonp({action:"kpall"}); ALLKAIJO=(rk&&rk.rows)||[]; } }catch(e){ ALLKAIJO=ALLKAIJO||[]; }
+    if(chap!==NUMS) return;
+  }
   const meta=metaFor(me.sid,numsMonth)||{};
   const nm=numsFor(me.sid,numsMonth);
   const viewUid=String(numsWho||me.sid);
@@ -2776,7 +2815,8 @@ async function renderNums(){
     const nv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
     html+=`<div class="gpanel"><div class="gph">① 今月の目標 <span class="gpn">（${escH(viewName)}さん・閲覧のみ）</span></div>
       <div style="font-size:14px">目標月商 <b>${nv(mv.gsales)?yen(nv(mv.gsales))+"円":"未設定"}</b>　目標粗利 <b>${nv(mv.gprofit)?yen(nv(mv.gprofit))+"円":"未設定"}</b>
-      ${(nv(mv.gsales2)||nv(mv.gprofit2))?`<div class="gpn" style="margin-top:4px">修正目標：月商 ${nv(mv.gsales2)?yen(nv(mv.gsales2))+"円":"—"}／粗利 ${nv(mv.gprofit2)?yen(nv(mv.gprofit2))+"円":"—"}</div>`:""}</div></div>`;
+      ${(nv(mv.gsales2)||nv(mv.gprofit2))?`<div class="gpn" style="margin-top:4px">修正目標：月商 ${nv(mv.gsales2)?yen(nv(mv.gsales2))+"円":"—"}／粗利 ${nv(mv.gprofit2)?yen(nv(mv.gprofit2))+"円":"—"}</div>`:""}
+      <div style="margin-top:10px"><label class="glbl">🔓 今月の解除目標</label>${kgoalChipsHtml(viewUid,false)}</div></div></div>`;
   }
   if(selfView) html+=`<div class="gpanel"><div class="gph">① 今月の目標</div>
     <div class="nrow3">
@@ -2785,6 +2825,8 @@ async function renderNums(){
       <div><label class="glbl">その他経費（円）</label><input class="ginput" id="n_expense" inputmode="numeric" value="${(numsDraft&&numsDraft.expense!==undefined)?V("expense"):(meta.expense?V("expense"):"5390")}">
       <div class="nhint">未入力時は大口登録料5,390円のみ自動計上。正確にするならプライスター「売上分析」のその他経費の額を転記（FBA保管料・配送料金込み）</div></div>
     </div>
+    <div style="margin-top:12px"><label class="glbl">🔓 今月の解除目標 <span class="gpn">（選ぶだけ。達成は制限解除タブのステータスから自動判定）</span></label>
+    <div id="kgoalWrap">${kgoalChipsHtml(me.sid,true)}</div></div>
     ${(()=>{const hasRev=!!(V("gsales2")||V("gprofit2"));return `
     <button class="drmemo-edit" id="revToggle" style="margin-top:10px">${hasRev?"▼":"▶"} 修正目標（旬の途中で立て直す時だけ）</button>
     <div class="nrow3" id="revBox" style="margin-top:10px;${hasRev?"":"display:none"}">
@@ -2893,6 +2935,7 @@ async function renderNums(){
   bindTrendGoals();
   bindLifeGoal();
   bindDaily();
+  bindKgoal();
   document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;numsDraft=null;renderNums();};
   document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;numsDraft=null;renderNums();};
 
@@ -3233,7 +3276,9 @@ async function fillKaijo(){
     if(!BRANDS){ const r=await jsonp({action:"kbrands"}); if(r&&r.error) throw r.error; BRANDS=r.brands||[]; }
     if(!kaijoLoaded){ const r2=await jsonp({action:"kget", uid:me.sid}); if(r2&&!r2.error){ kaijoState=r2.status||{}; kaijoPdf=r2.pdf||{}; kaijoLoaded=true; } }
     if(ALLKAIJO===null){ const r3=await jsonp({action:"kpall"}); ALLKAIJO=(r3&&r3.rows)||[]; }
+    if(KGOALS===null){ const kg=await jsonp({action:"kgall"}); KGOALS=(kg&&kg.rows)||[]; }
   }catch(e){ box.textContent="読み込みに失敗しました。通信環境を確認してください"; return; }
+  const myKgoal=kgoalBrandsOf(String(me.sid),ymNow());
   const cnt=document.getElementById("kaijoCnt");
   if(cnt){ const done=Object.values(kaijoState).filter(v=>v&&v!=="未確認").length; cnt.textContent=`確認済み ${done}/${BRANDS.length}`; }
   const stMap={};
@@ -3269,7 +3314,7 @@ async function fillKaijo(){
       return `<td class="kcell ${stx?chipCls(stx):""}" title="${memLabel(m)}：${stx||"未確認"}">${stx}${pdf}</td>`;
     }).join("");
     html+=`<tr><td style="font-size:12px;color:#6b7686">${b.pri}</td>`+
-      `<td class="pname">${b.brand}${asin}</td>`+
+      `<td class="pname">${b.brand}${myKgoal.includes(b.brand)?' <span title="今月の解除目標（数字報告と連動）">🎯</span>':""}${asin}</td>`+
       `<td><select class="ksel" data-brand="${brandEsc}" style="padding:6px 10px;border:1px solid #e3e6ea;border-radius:8px;font-size:12.5px">${opts}</select>`+
       `<div class="kpdfrow">${myPdf}<button class="kup" data-brand="${brandEsc}">＋PDF</button></div></td>`+
       cells+`</tr>`;
