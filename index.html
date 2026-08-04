@@ -495,7 +495,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-04 19:17</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-04 21:06</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -3113,9 +3113,11 @@ async function renderNums(){
     showToast(n+"ヶ月分の目標月利を計算しました（まとめて保存を忘れずに）");
   };
   const tw=document.getElementById("trendWho");
-  if(tw) tw.onchange=()=>{ numsWho=tw.value; renderNums(); };
+  // メンバー切替時は手元のデータで即表示しつつ、裏で最新を取り直す（面談中でも最新が見えるように）
+  const switchWho=v=>{ numsWho=v; NUMSALL=null; GOALS=null; DAILYALL=null; KGOALS=null; renderNums(); };
+  if(tw) tw.onchange=()=>switchWho(tw.value);
   const ws=document.getElementById("numsWhoSel");
-  if(ws) ws.onchange=()=>{ numsWho=ws.value; renderNums(); };
+  if(ws) ws.onchange=()=>switchWho(ws.value);
   bindTrendGoals();
   bindLifeGoal();
   bindDaily();
