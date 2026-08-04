@@ -305,6 +305,24 @@
   .qo-jan a{color:#2563eb}
   .qo-memo{font-size:13px;line-height:1.7;white-space:pre-wrap;color:#3d4654}
   .qlock{margin-top:12px;text-align:center;color:#8a93a3;font-size:13px;background:#f2f4f7;border-radius:8px;padding:12px}
+  .qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .qtile{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:transform .1s}
+  .qtile:hover{transform:translateY(-2px)}
+  .qtile-ph{height:130px;background:#f2f4f7;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .qtile-ph img{width:100%;height:100%;object-fit:cover}
+  .qtile-noimg{font-size:30px;color:#c2c8d0}
+  .qtile-info{padding:8px 10px}
+  .qtile-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+  .qtile-top .qstore{font-size:10.5px;padding:1px 8px}
+  .qtile-top .qdate{font-size:11px}
+  .qtile-bottom{display:flex;align-items:center;justify-content:space-between}
+  .qtile-done{font-size:11.5px;font-weight:700;color:#0e9f6e}
+  .qtile-todo{font-size:11.5px;font-weight:700;color:#f97316}
+  .qovl{position:fixed;inset:0;background:rgba(15,18,25,.55);z-index:9998;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 12px}
+  .qmodal{background:#f6f7f9;border-radius:14px;max-width:680px;width:100%;padding:14px;margin-bottom:30px}
+  .qmx{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;margin-bottom:8px}
+  .qoth-tgl{width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:800;color:#3d4654;cursor:pointer}
+  .qoth-body{margin-top:8px}
   @media (max-width:640px){ .quizwrap{max-width:100%} }
   .slide-cover{font-size:32px;font-weight:800;text-align:center;line-height:1.6}
   .slide-cover span{font-size:16px;font-weight:400;color:#9aa0ad}
@@ -476,7 +494,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-04 18:21</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-04 18:38</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -3642,10 +3660,32 @@ async function renderQuiz(){
   }
   const quizzes=[...QUIZALL].sort((a,b)=>String(b.date+b.id).localeCompare(String(a.date+a.id)));
   if(!quizzes.length){ html+='<div class="quizempty">まだクイズがありません'+(isAdmin?'。上のフォームから出題してください。':'。ののさんの出題を待ちましょう！')+'</div>'; }
-  quizzes.forEach(q=>{ html+=quizCard(q,isAdmin); });
+  else{
+    html+='<div class="qgrid">'+quizzes.map(q=>{
+      const my=(q.answers||[]).find(a=>String(a.uid)===String(me.sid));
+      const n=(q.answers||[]).length;
+      return `<div class="qtile" data-qid="${q.id}">
+        <div class="qtile-ph">${q.photo?`<img src="${q.photo}" loading="lazy">`:`<div class="qtile-noimg">📷</div>`}</div>
+        <div class="qtile-info">
+          <div class="qtile-top">${q.store?`<span class="qstore">🏬 ${escH(q.store)}</span>`:""}<span class="qdate">${escH(dokoDateLabel(q.date))}</span></div>
+          <div class="qtile-bottom">${my?`<span class="qtile-done">${my.decision==="仕入れる"?"⭕":"❌"} 回答済</span>`:`<span class="qtile-todo">未回答</span>`}<span class="gpn">👥${n}</span></div>
+        </div></div>`;
+    }).join("")+'</div>';
+  }
   html+='</div>';
   body.innerHTML=html;
-  bindQuiz();
+  bindQuizForm();
+  body.querySelectorAll(".qtile").forEach(t=>{ t.onclick=()=>openQuizModal(t.dataset.qid); });
+}
+function openQuizModal(qid){
+  const q=(QUIZALL||[]).find(x=>x.id===qid); if(!q) return;
+  document.querySelectorAll(".qovl").forEach(x=>x.remove());
+  const ov=document.createElement("div"); ov.className="qovl";
+  ov.innerHTML=`<div class="qmodal"><div style="text-align:right"><button class="qmx">✕ 閉じる</button></div>${quizCard(q,!!ADMIN_KEY)}</div>`;
+  document.body.appendChild(ov);
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector(".qmx").onclick=()=>ov.remove();
+  bindQuizDetail(ov,qid);
 }
 function quizCard(q,isAdmin){
   const answers=q.answers||[];
@@ -3677,7 +3717,7 @@ function quizCard(q,isAdmin){
     <button class="gbtn qans-save" data-q="${q.id}" style="margin-top:8px">${answered?"回答を更新":"回答する"}</button><span class="gmsg qans-msg" data-q="${q.id}"></span>
   </div>`;
   if(canSeeOthers){
-    h+=`<div class="qothers"><div class="qothers-h">👥 みんなの回答（⭕${buyN}／❌${noN}）</div>`;
+    h+=`<div class="qothers"><button class="qoth-tgl">👥 みんなの回答（⭕${buyN}／❌${noN}）<span class="caret" style="margin-left:6px">▶</span></button><div class="qoth-body" style="display:none">`;
     if(myAns){
       h+=`<div class="qo1 qo-mine"><div class="qo-top"><span class="qo-dec ${myAns.decision==="仕入れる"?"buy":"no"}">${escH(myAns.decision||"—")}</span><b>あなた（${escH(myAns.name)}）</b><span class="dwho">${escH(myAns.updated)}</span></div>`;
       if(myAns.cost||myAns.price) h+=`<div class="qo-jan">💰 仕入${myAns.cost?yen(+myAns.cost)+"円":"—"} → 販売${myAns.price?yen(+myAns.price)+"円":"—"}</div>`;
@@ -3693,78 +3733,86 @@ function quizCard(q,isAdmin){
         h+=`</div>`;
       });
     }else{ h+=`<div class="gpn">まだ他の人の回答はありません</div>`; }
-    h+=`</div>`;
+    h+=`</div></div>`;
   }else{
     h+=`<div class="qlock">🔒 他の人の回答は、あなたが回答すると見られます</div>`;
   }
   h+=`</div>`;
   return h;
 }
-function bindQuiz(){
+function bindQuizForm(){
   const body=document.getElementById("body");
-  // 出題フォーム
   const drop=body.querySelector("#qphotoDrop");
-  if(drop){
-    const prev=body.querySelector("#qphotoPrev");
-    const setPhoto=async(file)=>{ try{ const r=await readImgB64(file); quizNewPhoto={data:r.data,mime:r.mime}; prev.src=r.url; prev.style.display=""; drop.textContent="📷 写真を変更する"; }catch(e){ alert(e); } };
-    drop.onclick=async()=>{ const f=await pickImage(); if(f) setPhoto(f); };
-    drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drop-on"); };
-    drop.ondragleave=()=>drop.classList.remove("drop-on");
-    drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drop-on"); const f=e.dataTransfer.files[0]; if(f) setPhoto(f); };
-    const saveBtn=body.querySelector("#qsaveBtn");
-    const cancelBtn=body.querySelector("#qcancelBtn");
-    if(cancelBtn) cancelBtn.onclick=()=>{ quizEditId=null; quizNewPhoto=null; renderQuiz(); };
-    saveBtn.onclick=async()=>{
-      const msg=body.querySelector("#qsaveMsg");
-      if(!quizNewPhoto && !quizEditId){ msg.textContent="仕入れ写真を選んでください"; return; }
-      saveBtn.disabled=true; msg.textContent=quizEditId?"更新中…":"出題中…";
-      try{
-        const payload={action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:"",memo:body.querySelector("#qmemo").value.trim(),jan:(body.querySelector("#qjan").value||"").replace(/[^0-9]/g,""),store:body.querySelector("#qstore").value,uid:me.sid,name:me.name};
-        if(quizEditId){ payload.id=quizEditId; const ed=QUIZALL.find(x=>x.id===quizEditId); payload.date=(ed&&ed.date)||payload.date; }
-        if(quizNewPhoto){ payload.data=quizNewPhoto.data; payload.mime=quizNewPhoto.mime; }
-        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify(payload)})).json();
-        if(d&&d.ok){ const wasEdit=!!quizEditId; quizNewPhoto=null; quizEditId=null; QUIZALL=null; renderQuiz(); showToast(wasEdit?"✅ クイズを更新しました":"✅ 出題しました"); return; }
-        let em=(d&&d.error)||"不明";
-        if(/unauthorized/.test(em)) em="認証エラー：ページ上部の🔑合言葉を入力してください（それでもダメなら #admin を付けて開き直し、管理キーを入れ直し）";
-        msg.textContent="失敗："+em; saveBtn.disabled=false;
-      }catch(e){ msg.textContent="通信エラー："+String(e).slice(0,80); saveBtn.disabled=false; }
-    };
-  }
-  // 編集（管理者）
-  body.querySelectorAll(".qedit").forEach(b=>{
-    b.onclick=()=>{ quizEditId=b.dataset.id; quizNewPhoto=null; renderQuiz(); window.scrollTo({top:0,behavior:"smooth"}); };
+  if(!drop) return;
+  const prev=body.querySelector("#qphotoPrev");
+  const setPhoto=async(file)=>{ try{ const r=await readImgB64(file); quizNewPhoto={data:r.data,mime:r.mime}; prev.src=r.url; prev.style.display=""; drop.textContent="📷 写真を変更する"; }catch(e){ alert(e); } };
+  drop.onclick=async()=>{ const f=await pickImage(); if(f) setPhoto(f); };
+  drop.ondragover=e=>{ e.preventDefault(); drop.classList.add("drop-on"); };
+  drop.ondragleave=()=>drop.classList.remove("drop-on");
+  drop.ondrop=e=>{ e.preventDefault(); drop.classList.remove("drop-on"); const f=e.dataTransfer.files[0]; if(f) setPhoto(f); };
+  const saveBtn=body.querySelector("#qsaveBtn");
+  const cancelBtn=body.querySelector("#qcancelBtn");
+  if(cancelBtn) cancelBtn.onclick=()=>{ quizEditId=null; quizNewPhoto=null; renderQuiz(); };
+  saveBtn.onclick=async()=>{
+    const msg=body.querySelector("#qsaveMsg");
+    if(!quizNewPhoto && !quizEditId){ msg.textContent="仕入れ写真を選んでください"; return; }
+    saveBtn.disabled=true; msg.textContent=quizEditId?"更新中…":"出題中…";
+    try{
+      const payload={action:"qsave",pass:PASS,key:ADMIN_KEY,date:todayStr(),title:"",memo:body.querySelector("#qmemo").value.trim(),jan:(body.querySelector("#qjan").value||"").replace(/[^0-9]/g,""),store:body.querySelector("#qstore").value,uid:me.sid,name:me.name};
+      if(quizEditId){ payload.id=quizEditId; const ed=QUIZALL.find(x=>x.id===quizEditId); payload.date=(ed&&ed.date)||payload.date; }
+      if(quizNewPhoto){ payload.data=quizNewPhoto.data; payload.mime=quizNewPhoto.mime; }
+      const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify(payload)})).json();
+      if(d&&d.ok){
+        // ローカル即反映（SWRの古いキャッシュを待たない）
+        if(quizEditId){ const q=QUIZALL.find(x=>x.id===quizEditId); if(q){ q.memo=payload.memo; q.jan=payload.jan; q.store=payload.store; if(d.photo) q.photo=d.photo; } }
+        else QUIZALL.unshift({id:d.id,date:payload.date,title:"",memo:payload.memo,jan:payload.jan,store:payload.store,photo:d.photo||"",uid:String(me.sid),name:me.name,answers:[]});
+        cacheSet("qall",QUIZALL);
+        const wasEdit=!!quizEditId; quizNewPhoto=null; quizEditId=null; renderQuiz(); showToast(wasEdit?"✅ クイズを更新しました":"✅ 出題しました"); return;
+      }
+      let em=(d&&d.error)||"不明";
+      if(/unauthorized/.test(em)) em="認証エラー：ページ上部の🔑合言葉を入力してください（それでもダメなら #admin を付けて開き直し、管理キーを入れ直し）";
+      msg.textContent="失敗："+em; saveBtn.disabled=false;
+    }catch(e){ msg.textContent="通信エラー："+String(e).slice(0,80); saveBtn.disabled=false; }
+  };
+}
+function bindQuizDetail(root,qid){
+  const tgl=root.querySelector(".qoth-tgl");
+  if(tgl) tgl.onclick=()=>{ const b=root.querySelector(".qoth-body"); const open=b.style.display==="none"; b.style.display=open?"":"none"; tgl.querySelector(".caret").textContent=open?"▼":"▶"; };
+  root.querySelectorAll(".qedit").forEach(b=>{
+    b.onclick=()=>{ quizEditId=b.dataset.id; quizNewPhoto=null; root.remove(); renderQuiz(); window.scrollTo({top:0,behavior:"smooth"}); };
   });
-  // 削除
-  body.querySelectorAll(".qdel").forEach(b=>{
+  root.querySelectorAll(".qdel").forEach(b=>{
     b.onclick=async()=>{
       if(!confirm("このクイズと全回答を削除しますか？")) return;
       try{ const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"qdel",pass:PASS,key:ADMIN_KEY,id:b.dataset.id,uid:me.sid})})).json();
-        if(d&&d.ok){ QUIZALL=null; renderQuiz(); return; } alert("削除失敗："+(d&&d.error||"不明")); }catch(e){ alert("通信エラー"); }
+        if(d&&d.ok){ QUIZALL=QUIZALL.filter(x=>x.id!==b.dataset.id); cacheSet("qall",QUIZALL); root.remove(); renderQuiz(); showToast("削除しました"); return; } alert("削除失敗："+(d&&d.error||"不明")); }catch(e){ alert("通信エラー"); }
     };
   });
-  // 判断ボタン（トグル）
-  body.querySelectorAll(".qdec").forEach(b=>{
+  root.querySelectorAll(".qdec").forEach(b=>{
     b.onclick=()=>{
-      body.querySelectorAll(`.qdec[data-q="${b.dataset.q}"]`).forEach(x=>x.classList.remove("on","buy","no"));
+      root.querySelectorAll(`.qdec[data-q="${b.dataset.q}"]`).forEach(x=>x.classList.remove("on","buy","no"));
       b.classList.add("on", b.dataset.dec==="仕入れる"?"buy":"no");
     };
   });
-  // 回答保存
-  body.querySelectorAll(".qans-save").forEach(btn=>{
+  root.querySelectorAll(".qans-save").forEach(btn=>{
     btn.onclick=async()=>{
-      const qid=btn.dataset.q;
-      const msg=body.querySelector(`.qans-msg[data-q="${qid}"]`);
-      const decBtn=body.querySelector(`.qdec.on[data-q="${qid}"]`);
+      const msg=root.querySelector(`.qans-msg[data-q="${qid}"]`);
+      const decBtn=root.querySelector(`.qdec.on[data-q="${qid}"]`);
       if(!decBtn){ msg.textContent="「仕入れる／仕入れない」を選んでください"; return; }
-      const memo=body.querySelector(`.qans-memo[data-q="${qid}"]`).value.trim();
-      const cost=(body.querySelector(`.qans-cost[data-q="${qid}"]`).value||"").replace(/[^0-9]/g,"");
-      const price=(body.querySelector(`.qans-price[data-q="${qid}"]`).value||"").replace(/[^0-9]/g,"");
+      const memo=root.querySelector(`.qans-memo[data-q="${qid}"]`).value.trim();
+      const cost=(root.querySelector(`.qans-cost[data-q="${qid}"]`).value||"").replace(/[^0-9]/g,"");
+      const price=(root.querySelector(`.qans-price[data-q="${qid}"]`).value||"").replace(/[^0-9]/g,"");
       btn.disabled=true; msg.textContent="保存中…";
       try{
         const payload={action:"qanswer",pass:PASS,quizId:qid,uid:me.sid,name:me.name,decision:decBtn.dataset.dec,memo:memo,cost:cost,price:price};
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)})).json();
-        if(d&&d.ok){ QUIZALL=null; renderQuiz(); showToast("✅ 回答を保存しました"); return; }
+        if(d&&d.ok){
+          const q=QUIZALL.find(x=>x.id===qid);
+          if(q){ q.answers=(q.answers||[]).filter(a=>String(a.uid)!==String(me.sid)); q.answers.push({uid:String(me.sid),name:me.name,decision:payload.decision,memo:memo,cost:cost,price:price,photo:"",jan:"",updated:"たった今"}); }
+          cacheSet("qall",QUIZALL);
+          renderQuiz(); openQuizModal(qid); showToast("✅ 回答を保存しました"); return;
+        }
         msg.textContent="失敗："+(d&&d.error||"不明"); btn.disabled=false;
       }catch(e){ msg.textContent="通信エラー"; btn.disabled=false; }
     };
