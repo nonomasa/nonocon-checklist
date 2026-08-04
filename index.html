@@ -476,7 +476,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-03 17:43</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-04 18:21</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2163,10 +2163,15 @@ async function renderDoko(){
   const body=document.getElementById("body");
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと同行の登録・閲覧ができます</div>'; return; }
   if(DOKOALL===null){
-    body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
-    try{ const d=await jsonp({action:"dall"}); DOKOALL=(d&&d.rows)||[]; }
-    catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; DOKOALL=null; return; }
-    if(chap!==DOKO) return;
+    const cd=cacheGet("dall");
+    const bg=async()=>{ try{ const d=await jsonp({action:"dall"}); const rows=(d&&d.rows)||[]; cacheSet("dall",rows); if(chap===DOKO){ DOKOALL=rows; renderDoko(); } }catch(e){} };
+    if(cd){ DOKOALL=cd; bg(); }
+    else{
+      body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
+      try{ const d=await jsonp({action:"dall"}); DOKOALL=(d&&d.rows)||[]; cacheSet("dall",DOKOALL); }
+      catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; DOKOALL=null; return; }
+      if(chap!==DOKO) return;
+    }
   }
   const editing=dokoEditId?DOKOALL.find(r=>r.id===dokoEditId):null;
   const today=new Date(); today.setHours(0,0,0,0);
@@ -2904,9 +2909,27 @@ async function renderNums(){
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと数字報告を使えます</div>'; return; }
   if(!numsMonth) numsMonth=ymNow();
   if(NUMSALL===null){
-    body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
-    try{ NUMSALL=await jsonp({action:"nall"});}catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; NUMSALL=null; return; }
-    if(chap!==NUMS) return;
+    const applyB=b=>{ NUMSALL=b.n; GOALS=b.g; DAILYALL=b.dy; KGOALS=b.kg; if(b.br) BRANDS=b.br; if(b.kp) ALLKAIJO=b.kp; };
+    const fetchB=async()=>{
+      const [n,g,dy,kg,br,kp]=await Promise.all([
+        jsonp({action:"nall"}),
+        jsonp({action:"gall"}).catch(()=>({goals:[]})),
+        jsonp({action:"dyall"}).catch(()=>({rows:[],goals:[]})),
+        jsonp({action:"kgall"}).catch(()=>({rows:[]})),
+        BRANDS?Promise.resolve(null):jsonp({action:"kbrands"}).catch(()=>null),
+        ALLKAIJO!==null?Promise.resolve(null):jsonp({action:"kpall"}).catch(()=>null)
+      ]);
+      const gmap={}; ((g&&g.goals)||[]).forEach(x=>{ (gmap[x.uid]=gmap[x.uid]||[]).push(x); });
+      return { n:n, g:gmap, dy:dy, kg:(kg&&kg.rows)||[], br:br?(br.brands||[]):(BRANDS||null), kp:kp?(kp.rows||[]):(ALLKAIJO||null) };
+    };
+    const cb=cacheGet("numsbundle");
+    if(cb){ applyB(cb); (async()=>{ try{ const b=await fetchB(); cacheSet("numsbundle",b); if(chap===NUMS){ applyB(b); renderNums(); } }catch(e){} })(); }
+    else{
+      body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
+      try{ const b=await fetchB(); cacheSet("numsbundle",b); applyB(b); }
+      catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; NUMSALL=null; return; }
+      if(chap!==NUMS) return;
+    }
   }
   if(GOALS===null){
     try{ const gd=await jsonp({action:"gall"}); GOALS={}; (gd.goals||[]).forEach(g=>{ (GOALS[g.uid]=GOALS[g.uid]||[]).push(g); }); }catch(e){ GOALS={}; }
@@ -3406,10 +3429,16 @@ async function fillKaijo(){
   if(!box) return;
   if(!me){ box.textContent="お名前を選ぶと、自分の解除状況を記録できます"; return; }
   try{
-    if(!BRANDS){ const r=await jsonp({action:"kbrands"}); if(r&&r.error) throw r.error; BRANDS=r.brands||[]; }
-    if(!kaijoLoaded){ const r2=await jsonp({action:"kget", uid:me.sid}); if(r2&&!r2.error){ kaijoState=r2.status||{}; kaijoPdf=r2.pdf||{}; kaijoLoaded=true; } }
-    if(ALLKAIJO===null){ const r3=await jsonp({action:"kpall"}); ALLKAIJO=(r3&&r3.rows)||[]; }
-    if(KGOALS===null){ const kg=await jsonp({action:"kgall"}); KGOALS=(kg&&kg.rows)||[]; }
+    const [r,r2,r3,kg]=await Promise.all([
+      BRANDS?Promise.resolve(null):jsonp({action:"kbrands"}),
+      kaijoLoaded?Promise.resolve(null):jsonp({action:"kget", uid:me.sid}),
+      ALLKAIJO!==null?Promise.resolve(null):jsonp({action:"kpall"}),
+      KGOALS!==null?Promise.resolve(null):jsonp({action:"kgall"})
+    ]);
+    if(r){ if(r.error) throw r.error; BRANDS=r.brands||[]; }
+    if(r2&&!r2.error){ kaijoState=r2.status||{}; kaijoPdf=r2.pdf||{}; kaijoLoaded=true; }
+    if(r3) ALLKAIJO=(r3&&r3.rows)||[];
+    if(kg) KGOALS=(kg&&kg.rows)||[];
   }catch(e){ box.textContent="読み込みに失敗しました。通信環境を確認してください"; return; }
   const myKgoal=kgoalBrandsOf(String(me.sid),ymNow());
   const cnt=document.getElementById("kaijoCnt");
@@ -3516,6 +3545,9 @@ async function fillKaijo(){
 }
 
 /* ---------- 仕入れクイズタブ ---------- */
+/* タブデータのローカルキャッシュ（前回分を即表示→裏で最新化） */
+function cacheGet(k){ try{ const x=localStorage.getItem("nonocon_c_"+k); return x?JSON.parse(x):null; }catch(e){ return null; } }
+function cacheSet(k,v){ try{ localStorage.setItem("nonocon_c_"+k,JSON.stringify(v)); }catch(e){} }
 function todayStr(){const d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
 function showToast(text){
   const t=document.createElement("div"); t.className="toast"; t.textContent=text;
@@ -3561,10 +3593,15 @@ async function renderQuiz(){
   const body=document.getElementById("body");
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと仕入れクイズを使えます</div>'; return; }
   if(QUIZALL===null){
-    body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
-    try{ const d=await jsonp({action:"qall"}); QUIZALL=(d&&d.quizzes)||[]; }
-    catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; QUIZALL=null; return; }
-    if(chap!==QUIZ) return;
+    const cq=cacheGet("qall");
+    const bg=async()=>{ try{ const d=await jsonp({action:"qall"}); const list=(d&&d.quizzes)||[]; cacheSet("qall",list); if(chap===QUIZ){ QUIZALL=list; renderQuiz(); } }catch(e){} };
+    if(cq){ QUIZALL=cq; bg(); }
+    else{
+      body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
+      try{ const d=await jsonp({action:"qall"}); QUIZALL=(d&&d.quizzes)||[]; cacheSet("qall",QUIZALL); }
+      catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; QUIZALL=null; return; }
+      if(chap!==QUIZ) return;
+    }
   }
   const isAdmin=!!ADMIN_KEY;
   let html='<div class="quizwrap">';
