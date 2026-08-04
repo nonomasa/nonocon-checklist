@@ -361,7 +361,8 @@
   tr.drin-row td{background:#fbfcfe}
   .drk[disabled]{background:#eef1f5;color:#6b7686}
   .kup:hover{border-color:#f97316;color:#f97316}
-  .kpanel{max-height:78vh}
+  /* 制限解除の表はコンテナ(860px)を突き抜けて画面幅いっぱいに（メンバー列を多く見せる） */
+  .kpanel{max-height:78vh;width:calc(100vw - 32px);margin-left:calc(50% - 50vw + 16px)}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
   .kcell{color:#c2c8d0}
   .kcell.kc-ok{background:#eafaf2;color:#0e9f6e;font-weight:700}
@@ -495,7 +496,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-04 22:05</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-04 22:35</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
