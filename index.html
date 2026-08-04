@@ -268,10 +268,11 @@
   .dlytbl tbody td:first-child{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 var(--line)}
   .dlytbl thead th:first-child{position:sticky;left:0;z-index:4}
   .dlytbl tr.djun td:first-child{background:#eef3fb}
-  .dlytbl tr.ntotal td:first-child{background:#f2f4f7}
+  .dlytbl tr.ntotal td:first-child{background:#f2f4f7;z-index:3}
+  .dlytbl tr.ntotal td{position:sticky;bottom:0;background:#fdf3e7;z-index:2;box-shadow:0 -1px 0 var(--line);font-weight:700}
   .thsub{font-size:10px;color:#8a93a3;font-weight:400;white-space:nowrap}
   .djun td{background:#eef3fb;font-weight:700;color:#2f4a76;border-top:2px solid #c9d6ea}
-  .whobar{display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap;font-size:16px}
+  .whobar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:10px;margin:0 -4px 14px;padding:10px 4px;flex-wrap:wrap;font-size:16px;background:var(--bg,#f6f7f9);border-bottom:1px solid var(--line);box-shadow:0 4px 10px -6px rgba(0,0,0,.15)}
   li.subh{display:flex;align-items:center;gap:8px;background:#f2f4f7;border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin:4px 0 4px 18px;font-size:13.5px;font-weight:700;color:#3d4654;cursor:pointer;list-style:none}
   li.subh .gc{margin-left:auto;font-size:12px;color:var(--sub);font-weight:400}
   li.subh+li.item, li.item[data-insub]{margin-left:18px}
@@ -494,7 +495,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-04 18:52</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-04 19:17</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2182,7 +2183,7 @@ async function renderDoko(){
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと同行の登録・閲覧ができます</div>'; return; }
   if(DOKOALL===null){
     const cd=cacheGet("dall");
-    const bg=async()=>{ try{ const d=await jsonp({action:"dall"}); const rows=(d&&d.rows)||[]; cacheSet("dall",rows); if(chap===DOKO){ DOKOALL=rows; renderDoko(); } }catch(e){} };
+    const bg=async()=>{ try{ const d=await jsonp({action:"dall"}); const rows=(d&&d.rows)||[]; cacheSet("dall",rows); if(chap===DOKO){ DOKOALL=rows; renderDoko(); showToast("🔄 最新に更新しました"); } }catch(e){} };
     if(cd){ DOKOALL=cd; bg(); }
     else{
       body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
@@ -2802,8 +2803,7 @@ function dailySectionHtml(uid){
   const gIn=(k,ph)=>editable
     ? `<input class="ginput dlyg" data-k="${k}" inputmode="numeric" style="width:90px;text-align:right;padding:5px 8px" placeholder="${ph}" value="${goal[k]||""}">`
     : `<b>${goal[k]?yen(numv(goal[k])):"—"}</b>`;
-  const dNm=(ROSTER.find(x=>String(x.sid)===String(uid))||{}).name||"";
-  return `<div class="gpanel"><div class="gph">📅 デイリー行動記録${editable?"":` <span class="gpn">（${escH(dNm)}さん）</span>`}</div>
+  return `<div class="gpanel"><div class="gph">📅 デイリー行動記録</div>
     <div class="dlygoals">🎯 今月の目標：見込利益 ${gIn("gmikomi","300000")}円　時間 ${gIn("ghours","100")}h　回訪 ${gIn("gvisits","100")}店　検索 ${gIn("gsearches","10000")}件
     ${editable?`<button class="gbtn dlyg-save" style="margin-left:8px;padding:6px 14px;font-size:12px">目標を保存</button>
     <button class="gbtn" id="dlygFromTrend" style="padding:6px 14px;font-size:12px;background:#6b7686" title="月次推移で立てた目標粗利をここに入れる">月次推移から反映</button>`:""}</div>
@@ -2949,7 +2949,7 @@ async function renderNums(){
       return { n:n, g:gmap, dy:dy, kg:(kg&&kg.rows)||[], br:br?(br.brands||[]):(BRANDS||null), kp:kp?(kp.rows||[]):(ALLKAIJO||null) };
     };
     const cb=cacheGet("numsbundle");
-    if(cb){ applyB(cb); (async()=>{ try{ const b=await fetchB(); cacheSet("numsbundle",b); if(chap===NUMS){ applyB(b); renderNums(); } }catch(e){} })(); }
+    if(cb){ applyB(cb); (async()=>{ try{ const b=await fetchB(); cacheSet("numsbundle",b); if(chap===NUMS){ applyB(b); renderNums(); showToast("🔄 最新に更新しました"); } }catch(e){} })(); }
     else{
       body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
       try{ const b=await fetchB(); cacheSet("numsbundle",b); applyB(b); }
@@ -2989,7 +2989,7 @@ async function renderNums(){
 
   // 月次推移（北野シート型）。誰の分でも見られる
   html+=lifeGoalHtml(viewUid);
-  html+=`<div class="gpanel"><div class="gph">📈 月次推移${selfView?"":` <span class="gpn">（${escH(viewName)}さん）</span>`}</div>
+  html+=`<div class="gpanel"><div class="gph">📈 月次推移</div>
     <div id="trendBox">${trendTableHtml(viewUid)}</div></div>`;
 
   if(!selfView){
@@ -3622,7 +3622,7 @@ async function renderQuiz(){
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと仕入れクイズを使えます</div>'; return; }
   if(QUIZALL===null){
     const cq=cacheGet("qall");
-    const bg=async()=>{ try{ const d=await jsonp({action:"qall"}); const list=(d&&d.quizzes)||[]; cacheSet("qall",list); if(chap===QUIZ){ QUIZALL=list; renderQuiz(); } }catch(e){} };
+    const bg=async()=>{ try{ const d=await jsonp({action:"qall"}); const list=(d&&d.quizzes)||[]; cacheSet("qall",list); if(chap===QUIZ){ QUIZALL=list; renderQuiz(); showToast("🔄 最新に更新しました"); } }catch(e){} };
     if(cq){ QUIZALL=cq; bg(); }
     else{
       body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
