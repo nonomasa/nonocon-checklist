@@ -494,7 +494,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-04 18:49</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-04 18:52</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -3084,7 +3084,9 @@ async function renderNums(){
   memHas=memHas.filter(u=>u!=="0"); // のの（マスタ）は報告しないので一覧に出さない
   // 自分を先頭に（データが無くても自分の行は常に出す。ののは除く）
   if(String(me.sid)!=="0") memHas=[String(me.sid)].concat(memHas.filter(u=>u!==String(me.sid)));
-  const memName=u=>{const m=ROSTER.find(x=>String(x.sid)===u);return m?m.name:u;};
+  const memName=u=>{const m=ROSTER.find(x=>String(x.sid)===u); if(m) return m.name;
+    const d=((NUMSALL&&NUMSALL.nums)||[]).concat((NUMSALL&&NUMSALL.metas)||[]).find(x=>String(x.uid)===String(u));
+    return d&&d.name?d.name:u;};
   html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
     memHas.map((u,i)=>
       `<div class="nmem"><div class="nmemh" data-uid="${u}">▶ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}</div><div class="nrbody" style="display:none" data-body="${u}"></div></div>`).join("")+`</div>`;
