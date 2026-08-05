@@ -508,7 +508,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-06 02:04</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-06 02:13</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -567,20 +567,22 @@ const DATA = [
       {stage:2, id:"mind-chiisaku", l:1, t:"小さく試す→検証するを常に心がける", n:"いきなり大きくやらない。常に最小単位で結果が出てから大きくする"},
       {id:"mind-sandai", l:1, t:"初心者の三大失敗を知る", n:"情報収集ばかり・作業不足・利益率信仰"},
       {id:"v05", l:1, t:"ヘイトを集める転売はしない", n:"回転高い商品の買い占め、情弱狩り系。長続きしないことはやらない"},
-      {id:"mind-fukuri", l:1, t:"物販は資金で資金を増やす複利ゲームだと理解する", n:"元手を減らしたら伸びない"},
-      {id:"v14", l:2, t:"内部情報を知り得ても公開しない", n:"機密漏洩の損害賠償リスク"},
+      {id:"mind-fukuri", l:1, hot:1, t:"物販は資金で資金を増やす複利ゲームだと理解する", n:"元手を減らしたら伸びない"},
     ]},
     { g:"考え方", items:[
       {id:"mind-nobashikata", l:1, mov:1, hot:1, url:"https://app.the-online-class.com/categories/ozYjM3YDI6M2Y/category_blocks/oAM2MjNwUDI6I2Y", t:"ののコンでの物販事業の伸ばし方", n:""},
       {id:"v11", l:1, t:"会社は辞めない・専業化を急がない", n:"月利100を最低1年は継続、月50万円を抜いても全く支障がないか確認（専業になる模擬実験）"},
-      {id:"v12", l:1, t:"物販は共同経営しない・一人でやる", n:"基本的に共同経営は絶対に揉める事を知っておく"},
-      {id:"v13", l:2, t:"販路・仕入れ先・収益源を分散する", n:"卵を一つのカゴに盛らない"},
+      {stage:8, id:"v12", l:1, t:"物販は共同経営しない・一人でやる", n:"基本的に共同経営は絶対に揉める事を知っておく"},
+      {stage:6, id:"v13", l:2, t:"販路・仕入れ先・収益源を分散する", n:"卵を一つのカゴに盛らない"},
     ]},
     { g:"目標と計画", items:[
       {id:"mind-mokuteki", l:1, hot:1, t:"せどりをやる目的を書き出す", n:"他の副業との違い、なぜせどりや物販をするのか、どういうゴールのためにせどりをやるのか"},
       {id:"mind-mexico", l:1, t:"せどりをやる意味を「メキシコの漁師とMBA」の話から考える", n:"", url:"https://stak.tech/diary/%E3%83%A1%E3%82%AD%E3%82%B7%E3%82%B3%E3%81%AE%E9%87%A3%E3%82%8A%E5%A5%BD%E3%81%8D%E3%81%AE%E6%BC%81%E5%B8%AB%E3%81%A8mba%E3%82%92%E6%8C%81%E3%81%A3%E3%81%9F%E3%83%93%E3%82%B8%E3%83%8D%E3%82%B9/"},
       {id:"v08", l:1, hot:1, t:"家族と「目標額・稼働時間の着地点」を話し合い合意する", n:""},
       {id:"v09", l:1, hot:1, t:"月利目標から月商・稼働日数・検索数を逆算しマイルストーンを置く", n:""},
+    ]},
+    { g:"数字と実績", items:[
+      {id:"mind-senpai-suji", l:1, t:"先輩たちの数字をチェックする", n:"", url:"https://x.com/nononolifestyle/status/2085028355024564324?s=20"},
     ]},
   ]},
   { ch:"基礎", groups:[
@@ -592,8 +594,8 @@ const DATA = [
       {id:"v02", l:1, t:"廃盤品の価格が上がる仕組みを理解する", n:"Amazon在庫切れ→出品者減→価格上昇でも売れ続ける"},
       {id:"do-haiban", l:1, t:"廃盤品の確認手順を覚える", n:"①メーカーHPの生産終了ページ ②ビック・ヨドバシの「販売終了」表示 ③SNSで「◯◯ 廃盤」検索"},
       {id:"do-cart-price", l:1, t:"カート価格の決まり方を理解する", n:"Amazonは基準を公開してない。が、ほぼ8割が価格。それ以外が配送方法やポイントなど"},
-      {id:"v01", l:2, t:"現行品と旧型番の見分け方を覚える", n:"型番の数字で新旧判断。旧型＝廃盤で利益源"},
-      {id:"v22", l:2, t:"カテゴリ別Amazon手数料を覚える", n:"高手数料カテゴリは他販路へ回す"},
+      {stage:3, id:"v01", l:2, t:"現行品と旧型番の見分け方を覚える", n:"型番の数字で新旧判断。旧型＝廃盤で利益源"},
+      {stage:3, id:"v22", l:2, t:"カテゴリ別Amazon手数料を覚える", n:"高手数料カテゴリは他販路へ回す"},
     ]},
     { g:"Amazon", items:[
       {id:"base-shikumi", l:1, t:"Amazonの仕組みを理解する", n:"マーケットプレイス・カートシステム・出品者の種類"},
@@ -604,7 +606,7 @@ const DATA = [
     ]},
     { g:"仕入れ", items:[
       {id:"v36", l:2, t:"回転が悪くても利幅の大きい商品は仕入れる", n:"回転の悪さだけでスルーしない"},
-      {id:"base-rakujan-keepa", l:2, t:"らくじゃんの商品共有で100商品のkeepa波形を学ぶ", n:""},
+      {stage:3, id:"base-rakujan-keepa", l:2, hot:1, t:"らくじゃんの商品共有で先輩たちの仕入れ商品で模擬仕入れを行う", n:"100商品くらいを仕入れた時を見てkeepa判断してみる"},
       {id:"base-matome", l:3, t:"まとめ売り（セット商品）の作り方を覚える", n:""},
     ]},
     { g:"出品", items:[
@@ -1238,16 +1240,16 @@ function chapStats(ci){
 /* ---------- 🎯今やること（ステージ別ビュー） ---------- */
 const STAGES=[
   {n:1,label:"1.開始前",short:"開始前"},{n:2,label:"2.アカウント開設",short:"開設"},{n:3,label:"3.初売り上げ",short:"初売り"},
-  {n:4,label:"4.〜月商10万円",short:"10万"},{n:5,label:"5.〜月商30万円",short:"30万"},{n:6,label:"6.〜月商50万円",short:"50万"},
-  {n:7,label:"7.〜月商100万円",short:"100万"},{n:8,label:"8.〜月商300万円",short:"300万"},{n:9,label:"9.〜月商500万円",short:"500万"},{n:10,label:"10.それ以上",short:"それ以上"}
+  {n:4,label:"4.〜月商10万円",short:"10万"},{n:5,label:"5.〜月商50万円",short:"50万"},
+  {n:6,label:"6.〜月商100万円",short:"100万"},{n:7,label:"7.〜月商300万円",short:"300万"},{n:8,label:"8.〜月商500万円",short:"500万"},{n:9,label:"9.それ以上",short:"それ以上"}
 ];
 let stageOverride=null;   // 手動でステージを見たい時
 let STAGE_NUMS=null;      // ステージ判定用の自分の実績（numsのみ）
 function stageOfItem(chapterName,it){
   if(it.stage) return it.stage; // 個別指定があれば最優先
-  if(chapterName==="準備") return 1;
+  if(chapterName==="準備"||chapterName==="マインド") return 1;
   const l=it.l||1;
-  return l===1?3:(l===2?5:7); // 粗割当：⭐1→初売りまで、⭐2→〜30万、⭐3→〜100万
+  return l===1?3:(l===2?5:6); // 粗割当：⭐1→初売りまで、⭐2→〜50万、⭐3→〜100万
 }
 function myStageBySales(){
   const nums=(STAGE_NUMS||[]).filter(n=>String(n.uid)===String(me.sid));
@@ -1258,12 +1260,11 @@ function myStageBySales(){
   let st;
   if(mx<=0) st=3;
   else if(mx<100000) st=4;
-  else if(mx<300000) st=5;
-  else if(mx<500000) st=6;
-  else if(mx<1000000) st=7;
-  else if(mx<3000000) st=8;
-  else if(mx<5000000) st=9;
-  else st=10;
+  else if(mx<500000) st=5;
+  else if(mx<1000000) st=6;
+  else if(mx<3000000) st=7;
+  else if(mx<5000000) st=8;
+  else st=9;
   return {stage:st,sales:mx};
 }
 async function renderTodoView(){
