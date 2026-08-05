@@ -288,6 +288,9 @@
   .lg-view{font-size:13.5px;line-height:1.7;white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
   .dlypace{font-size:12px;color:#5a6472;background:#f7f9fc;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.9}
   .dly-pastewrap{margin-bottom:8px}
+  .modebtn.plan.on{background:#2563eb;border-color:#2563eb}
+  input.dly.plan-in{border:1.5px dashed #2563eb;color:#2563eb;background:#f5f8ff}
+  .dly-other{font-size:10px;color:#7c93c9;text-align:right;margin-top:2px;white-space:nowrap}
   .ghchain{font-size:10.5px;color:#9aa2af;text-decoration:line-through;white-space:normal;max-width:300px;line-height:1.6}
   .ttrend-wrap{overflow:auto;max-height:70vh}
   .ttrend thead th{position:sticky;top:0;background:#eef1f5;z-index:3;box-shadow:0 1px 0 var(--line)}
@@ -498,7 +501,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-05 12:58</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-05 13:10</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1447,6 +1450,7 @@ let numsWho=null;           // 数字報告タブ全体で表示中のメンバ�
 let numsMode="input";       // 数字報告のモード：input=自分の入力 / view=みんなを見る
 let lgOpen=null;            // 🧭目的の開閉（null=未記入なら開く）
 let trendOpen=false;        // 月次推移：false=今月サマリーのみ / true=全期間・目標編集
+let dlyMode="actual";       // デイリー入力モード：actual=実績 / plan=予定
 let KGOALS=null;            // 解除目標 [{uid,ym,brands(JSON)}]
 let numsMonth=null;        // 表示中の年月 "2026年7月"
 let numsParsed=null;       // CSV解析結果 {上旬:{sales,profit,cnt},...}
@@ -2808,15 +2812,16 @@ function dailySectionHtml(uid,allowEdit){
   const dim=new Date(Y,MO,0).getDate();
   const pad=n=>("0"+n).slice(-2);
   const rows=((DAILYALL&&DAILYALL.rows)||[]).filter(r=>String(r.uid)===String(uid)&&r.date.indexOf(Y+"-"+pad(MO))===0);
-  const byDate={}; rows.forEach(r=>{byDate[r.date]=r;});
+  const byDate={}, byPlan={};
+  rows.forEach(r=>{ if((r.kind||"actual")==="plan") byPlan[r.date]=r; else byDate[r.date]=r; });
   const goal=((DAILYALL&&DAILYALL.goals)||[]).find(g=>String(g.uid)===String(uid)&&g.ym===numsMonth)||{};
   const isCurMonth=numsMonth===ymNow();
   const todayIso=todayStr();
-  let tC=0,tM=0,tH=0,tV=0,tS=0;      // 実績（今日まで）
-  let fC=0,fM=0,fH=0,fV=0,fS=0;      // 予定（明日以降に入力された分）
+  let tC=0,tM=0,tH=0,tV=0,tS=0;      // 実績（今日まで・kind=actual）
+  let fC=0,fM=0,fH=0,fV=0,fS=0;      // 予定（kind=plan・全日）
   rows.forEach(r=>{
-    if(isCurMonth&&r.date>todayIso){ fC+=r.cost||0; fM+=r.mikomi||0; fH+=r.hours||0; fV+=r.visits||0; fS+=r.searches||0; }
-    else{ tC+=r.cost||0; tM+=r.mikomi||0; tH+=r.hours||0; tV+=r.visits||0; tS+=r.searches||0; }
+    if((r.kind||"actual")==="plan"){ fC+=r.cost||0; fM+=r.mikomi||0; fH+=r.hours||0; fV+=r.visits||0; fS+=r.searches||0; }
+    else if(!(isCurMonth&&r.date>todayIso)){ tC+=r.cost||0; tM+=r.mikomi||0; tH+=r.hours||0; tV+=r.visits||0; tS+=r.searches||0; }
   });
   const WD=["日","月","火","水","木","金","土"];
   const today=todayStr();
@@ -2828,16 +2833,20 @@ function dailySectionHtml(uid,allowEdit){
   for(let d=1;d<=dim;d++){
     const ds=Y+"-"+pad(MO)+"-"+pad(d);
     const r=byDate[ds]||{};
+    const pl=byPlan[ds]||{};
     jC+=r.cost||0; jM+=r.mikomi||0; jH+=r.hours||0; jV+=r.visits||0; jS+=r.searches||0;
     const wd=new Date(Y,MO-1,d).getDay();
     const wdCol=wd===0?"color:#dc2626":(wd===6?"color:#2563eb":"");
     const jn=junIdx(d);
-    const hide=jn!==curJun?' class="djhide" style="display:none"':'';
-    const cell=(k,w)=>editable
-      ? `<td class="pl-n"><input class="ginput dly" data-date="${ds}" data-k="${k}" inputmode="numeric" style="width:${w}px;text-align:right;padding:4px 6px" value="${r[k]||""}"></td>`
-      : `<td class="pl-n">${r[k]?yen(r[k]):""}</td>`;
-    const isFut=isCurMonth&&ds>todayIso;
-    body_+=`<tr data-jun="${jn}"${jn!==curJun?' style="display:none"':(ds===today?' style="background:#fff7ed"':(isFut?' style="opacity:.65"':''))}><td style="white-space:nowrap;${wdCol}">${MO}/${d}（${WD[wd]}）${isFut&&(r.cost||r.hours||r.visits||r.searches)?'<span class="gpn">予定</span>':""}</td>`+
+    const src=dlyMode==="plan"?pl:r, other=dlyMode==="plan"?r:pl;
+    const otherLbl=dlyMode==="plan"?"実績":"予定";
+    const cell=(k,w)=>{
+      const sub=other[k]?`<div class="dly-other">${otherLbl} ${yen(other[k])}</div>`:"";
+      return editable
+        ? `<td class="pl-n"><input class="ginput dly${dlyMode==="plan"?" plan-in":""}" data-date="${ds}" data-k="${k}" data-kind="${dlyMode}" inputmode="numeric" style="width:${w}px;text-align:right;padding:4px 6px" value="${src[k]||""}">${sub}</td>`
+        : `<td class="pl-n">${src[k]?yen(src[k]):""}${sub}</td>`;
+    };
+    body_+=`<tr data-jun="${jn}"${jn!==curJun?' style="display:none"':(ds===today?' style="background:#fff7ed"':'')}><td style="white-space:nowrap;${wdCol}">${MO}/${d}（${WD[wd]}）</td>`+
       cell("cost",90)+cell("mikomi",90)+cell("hours",55)+cell("visits",55)+cell("searches",70)+`</tr>`;
     // 旬の区切り（10日・20日・月末）で小計行を挟む（クリックで開閉）
     if(d===10||d===20||d===dim){
@@ -2846,7 +2855,7 @@ function dailySectionHtml(uid,allowEdit){
     }
   }
   const pctS=(v,g)=>{g=numv(g); if(!g)return ""; const p=v/g*100; return `<span style="font-weight:700;${p>=100?"color:#0e9f6e":""}">（${p.toFixed(0)}%）</span>`;};
-  const futRow=(fC||fM||fH||fV||fS)?`<tr class="djun" style="opacity:.8"><td>📅 予定計（明日以降）</td><td class="pl-n">${fC?yen(fC)+"円":""}</td><td class="pl-n">${fM?yen(fM)+"円":""}</td><td class="pl-n">${fH||""}</td><td class="pl-n">${fV||""}</td><td class="pl-n">${fS?yen(fS):""}</td></tr>`:"";
+  const futRow=(fC||fM||fH||fV||fS)?`<tr class="djun" style="opacity:.8"><td>📝 予定計（今月）</td><td class="pl-n">${fC?yen(fC)+"円":""}</td><td class="pl-n">${fM?yen(fM)+"円":""}</td><td class="pl-n">${fH||""}</td><td class="pl-n">${fV||""}</td><td class="pl-n">${fS?yen(fS):""}</td></tr>`:"";
   const total=futRow+`<tr class="ntotal"><td>実績累計${isCurMonth?"（今日まで）":""}<div class="thsub">🎯目標比</div></td><td class="pl-n">${tC?yen(tC)+"円":""}</td>`+
     `<td class="pl-n">${tM?yen(tM)+"円":""}${pctS(tM,goal.gmikomi)}</td>`+
     `<td class="pl-n">${tH||""}${pctS(tH,goal.ghours)}</td>`+
@@ -2881,6 +2890,9 @@ function dailySectionHtml(uid,allowEdit){
     })()}
     ${editable?`<div class="nhint" style="margin-bottom:6px">目標を入れるのは上の🎯欄だけ。下の表には<b>毎日の実際</b>を入力します（仕入金額・見込利益はせどプレ取り込みで自動）</div>`:""}
     ${editable?`<div class="nhint" style="margin-bottom:6px">仕入金額・見込利益は一番上の「📥 データ取り込み」から自動入力できます</div>`:""}
+    ${editable?`<div style="margin:6px 0"><button class="modebtn dlymode${dlyMode==="actual"?" on":""}" data-dm="actual">✅ 実績を入れる</button>
+      <button class="modebtn dlymode plan${dlyMode==="plan"?" on":""}" data-dm="plan">📝 予定を入れる</button>
+      <span class="gpn" style="margin-left:6px">${dlyMode==="plan"?"予定モード：青い欄に計画を入力（実績とは別に保存されます）":"実績モード：やった分を入力"}</span></div>`:""}
     <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="ntbl pltbl dlytbl"><thead><tr><th>日付</th>
     <th>仕入金額<div class="thsub">せどプレから自動</div></th>
     <th>見込利益<div class="thsub">せどプレから自動</div></th>
@@ -2895,12 +2907,13 @@ function bindDaily(){
   if(sel) sel.onchange=()=>{ numsWho=sel.value; renderNums(); };
 
   const applyDailyItems=window.__applyDaily=async(items,msgEl)=>{
+    if(dlyMode!=="actual"){ dlyMode="actual"; const w=document.getElementById("dailyWrap"); if(w){ w.innerHTML=dailySectionHtml(String(me.sid),true); bindDaily(); } }
     const msg=msgEl||document.getElementById("uniMsg")||document.getElementById("dlyPasteMsg");
     if(!items.length){ if(msg) msg.textContent="せどプレのデータが読み取れませんでした"; return; }
     const byDt={}; let noDt=0;
     items.forEach(x=>{ if(!x.dt){noDt++;return;} const o=byDt[x.dt]=byDt[x.dt]||{cost:0,mikomi:0,n:0}; o.cost+=(x.cost||0)*(x.qty||1); o.mikomi+=(x.profit||0)*(x.qty||1); o.n++; });
     let hit=0, kept=0;
-    const exOf=ds=>((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===ds)||{};
+    const exOf=ds=>((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===ds&&(x.kind||"actual")==="actual")||{};
     const otherByYm={}; // 表示中以外の月 → まとめて自動保存
     Object.keys(byDt).forEach(ds=>{
       const ci=document.querySelector(`.dly[data-date="${ds}"][data-k="cost"]`);
@@ -2925,9 +2938,9 @@ function bindDaily(){
         for(const ym of ymList){
           // 既存の時間・回訪・検索を消さないよう既存行とマージ
           const rows=otherByYm[ym].map(r=>{
-            const ex=((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===r.date)||{};
+            const ex=((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===r.date&&(x.kind||"actual")==="actual")||{};
             if((ex.mikomi||0)>r.mikomi){ kept++; return null; } // 既存記録の方が大きい過去日は守る
-            return {date:r.date,cost:r.cost,mikomi:r.mikomi,hours:ex.hours||0,visits:ex.visits||0,searches:ex.searches||0};
+            return {date:r.date,kind:"actual",cost:r.cost,mikomi:r.mikomi,hours:ex.hours||0,visits:ex.visits||0,searches:ex.searches||0};
           }).filter(Boolean);
           if(!rows.length) continue;
           try{
@@ -2976,25 +2989,29 @@ function bindDaily(){
     }catch(e){ alert("通信エラー"); }
     gs.disabled=false;
   };
+  document.querySelectorAll(".dlymode").forEach(b=>{
+    b.onclick=()=>{ if(dlyMode===b.dataset.dm) return; dlyMode=b.dataset.dm; const w=document.getElementById("dailyWrap"); if(w){ w.innerHTML=dailySectionHtml(String(me.sid),true); bindDaily(); } };
+  });
   const sv=document.getElementById("dlySave");
   if(sv) sv.onclick=async()=>{
     const msg=document.getElementById("dlyMsg");
+    const kind=dlyMode==="plan"?"plan":"actual";
     const byDate={};
     document.querySelectorAll(".dly").forEach(i=>{ (byDate[i.dataset.date]=byDate[i.dataset.date]||{})[i.dataset.k]=i.value.replace(/[^0-9]/g,""); });
-    const orig={}; ((DAILYALL&&DAILYALL.rows)||[]).forEach(r=>{ if(String(r.uid)===String(me.sid)) orig[r.date]=r; });
+    const orig={}; ((DAILYALL&&DAILYALL.rows)||[]).forEach(r=>{ if(String(r.uid)===String(me.sid)&&(r.kind||"actual")===kind) orig[r.date]=r; });
     const rows=[];
     Object.keys(byDate).forEach(ds=>{
       const nv=byDate[ds], o=orig[ds]||{};
       const keys=["cost","mikomi","hours","visits","searches"];
       const changed=keys.some(k=>String(o[k]||"")!==String(nv[k]||""));
       const any=keys.some(k=>nv[k]);
-      if(changed&&(any||orig[ds])) rows.push({date:ds,cost:nv.cost||0,mikomi:nv.mikomi||0,hours:nv.hours||0,visits:nv.visits||0,searches:nv.searches||0});
+      if(changed&&(any||orig[ds])) rows.push({date:ds,kind:kind,cost:nv.cost||0,mikomi:nv.mikomi||0,hours:nv.hours||0,visits:nv.visits||0,searches:nv.searches||0});
     });
     if(!rows.length){ msg.textContent="変更はありません"; return; }
     sv.disabled=true; msg.textContent="保存中…";
     try{
       const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"dysave",pass:PASS,uid:me.sid,name:me.name,rows:rows})})).json();
-      if(d&&d.ok){ DAILYALL=null; await renderNums(); showToast("✅ デイリーを保存しました（"+rows.length+"日分）"); return; }
+      if(d&&d.ok){ DAILYALL=null; await renderNums(); showToast((kind==="plan"?"📝 予定":"✅ 実績")+"を保存しました（"+rows.length+"日分）"); return; }
       msg.textContent="失敗："+(d&&d.error||"不明");
     }catch(e){ msg.textContent="通信エラー"; }
     sv.disabled=false;
@@ -3011,11 +3028,11 @@ async function renderNums(){
       const gmap={}; ((b.g&&b.g.goals)||[]).forEach(x=>{ (gmap[x.uid]=gmap[x.uid]||[]).push(x); });
       return { n:b.n, g:gmap, dy:b.dy||{rows:[],goals:[]}, kg:(b.kg&&b.kg.rows)||[], br:(b.br&&b.br.brands)||BRANDS||null, kp:(b.kp&&b.kp.rows)||ALLKAIJO||null };
     };
-    const cb=cacheGet("numsbundle");
-    if(cb){ applyB(cb); (async()=>{ try{ const b=await fetchB(); cacheSet("numsbundle",b); if(chap===NUMS){ applyB(b); renderNums(); showToast("🔄 最新に更新しました"); } }catch(e){} })(); }
+    const cb=cacheGet("numsbundle2");
+    if(cb){ applyB(cb); (async()=>{ try{ const b=await fetchB(); cacheSet("numsbundle2",b); if(chap===NUMS){ applyB(b); renderNums(); showToast("🔄 最新に更新しました"); } }catch(e){} })(); }
     else{
       body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
-      try{ const b=await fetchB(); cacheSet("numsbundle",b); applyB(b); }
+      try{ const b=await fetchB(); cacheSet("numsbundle2",b); applyB(b); }
       catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; NUMSALL=null; return; }
       if(chap!==NUMS) return;
     }
