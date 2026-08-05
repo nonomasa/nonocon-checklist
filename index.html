@@ -498,7 +498,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-05 12:16</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-05 12:34</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2842,14 +2842,7 @@ function dailySectionHtml(uid,allowEdit){
       return lines.length?`<div class="dlypace">${lines.join("　｜　")}</div>`:"";
     })()}
     ${editable?`<div class="nhint" style="margin-bottom:6px">目標を入れるのは上の🎯欄だけ。下の表には<b>毎日の実際</b>を入力します（仕入金額・見込利益はせどプレ取り込みで自動）</div>`:""}
-    ${editable?`<div class="dly-pastewrap"><button class="drmemo-edit" id="dlyPasteOpen">📋 せどプレのデータを入れて仕入金額・見込利益を自動入力</button>
-      <div id="dlyPasteBox" style="display:none;margin-top:6px">
-        <div class="nhint">せどプレの仕入れリストを行コピー（何日分まとめてもOK）→貼り付け、またはCSVを選択。仕入日ごとに自動で振り分けます（原価×個数＝仕入金額、粗利×個数＝見込利益）</div>
-        <textarea class="ginput" id="dlyPasteIn" rows="3" placeholder="ここに行を貼り付け（1ヶ月分まとめてOK）"></textarea>
-        <button class="gbtn" id="dlyPasteGo" style="margin-top:6px;padding:6px 14px;font-size:12px">貼り付けを反映</button>
-        <button class="gbtn" id="dlyCsvGo" style="margin-top:6px;padding:6px 14px;font-size:12px;background:#6b7686">CSVファイルから</button>
-        <span class="gmsg" id="dlyPasteMsg"></span>
-      </div></div>`:""}
+    ${editable?`<div class="nhint" style="margin-bottom:6px">仕入金額・見込利益は一番上の「📥 データ取り込み」から自動入力できます</div>`:""}
     <div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="ntbl pltbl dlytbl"><thead><tr><th>日付</th>
     <th>仕入金額<div class="thsub">せどプレから自動</div></th>
     <th>見込利益<div class="thsub">せどプレから自動</div></th>
@@ -2862,37 +2855,62 @@ function dailySectionHtml(uid,allowEdit){
 function bindDaily(){
   const sel=document.getElementById("dailyWho");
   if(sel) sel.onchange=()=>{ numsWho=sel.value; renderNums(); };
-  const po=document.getElementById("dlyPasteOpen");
-  if(po) po.onclick=()=>{ const b=document.getElementById("dlyPasteBox"); b.style.display=b.style.display==="none"?"":"none"; };
-  const applyDailyItems=items=>{
-    const msg=document.getElementById("dlyPasteMsg");
-    if(!items.length){ msg.textContent="データが読み取れませんでした"; return; }
+
+  const applyDailyItems=window.__applyDaily=async(items,msgEl)=>{
+    const msg=msgEl||document.getElementById("uniMsg")||document.getElementById("dlyPasteMsg");
+    if(!items.length){ if(msg) msg.textContent="せどプレのデータが読み取れませんでした"; return; }
     const byDt={}; let noDt=0;
     items.forEach(x=>{ if(!x.dt){noDt++;return;} const o=byDt[x.dt]=byDt[x.dt]||{cost:0,mikomi:0,n:0}; o.cost+=(x.cost||0)*(x.qty||1); o.mikomi+=(x.profit||0)*(x.qty||1); o.n++; });
-    let hit=0, miss=0;
+    let hit=0, kept=0;
+    const exOf=ds=>((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===ds)||{};
+    const otherByYm={}; // 表示中以外の月 → まとめて自動保存
     Object.keys(byDt).forEach(ds=>{
       const ci=document.querySelector(`.dly[data-date="${ds}"][data-k="cost"]`);
       const mi=document.querySelector(`.dly[data-date="${ds}"][data-k="mikomi"]`);
-      if(ci&&mi){ ci.value=byDt[ds].cost; mi.value=byDt[ds].mikomi; hit++; } else miss++;
+      if(ci&&mi){
+        // せどプレは過去分が消えて目減りするので、既存記録の方が大きい日は守る
+        const exM=parseFloat(mi.value.replace(/,/g,""))||exOf(ds).mikomi||0;
+        if(exM>byDt[ds].mikomi&&ds<todayStr()){ kept++; return; }
+        ci.value=byDt[ds].cost; mi.value=byDt[ds].mikomi; hit++;
+      }
+      else{
+        const m=ds.match(/^(\d{4})-(\d{2})/);
+        if(m){ const ym=(+m[1])+"年"+(+m[2])+"月"; (otherByYm[ym]=otherByYm[ym]||[]).push({date:ds,cost:byDt[ds].cost,mikomi:byDt[ds].mikomi,hours:0,visits:0,searches:0}); }
+      }
     });
-    msg.textContent=`${items.length}商品を${Object.keys(byDt).length}日分に振り分け（この月に${hit}日反映${miss?`・別の月${miss}日分は月を切り替えて再度実行`:""}${noDt?`・仕入日不明${noDt}件`:""}）。「デイリーを保存」を忘れずに`;
+    let otherNote="";
+    const ymList=Object.keys(otherByYm);
+    if(ymList.length){
+      const desc=ymList.map(ym=>`${ym}:${otherByYm[ym].length}日分`).join("、");
+      if(confirm(`表示中の月以外のデータがあります（${desc}）。その月の仕入金額・見込利益として自動保存しますか？\n※時間・回訪・検索はその月を開いて入力してください`)){
+        msg.textContent="他の月を保存中…";
+        for(const ym of ymList){
+          // 既存の時間・回訪・検索を消さないよう既存行とマージ
+          const rows=otherByYm[ym].map(r=>{
+            const ex=((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===r.date)||{};
+            if((ex.mikomi||0)>r.mikomi){ kept++; return null; } // 既存記録の方が大きい過去日は守る
+            return {date:r.date,cost:r.cost,mikomi:r.mikomi,hours:ex.hours||0,visits:ex.visits||0,searches:ex.searches||0};
+          }).filter(Boolean);
+          if(!rows.length) continue;
+          try{
+            await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"dysave",pass:PASS,uid:me.sid,name:me.name,rows:rows})});
+            rows.forEach(r=>{ // ローカルにも反映
+              const arr=(DAILYALL.rows=DAILYALL.rows||[]);
+              const i=arr.findIndex(x=>String(x.uid)===String(me.sid)&&x.date===r.date);
+              const rec=Object.assign({uid:String(me.sid),name:me.name},r);
+              if(i>=0) arr[i]=rec; else arr.push(rec);
+            });
+          }catch(e){}
+        }
+        otherNote=`・他の月（${desc}）は自動保存済み`;
+        showToast("✅ 他の月の分も保存しました");
+      }else{
+        otherNote=`・他の月（${desc}）は保存せずスキップ`;
+      }
+    }
+    if(msg) msg.textContent=`${items.length}商品を${Object.keys(byDt).length}日分に振り分け（この月に${hit}日反映${kept?`・${kept}日分は既存記録の方が大きいため保持`:""}${otherNote}${noDt?`・仕入日不明${noDt}件`:""}）。表示中の月の分は「デイリーを保存」で確定`;
   };
-  const pg=document.getElementById("dlyPasteGo");
-  if(pg) pg.onclick=()=>applyDailyItems(sedoprePasteParse(document.getElementById("dlyPasteIn").value));
-  const cg=document.getElementById("dlyCsvGo");
-  if(cg) cg.onclick=()=>{
-    const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
-    inp.onchange=async()=>{
-      const f=inp.files[0]; if(!f) return;
-      try{
-        const buf=await f.arrayBuffer();
-        let text=""; try{ text=new TextDecoder("shift_jis").decode(buf); }catch(e){}
-        if(text.indexOf("ASIN")<0) text=new TextDecoder("utf-8").decode(buf);
-        applyDailyItems(sedopreParse(text));
-      }catch(e){ alert(String(e)); }
-    };
-    inp.click();
-  };
+
   document.querySelectorAll(".djun[data-juntgl]").forEach(tr=>{
     tr.onclick=()=>{
       const jn=tr.dataset.juntgl;
@@ -2998,6 +3016,14 @@ async function renderNums(){
   </div>`;
 
   // 月次推移（北野シート型）。誰の分でも見られる
+  if(selfView){
+    html+=`<div class="gpanel"><div class="gph">📥 データ取り込み <span class="gpn">ここに入れるだけで自動判別して下の欄に反映されます</span></div>
+      <div class="qphoto-drop" id="uniDrop">📄 CSVをクリックで選択 or ドラッグ（プライスター注文／せどプレ仕入れリスト／在庫CSV。複数まとめてOK）</div>
+      <div style="margin-top:8px"><textarea class="ginput" id="uniPaste" rows="2" placeholder="せどプレの行コピペはここに貼り付け（何ヶ月分でもOK）"></textarea>
+      <button class="gbtn" id="uniPasteGo" style="margin-top:6px;padding:6px 14px;font-size:12px">貼り付けを反映</button>
+      <span class="gmsg" id="uniMsg"></span></div>
+      <div class="nhint">仕入日ごとにデイリーへ自動振り分け。過去の日付は既存の記録の方が大きければ守ります（せどプレは在庫反映で過去分が消えるため）</div></div>`;
+  }
   html+=lifeGoalHtml(viewUid,selfView);
   html+=`<div class="gpanel"><div class="gph">📈 月次推移</div>
     <div id="trendBox">${trendTableHtml(viewUid,selfView)}</div></div>`;
@@ -3135,30 +3161,71 @@ async function renderNums(){
   bindLifeGoal();
   bindDaily();
   bindKgoal();
+  // 📥統一取り込み
+  const uniHandleFiles=async files=>{
+    const msg=document.getElementById("uniMsg");
+    for(const f of files){
+      try{
+        const buf=await f.arrayBuffer();
+        let text=""; try{ text=new TextDecoder("shift_jis").decode(buf); }catch(e){}
+        if(!/注文日|ASIN|number|在庫/.test(text)) text=new TextDecoder("utf-8").decode(buf);
+        if(text.indexOf("注文日")>=0){ await importPricetarFile(f,msg); }
+        else if(/(^|\n)"?\d{8}-/.test(text)||text.indexOf("ASIN")>=0&&text.indexOf("粗利")>=0){ await window.__applyDaily(sedopreParse(text),msg); }
+        else if(/number|在庫数/.test(text)){ await importZaikoFiles([f],msg); }
+        else{ if(msg) msg.textContent=`「${f.name}」の種類を判別できませんでした（プライスター注文／せどプレ／在庫CSVに対応）`; }
+      }catch(e){ if(msg) msg.textContent=`「${f.name}」：`+String(e).slice(0,120); }
+    }
+  };
+  const uniDrop=document.getElementById("uniDrop");
+  if(uniDrop){
+    uniDrop.onclick=()=>{
+      const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv"; inp.multiple=true;
+      inp.onchange=()=>uniHandleFiles([...inp.files]);
+      inp.click();
+    };
+    uniDrop.ondragover=e=>{ e.preventDefault(); uniDrop.classList.add("drop-on"); };
+    uniDrop.ondragleave=()=>uniDrop.classList.remove("drop-on");
+    uniDrop.ondrop=e=>{ e.preventDefault(); uniDrop.classList.remove("drop-on"); uniHandleFiles([...e.dataTransfer.files]); };
+    const upg=document.getElementById("uniPasteGo");
+    if(upg) upg.onclick=()=>window.__applyDaily(sedoprePasteParse(document.getElementById("uniPaste").value),document.getElementById("uniMsg"));
+  }
   document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;numsDraft=null;renderNums();};
   document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;numsDraft=null;renderNums();};
 
+  const importPricetarFile=async(f,msg)=>{
+    if(msg) msg.textContent="プライスター注文CSVを解析中…";
+    captureNumsDraft(); // 入力中の値が再描画で消えないように退避
+    const byMonth=await parsePricetar(f);
+    const skipped=byMonth.__skipped||0; delete byMonth.__skipped;
+    const months=Object.keys(byMonth);
+    let target=numsMonth;
+    if(!byMonth[target]){
+      if(months.length===1){ target=months[0]; numsMonth=target; numsDraft=null; }
+      else{ if(msg) msg.textContent=`選択中の${numsMonth}のデータがCSVにありません（含まれる月：${months.join("、")}）`; return; }
+    }
+    numsParsed=byMonth[target];
+    await renderNums();
+    const m2=document.getElementById("uniMsg")||document.getElementById("ncsvMsg");
+    if(m2) m2.textContent=`プライスター注文CSVを②に取り込みました${skipped?`（キャンセル・保留中の${skipped}件を除外）`:""}。下の保存ボタンで確定`;
+  };
+  const importZaikoFiles=async(files,msg)=>{
+    let cnt=0,sales=0,cost=0,hasPrice=false,hasCost=false;
+    for(const f of files){
+      const z=await parseZaiko(f);
+      cnt+=z.cnt; sales+=z.sales; cost+=z.cost;
+      hasPrice=hasPrice||z.hasPrice; hasCost=hasCost||z.hasCost;
+    }
+    const el=id=>document.getElementById(id);
+    if(el("n_stockCnt")) el("n_stockCnt").value=cnt;
+    if(hasPrice&&el("n_stockSales")) el("n_stockSales").value=sales;
+    if(hasCost&&el("n_stockCost")) el("n_stockCost").value=cost;
+    if(msg) msg.textContent=`在庫CSVを③に反映：在庫${yen(cnt)}個`+(hasPrice?` / 販売額${yen(sales)}円`:"")+(hasCost?` / 仕入額${yen(cost)}円`:"")+"（下の保存ボタンで確定）";
+  };
   const ncsvB=document.getElementById("ncsvBtn");
   if(ncsvB) ncsvB.onclick=()=>{
     const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
-    inp.onchange=async()=>{
-      const f=inp.files[0]; if(!f) return;
-      const msg=document.getElementById("ncsvMsg"); msg.textContent="解析中…";
-      captureNumsDraft(); // 入力中の値が再描画で消えないように退避
-      try{
-        const byMonth=await parsePricetar(f);
-        const skipped=byMonth.__skipped||0; delete byMonth.__skipped;
-        const months=Object.keys(byMonth);
-        let target=numsMonth;
-        if(!byMonth[target]){
-          if(months.length===1){ target=months[0]; numsMonth=target; numsDraft=null; }
-          else{ msg.textContent=`選択中の${numsMonth}のデータがCSVにありません（含まれる月：${months.join("、")}）`; return; }
-        }
-        numsParsed=byMonth[target];
-        await renderNums();
-        if(skipped){ const m2=document.getElementById("ncsvMsg"); if(m2) m2.textContent=`取り込み済み（キャンセル・保留中の${skipped}件を除外）`; }
-      }catch(e){ msg.textContent=String(e); }
-    };
+    inp.onchange=async()=>{ const f=inp.files[0]; if(!f) return;
+      try{ await importPricetarFile(f,document.getElementById("ncsvMsg")); }catch(e){ const m=document.getElementById("ncsvMsg"); if(m) m.textContent=String(e); } };
     inp.click();
   };
 
@@ -3199,17 +3266,7 @@ async function renderNums(){
     inp.onchange=async()=>{
       const files=[...inp.files]; if(!files.length) return;
       const msg=document.getElementById("nzaikoMsg"); msg.textContent="解析中…";
-      try{
-        let cnt=0,sales=0,cost=0,hasPrice=false,hasCost=false;
-        for(const f of files){
-          const z=await parseZaiko(f);
-          cnt+=z.cnt; sales+=z.sales; cost+=z.cost;
-          hasPrice=hasPrice||z.hasPrice; hasCost=hasCost||z.hasCost;
-        }
-        document.getElementById("n_stockCnt").value=cnt;
-        if(hasPrice) document.getElementById("n_stockSales").value=sales;
-        if(hasCost) document.getElementById("n_stockCost").value=cost;
-        msg.textContent=`✅ ${files.length}ファイル合算：在庫${yen(cnt)}個`+(hasPrice?` / 販売額${yen(sales)}円`:"")+(hasCost?` / 仕入額${yen(cost)}円`:"")+"（下の保存ボタンで確定）";
+      try{ await importZaikoFiles(files,msg);
       }catch(e){ msg.textContent=String(e); }
     };
     inp.click();
