@@ -284,6 +284,7 @@
   .kgchip i{font-style:normal;font-size:10.5px;font-weight:400;color:#9aa2af}
   .kgchip .kgx{border:none;background:none;color:#b3bac6;cursor:pointer;font-size:14px;padding:0 0 0 2px}
   .kgchip .kgx:hover{color:#dc2626}
+  .kgdone{display:inline-flex;align-items:center;background:#eafaf2;color:#0e9f6e;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:700}
   .lgf{margin-bottom:8px}
   .lg-view{font-size:13.5px;line-height:1.7;white-space:pre-wrap;background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
   .dlypace{font-size:12px;color:#5a6472;background:#f7f9fc;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.9}
@@ -501,7 +502,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-05 13:10</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-05 13:23</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2628,7 +2629,10 @@ function kgoalChipsHtml(uid,editable){
   const cand=(BRANDS||[]).filter(b=>!sel.includes(b.brand)&&!kgAchieved(kaijoStatusOf(uid,b.brand)));
   const priG={}; cand.forEach(b=>{ (priG[b.pri||"その他"]=priG[b.pri||"その他"]||[]).push(b); });
   const add=editable?`<select class="ginput" id="kgoalAdd" style="max-width:260px;font-size:13px;padding:6px 10px"><option value="">＋ブランドを追加（優先度順）</option>${Object.keys(priG).map(pri=>`<optgroup label="${escH(pri)}">`+priG[pri].map(b=>`<option value="${escH(b.brand)}">${escH(b.brand)}</option>`).join("")+`</optgroup>`).join("")}</select>`:"";
-  return `<div class="kgrow">${chips||(editable?"":'<span class="gpn">未設定</span>')}${add}${prog}</div>`;
+  // 現在解除済みのメーカー（優先度順）：何ができていて今月何にチャレンジ中かをひと目で
+  const cleared=(BRANDS||[]).filter(b=>!sel.includes(b.brand)&&kgAchieved(kaijoStatusOf(uid,b.brand)));
+  const clearedHtml=cleared.length?`<div class="kgrow" style="margin-top:8px"><span class="gpn" style="font-weight:700">✅ 解除済み（${cleared.length}）</span>${cleared.map(b=>`<span class="kgdone" title="${escH(kaijoStatusOf(uid,b.brand))}">${escH(b.brand)}</span>`).join("")}</div>`:"";
+  return `<div class="kgrow">${chips||(editable?"":'<span class="gpn">未設定</span>')}${add}${prog}</div>${clearedHtml}`;
 }
 function bindKgoal(){
   const wrap=document.getElementById("kgoalWrap"); if(!wrap) return;
