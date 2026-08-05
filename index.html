@@ -508,7 +508,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-06 01:49</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-06 01:52</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -4122,8 +4122,9 @@ function render(){
   // ステージフィルタ（⭐＝入会直後／⭐⭐＝仕入れ開始期／⭐⭐⭐＝軌道に乗ってから）
   const fb=document.createElement("div"); fb.className="lvbar";
   fb.innerHTML=`<button class="lvbtn ${lvFilter===0?"on":""}" data-lv="0">すべて</button>`
-    +STAGES.map(st=>`<button class="lvbtn ${lvFilter===st.n?"on":""}" data-lv="${st.n}" title="${st.label}">${st.n}</button>`).join("")
-    +`<button class="lvbtn hotbtn ${lvFilter==="hot"?"on":""}" data-lv="hot">🔴 重要</button>`;
+    +STAGES.map(st=>`<button class="lvbtn ${lvFilter===st.n?"on":""}" data-lv="${st.n}" title="${st.label}">${lvFilter===st.n?st.label:st.n}</button>`).join("")
+    +`<button class="lvbtn hotbtn ${lvFilter==="hot"?"on":""}" data-lv="hot">🔴 重要</button>`
+    +`<span class="gpn" style="margin-left:6px">数字＝ステージ（🎯今やることと同じ。押すと名前が出ます）</span>`;
   body.appendChild(fb);
   fb.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{lvFilter=b.dataset.lv==="hot"?"hot":+b.dataset.lv;render();});
   const rendered=[];
