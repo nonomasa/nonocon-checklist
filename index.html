@@ -498,7 +498,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-05 12:50</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-05 12:51</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -3164,6 +3164,7 @@ async function renderNums(){
   // 📥統一取り込み
   const uniHandleFiles=async files=>{
     const msg=document.getElementById("uniMsg");
+    const zaikoFiles=[]; // 在庫CSVは複数まとめて合算するため先に仕分け
     for(const f of files){
       try{
         const buf=await f.arrayBuffer();
@@ -3171,10 +3172,11 @@ async function renderNums(){
         if(!/注文日|ASIN|number|在庫/.test(text)) text=new TextDecoder("utf-8").decode(buf);
         if(text.indexOf("注文日")>=0){ await importPricetarFile(f,msg); }
         else if(/(^|\n)"?\d{8}-/.test(text)||text.indexOf("ASIN")>=0&&text.indexOf("粗利")>=0){ await window.__applyDaily(sedopreParse(text),msg); }
-        else if(/number|在庫数/.test(text)){ await importZaikoFiles([f],msg); }
+        else if(/number|在庫数/.test(text)){ zaikoFiles.push(f); }
         else{ if(msg) msg.textContent=`「${f.name}」の種類を判別できませんでした（プライスター注文／せどプレ／在庫CSVに対応）`; }
       }catch(e){ if(msg) msg.textContent=`「${f.name}」：`+String(e).slice(0,120); }
     }
+    if(zaikoFiles.length){ try{ await importZaikoFiles(zaikoFiles,msg); }catch(e){ if(msg) msg.textContent="在庫CSV："+String(e).slice(0,120); } }
   };
   const uniDrop=document.getElementById("uniDrop");
   if(uniDrop){
