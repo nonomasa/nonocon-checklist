@@ -498,7 +498,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-05 12:53</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-05 12:58</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1446,6 +1446,7 @@ let dailyWho=null;          // デイリーで表示中のメンバー
 let numsWho=null;           // 数字報告タブ全体で表示中のメンバー（1人選ぶと全部切り替わる）
 let numsMode="input";       // 数字報告のモード：input=自分の入力 / view=みんなを見る
 let lgOpen=null;            // 🧭目的の開閉（null=未記入なら開く）
+let trendOpen=false;        // 月次推移：false=今月サマリーのみ / true=全期間・目標編集
 let KGOALS=null;            // 解除目標 [{uid,ym,brands(JSON)}]
 let numsMonth=null;        // 表示中の年月 "2026年7月"
 let numsParsed=null;       // CSV解析結果 {上旬:{sales,profit,cnt},...}
@@ -2684,6 +2685,29 @@ function bindLifeGoal(){
     sv.disabled=false;
   };
 }
+/* 今月（＋先月）だけのコンパクト表示。毎回の確認用 */
+function miniTrendHtml(uid){
+  const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+  const nums=(NUMSALL&&NUMSALL.nums||[]).filter(n=>String(n.uid)===String(uid));
+  const metas=(NUMSALL&&NUMSALL.metas||[]).filter(m=>String(m.uid)===String(uid));
+  const cur=ymNow();
+  const yms=[ymShift(cur,-1),cur];
+  let rows="";
+  yms.forEach(ym=>{
+    const meta=metas.find(m=>m.ym===ym)||{};
+    const gS=numv(meta.gsales2)||numv(meta.gsales);
+    const gP=numv(meta.gprofit2)||numv(meta.gprofit);
+    const mine=nums.filter(n=>n.ym===ym);
+    const aS=mine.reduce((a,n)=>a+n.sales,0), aP=mine.reduce((a,n)=>a+n.profit,0);
+    const pct=gS?(aS/gS*100):null, pPct=gP?(aP/gP*100):null, rate=aS?(aP/aS*100):null;
+    const pctCls=v=>v==null?"":(v>=100?' style="color:#0e9f6e;font-weight:700"':(v<70?' style="color:#dc2626;font-weight:700"':' style="font-weight:700"'));
+    rows+=`<tr${ym===cur?' style="background:#fff7ed"':''}><td style="white-space:nowrap">${ym===cur?"今月":"先月"}<span class="gpn">（${escH(ym)}）</span></td>`+
+      `<td class="pl-n">${gS?yen(gS)+"円":""}</td><td class="pl-n">${aS?yen(aS)+"円":""}</td><td class="pl-n"${pctCls(pct)}>${pct!=null?pct.toFixed(0)+"%":""}</td>`+
+      `<td class="pl-n">${gP?yen(gP)+"円":""}</td><td class="pl-n">${aP?yen(aP)+"円":""}</td><td class="pl-n"${pctCls(pPct)}>${pPct!=null?pPct.toFixed(0)+"%":""}</td>`+
+      `<td class="pl-n">${rate!=null?rate.toFixed(0)+"%":""}</td></tr>`;
+  });
+  return `<div style="overflow-x:auto"><table class="ntbl pltbl"><thead><tr><th>月</th><th>目標月商</th><th>実績月商</th><th>進捗率</th><th>目標月利</th><th>実績月利</th><th>月利達成</th><th>利益率</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
 /* 北野シート型の月次推移（目標/実績/進捗率/月利/利益率）。全員分を誰でも閲覧可 */
 function ymSortKey(ym){const m=String(ym).match(/(\d{4})年(\d{1,2})月/);return m?(+m[1]*100+ +m[2]):0;}
 function trendTableHtml(uid,allowEdit){
@@ -3012,6 +3036,7 @@ async function renderNums(){
   }
   const meta=metaFor(me.sid,numsMonth)||{};
   const nm=numsFor(me.sid,numsMonth);
+  const numv0=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
   const viewUid=numsMode==="input"?String(me.sid):String(numsWho||me.sid);
   const selfView=numsMode==="input";
   const viewName=(()=>{ if(selfView) return me.name;
@@ -3039,8 +3064,13 @@ async function renderNums(){
       <div class="nhint">仕入日ごとにデイリーへ自動振り分け。過去の日付は既存の記録の方が大きければ守ります（せどプレは在庫反映で過去分が消えるため）</div></div>`;
   }
   html+=lifeGoalHtml(viewUid,selfView);
-  html+=`<div class="gpanel"><div class="gph">📈 月次推移</div>
-    <div id="trendBox">${trendTableHtml(viewUid,selfView)}</div></div>`;
+  if(selfView&&!trendOpen){
+    html+=`<div class="gpanel"><div class="gph">📈 月次推移 <button class="drmemo-edit" id="trendToggle" style="margin-left:8px">▶ 卒業までの全期間を見る・目標を編集</button></div>
+      <div id="trendBox">${miniTrendHtml(viewUid)}</div></div>`;
+  }else{
+    html+=`<div class="gpanel"><div class="gph">📈 月次推移${selfView?` <button class="drmemo-edit" id="trendToggle" style="margin-left:8px">▼ 今月だけの表示に戻す</button>`:""}</div>
+      <div id="trendBox">${trendTableHtml(viewUid,selfView)}</div></div>`;
+  }
 
   if(!selfView){
     const mv=metaFor(viewUid,numsMonth)||{};
@@ -3052,8 +3082,8 @@ async function renderNums(){
   }
   if(selfView) html+=`<div class="gpanel"><div class="gph">① 今月の目標</div>
     <div class="nrow3">
-      <div><label class="glbl">目標月商（円）</label><input class="ginput" id="n_gsales" inputmode="numeric" placeholder="5000000" value="${V("gsales")}"></div>
-      <div><label class="glbl">目標粗利（円）</label><input class="ginput" id="n_gprofit" inputmode="numeric" placeholder="1000000" value="${V("gprofit")}"></div>
+      <div><label class="glbl">目標月商（円）</label><div class="lg-view"><b>${numv0(meta.gsales)?yen(numv0(meta.gsales))+"円":"未設定"}</b> <span class="gpn">📈月次推移で入力</span></div></div>
+      <div><label class="glbl">目標粗利（円）</label><div class="lg-view"><b>${numv0(meta.gprofit)?yen(numv0(meta.gprofit))+"円":"未設定"}</b> <span class="gpn">📈月次推移で入力</span></div></div>
       <div><label class="glbl">その他経費（円）</label><input class="ginput" id="n_expense" inputmode="numeric" value="${(numsDraft&&numsDraft.expense!==undefined)?V("expense"):(meta.expense?V("expense"):"5390")}">
       <div class="nhint">未入力時は大口登録料5,390円のみ自動計上。正確にするならプライスター「売上分析」のその他経費の額を転記（FBA保管料・配送料金込み）</div></div>
     </div>
@@ -3168,6 +3198,8 @@ async function renderNums(){
   if(tw) tw.onchange=()=>switchWho(tw.value);
   const ws=document.getElementById("numsWhoSel");
   if(ws) ws.onchange=()=>switchWho(ws.value);
+  const tt=document.getElementById("trendToggle");
+  if(tt) tt.onclick=()=>{ trendOpen=!trendOpen; renderNums(); };
   document.querySelectorAll(".modebtn").forEach(b=>{
     b.onclick=()=>{ if(numsMode===b.dataset.m) return; numsMode=b.dataset.m; if(numsMode==="view"&&!numsWho) numsWho=String(me.sid); renderNums(); };
   });
@@ -3249,7 +3281,7 @@ async function renderNums(){
   const saveAll=async(btn,msg)=>{
     const label=btn.textContent;
     btn.disabled=true; btn.textContent="保存中…"; if(msg) msg.textContent="";
-    const g=id=>{const el=document.getElementById(id);return el?el.value.trim():"";};
+    const g=(id,key)=>{const el=document.getElementById(id);if(el)return el.value.trim();return key?String(meta[key]==null?"":meta[key]):"";};
     try{
       if(numsParsed){
         const rows=JUNS.map(j=>({jun:j,sales:Math.round(numsParsed[j].sales),profit:Math.round(numsParsed[j].profit),cnt:numsParsed[j].cnt}));
@@ -3258,7 +3290,7 @@ async function renderNums(){
         if(!r1||!r1.ok) throw (r1&&r1.error)||"数字の保存に失敗";
       }
       const bodyData={action:"nsave",pass:PASS,uid:me.sid,name:me.name,ym:numsMonth,gradMonth:"",gradGoal:""};
-      NKEYS.forEach(k=>{ bodyData[k]=g("n_"+k); });
+      NKEYS.forEach(k=>{ bodyData[k]=g("n_"+k,k); });
       TODO_SECS.forEach(x=>{ bodyData[x[0]]=JSON.stringify(collectTodos(x[0])||[]); bodyData[x[2]]=""; });
       const r2=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(bodyData)})).json();
       if(!r2||!r2.ok) throw (r2&&r2.error)||"入力内容の保存に失敗";
