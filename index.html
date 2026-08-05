@@ -276,6 +276,8 @@
   li.subh{display:flex;align-items:center;gap:8px;background:#f2f4f7;border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin:4px 0 4px 18px;font-size:13.5px;font-weight:700;color:#3d4654;cursor:pointer;list-style:none}
   li.subh .gc{margin-left:auto;font-size:12px;color:var(--sub);font-weight:400}
   li.subh+li.item, li.item[data-insub]{margin-left:18px}
+  .modebtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 18px;font-size:14px;font-weight:700;color:#6b7686;cursor:pointer}
+  .modebtn.on{background:#f97316;border-color:#f97316;color:#fff}
   .kgrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .kgchip{display:inline-flex;align-items:center;gap:5px;background:#f4effd;color:#7c3aed;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
   .kgchip.on{background:#eafaf2;color:#0e9f6e}
@@ -496,7 +498,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-04 22:35</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-05 12:16</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1442,6 +1444,7 @@ let trendWho=null;          // 月次推移で表示中のメンバー
 let DAILYALL=null;          // {rows:[], goals:[]}
 let dailyWho=null;          // デイリーで表示中のメンバー
 let numsWho=null;           // 数字報告タブ全体で表示中のメンバー（1人選ぶと全部切り替わる）
+let numsMode="input";       // 数字報告のモード：input=自分の入力 / view=みんなを見る
 let KGOALS=null;            // 解除目標 [{uid,ym,brands(JSON)}]
 let numsMonth=null;        // 表示中の年月 "2026年7月"
 let numsParsed=null;       // CSV解析結果 {上旬:{sales,profit,cnt},...}
@@ -2617,7 +2620,8 @@ function kgoalChipsHtml(uid,editable){
   const done=sel.filter(b=>kgAchieved(kaijoStatusOf(uid,b))).length;
   const prog=sel.length?`<span class="gpn" style="margin-left:6px;font-weight:700;${done>=sel.length?"color:#0e9f6e":""}">${done}/${sel.length}達成</span>`:"";
   const cand=(BRANDS||[]).filter(b=>!sel.includes(b.brand)&&!kgAchieved(kaijoStatusOf(uid,b.brand)));
-  const add=editable?`<select class="ginput" id="kgoalAdd" style="max-width:220px;font-size:13px;padding:6px 10px"><option value="">＋ブランドを追加</option>${cand.map(b=>`<option value="${escH(b.brand)}">${escH(b.brand)}</option>`).join("")}</select>`:"";
+  const priG={}; cand.forEach(b=>{ (priG[b.pri||"その他"]=priG[b.pri||"その他"]||[]).push(b); });
+  const add=editable?`<select class="ginput" id="kgoalAdd" style="max-width:260px;font-size:13px;padding:6px 10px"><option value="">＋ブランドを追加（優先度順）</option>${Object.keys(priG).map(pri=>`<optgroup label="${escH(pri)}">`+priG[pri].map(b=>`<option value="${escH(b.brand)}">${escH(b.brand)}</option>`).join("")+`</optgroup>`).join("")}</select>`:"";
   return `<div class="kgrow">${chips||(editable?"":'<span class="gpn">未設定</span>')}${add}${prog}</div>`;
 }
 function bindKgoal(){
@@ -2634,8 +2638,8 @@ function bindKgoal(){
 }
 /* 目的パネル（人生の目標・せどりの目的・必要額）。数字の「なぜ」を数字の真上に置く */
 const LIFE_Q10=["①人生の目標（人生をどう生きたいのか？何をしたい人生なのか？）","②せどり・刈り取りをする目的（①の中で何のためにせどりをやるのか？人生の目標とどう絡むのか）","③なんでせどり・刈り取りなのか？代替手段はないのか？転売である必要性は？社会貢献できるものでも良いのでは？","④自分のライスワーク・ライフワーク・ライクワークは何か？","⑤人生でやりたいことは何か（やりたいことリスト）","⑥⑤をやるにはいくら必要か（貯金額と月の収入）。いつまでにいくら貯めればいいのか","⑦1000億円持っていたら（お金の心配が一切ないなら）どんな人生を歩むか？","⑧人生で絶対にやりたくないことは何か？それを避ける方法は？","⑨今の20代・30代・40代でしかできないことは何か？今のうちに済ませておきたいことは？","⑩1年後に死ぬと分かったら、残された1年で何をやるのか？"];
-function lifeGoalHtml(uid){
-  const editable=String(uid)===String(me.sid);
+function lifeGoalHtml(uid,allowEdit){
+  const editable=allowEdit!==false&&String(uid)===String(me.sid);
   const lg=((NUMSALL&&NUMSALL.lifegoals)||[]).find(x=>String(x.uid)===String(uid))||{};
   const fld=(k,label,ph)=>editable
     ? `<div class="lgf"><label class="glbl">${label}</label><textarea class="ginput lg-in" data-k="${k}" rows="2" placeholder="${ph}">${escH(lg[k]||"")}</textarea></div>`
@@ -2668,9 +2672,9 @@ function bindLifeGoal(){
 }
 /* 北野シート型の月次推移（目標/実績/進捗率/月利/利益率）。全員分を誰でも閲覧可 */
 function ymSortKey(ym){const m=String(ym).match(/(\d{4})年(\d{1,2})月/);return m?(+m[1]*100+ +m[2]):0;}
-function trendTableHtml(uid){
+function trendTableHtml(uid,allowEdit){
   const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
-  const editable=String(uid)===String(me.sid);
+  const editable=allowEdit!==false&&String(uid)===String(me.sid);
   const nums=(NUMSALL&&NUMSALL.nums||[]).filter(n=>String(n.uid)===String(uid));
   const metas=(NUMSALL&&NUMSALL.metas||[]).filter(m=>String(m.uid)===String(uid));
   const cur=ymNow();
@@ -2759,9 +2763,9 @@ function bindTrendGoals(){
 const NMETA_KEYS_F=["gsales","gprofit","expense","gradMonth","gradGoal","todo","todoResult","good1","good2","good3","bad1","bad2","bad3","stockCnt","stockSales","stockCost","todo1","todoR1","todo2","todoR2","todo3","todoR3","gsales2","gprofit2"];
 
 /* ---- デイリー行動記録（仕入金額・見込利益・時間・回訪数・検索数） ---- */
-function dailySectionHtml(uid){
+function dailySectionHtml(uid,allowEdit){
   const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
-  const editable=String(uid)===String(me.sid);
+  const editable=allowEdit!==false&&String(uid)===String(me.sid);
   const m=numsMonth.match(/(\d+)年(\d+)月/); const Y=+m[1], MO=+m[2];
   const dim=new Date(Y,MO,0).getDate();
   const pad=n=>("0"+n).slice(-2);
@@ -2976,8 +2980,8 @@ async function renderNums(){
   }
   const meta=metaFor(me.sid,numsMonth)||{};
   const nm=numsFor(me.sid,numsMonth);
-  const viewUid=String(numsWho||me.sid);
-  const selfView=viewUid===String(me.sid);
+  const viewUid=numsMode==="input"?String(me.sid):String(numsWho||me.sid);
+  const selfView=numsMode==="input";
   const viewName=(()=>{ if(selfView) return me.name;
     const r=ROSTER.find(x=>String(x.sid)===viewUid); if(r) return r.name;
     const d=(NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).find(x=>String(x.uid)===viewUid);
@@ -2987,13 +2991,16 @@ async function renderNums(){
 
   // メンバー選択（ここで選ぶとタブ全体がその人の表示に切り替わる）
   const whoUids=(()=>{const set=new Map(); if(me)set.set(String(me.sid),me.name+"（自分）"); ROSTER.forEach(x=>{if(!set.has(String(x.sid)))set.set(String(x.sid),x.name);}); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); return [...set.entries()];})();
-  html+=`<div class="whobar">👤 <select class="ginput" id="numsWhoSel" style="max-width:240px;font-size:14px;padding:8px 12px;font-weight:700">${whoUids.map(([u,n])=>`<option value="${u}"${String(u)===viewUid?" selected":""}>${escH(n)}</option>`).join("")}</select>
-    <span class="gpn">${selfView?"みんなの目的・目標・記録も見られます":`${escH(viewName)}さんの表示中（入力は自分を選んだ時だけ）`}</span></div>`;
+  html+=`<div class="whobar">
+    <button class="modebtn${numsMode==="input"?" on":""}" data-m="input">✍️ 自分の入力</button>
+    <button class="modebtn${numsMode==="view"?" on":""}" data-m="view">👥 みんなを見る</button>
+    ${numsMode==="view"?`👤 <select class="ginput" id="numsWhoSel" style="max-width:220px;font-size:14px;padding:8px 12px;font-weight:700">${whoUids.map(([u,n])=>`<option value="${u}"${String(u)===viewUid?" selected":""}>${escH(n)}</option>`).join("")}</select><span class="gpn">${escH(viewName)}さんを表示中（閲覧のみ）</span>`:""}
+  </div>`;
 
   // 月次推移（北野シート型）。誰の分でも見られる
-  html+=lifeGoalHtml(viewUid);
+  html+=lifeGoalHtml(viewUid,selfView);
   html+=`<div class="gpanel"><div class="gph">📈 月次推移</div>
-    <div id="trendBox">${trendTableHtml(viewUid)}</div></div>`;
+    <div id="trendBox">${trendTableHtml(viewUid,selfView)}</div></div>`;
 
   if(!selfView){
     const mv=metaFor(viewUid,numsMonth)||{};
@@ -3020,7 +3027,7 @@ async function renderNums(){
       <div><div class="nhint" style="margin-top:22px">上旬・中旬で数字がズレた時の立て直し用。入力すると進捗率は修正目標ベースになり、当初目標も並記されます</div></div>
     </div>`;})()}</div>`;
 
-  html+=`<div id="dailyWrap">${dailySectionHtml(viewUid)}</div>`;
+  html+=`<div id="dailyWrap">${dailySectionHtml(viewUid,selfView)}</div>`;
 
   const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
   const gS1=numv(meta.gsales), gP1=numv(meta.gprofit);
@@ -3090,7 +3097,7 @@ async function renderNums(){
   const memName=u=>{const m=ROSTER.find(x=>String(x.sid)===u); if(m) return m.name;
     const d=((NUMSALL&&NUMSALL.nums)||[]).concat((NUMSALL&&NUMSALL.metas)||[]).find(x=>String(x.uid)===String(u));
     return d&&d.name?d.name:u;};
-  html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
+  if(numsMode==="view") html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
     memHas.map((u,i)=>
       `<div class="nmem"><div class="nmemh" data-uid="${u}">▶ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}</div><div class="nrbody" style="display:none" data-body="${u}"></div></div>`).join("")+`</div>`;
 
@@ -3121,6 +3128,9 @@ async function renderNums(){
   if(tw) tw.onchange=()=>switchWho(tw.value);
   const ws=document.getElementById("numsWhoSel");
   if(ws) ws.onchange=()=>switchWho(ws.value);
+  document.querySelectorAll(".modebtn").forEach(b=>{
+    b.onclick=()=>{ if(numsMode===b.dataset.m) return; numsMode=b.dataset.m; if(numsMode==="view"&&!numsWho) numsWho=String(me.sid); renderNums(); };
+  });
   bindTrendGoals();
   bindLifeGoal();
   bindDaily();
