@@ -508,7 +508,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-06 01:58</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-06 01:59</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1232,9 +1232,9 @@ function chapStats(ci){
 }
 /* ---------- 🎯今やること（ステージ別ビュー） ---------- */
 const STAGES=[
-  {n:1,label:"1.開始前"},{n:2,label:"2.アカウント開設"},{n:3,label:"3.初売り上げ"},
-  {n:4,label:"4.〜月商10万円"},{n:5,label:"5.〜月商30万円"},{n:6,label:"6.〜月商50万円"},
-  {n:7,label:"7.〜月商100万円"},{n:8,label:"8.〜月商300万円"},{n:9,label:"9.〜月商500万円"},{n:10,label:"10.それ以上"}
+  {n:1,label:"1.開始前",short:"開始前"},{n:2,label:"2.アカウント開設",short:"開設"},{n:3,label:"3.初売り上げ",short:"初売り"},
+  {n:4,label:"4.〜月商10万円",short:"10万"},{n:5,label:"5.〜月商30万円",short:"30万"},{n:6,label:"6.〜月商50万円",short:"50万"},
+  {n:7,label:"7.〜月商100万円",short:"100万"},{n:8,label:"8.〜月商300万円",short:"300万"},{n:9,label:"9.〜月商500万円",short:"500万"},{n:10,label:"10.それ以上",short:"それ以上"}
 ];
 let stageOverride=null;   // 手動でステージを見たい時
 let STAGE_NUMS=null;      // ステージ判定用の自分の実績（numsのみ）
@@ -4122,9 +4122,9 @@ function render(){
   // ステージフィルタ（⭐＝入会直後／⭐⭐＝仕入れ開始期／⭐⭐⭐＝軌道に乗ってから）
   const fb=document.createElement("div"); fb.className="lvbar";
   fb.innerHTML=`<button class="lvbtn ${lvFilter===0?"on":""}" data-lv="0">すべて</button>`
-    +STAGES.map(st=>`<button class="lvbtn ${lvFilter===st.n?"on":""}" data-lv="${st.n}" title="${st.label}">${lvFilter===st.n?st.label:st.n}</button>`).join("")
+    +STAGES.map(st=>`<button class="lvbtn ${lvFilter===st.n?"on":""}" data-lv="${st.n}" title="${st.label}">${st.n} ${st.short}</button>`).join("")
     +`<button class="lvbtn hotbtn ${lvFilter==="hot"?"on":""}" data-lv="hot">🔴 重要</button>`
-    +`<span class="gpn" style="margin-left:6px">数字＝ステージ（🎯今やることと同じ。押すと名前が出ます）</span>`;
+    +`<span class="gpn" style="margin-left:6px">数字＝ステージ（🎯今やることと同じ）</span>`;
   body.appendChild(fb);
   fb.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{lvFilter=b.dataset.lv==="hot"?"hot":+b.dataset.lv;render();});
   const rendered=[];
