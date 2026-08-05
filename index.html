@@ -498,7 +498,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-05 12:34</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-05 12:50</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -3074,7 +3074,7 @@ async function renderNums(){
   const totalRow=tots.any?`<tr class="ntotal"><td>合計</td><td>${yen(tots.s)}円</td>${pctTd(tots.s,gS0)}<td>${yen(tots.p)}円</td>${pctTd(tots.p,gP0)}<td>${yen(tots.c)}個</td></tr>`:"";
   if(!selfView) html+=`<div class="gpanel"><div class="gpn">CSV取り込みや振り返りの入力エリアは、自分を選択中のみ表示されます。${escH(viewName)}さんの報告の中身は下の「みんなの報告」で開けます</div></div>`;
   if(selfView) html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
-    <div class="ncsvrow"><button class="gbtn" id="ncsvBtn">CSVを選ぶ</button><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
+    <div class="ncsvrow"><span class="gpn">📥 一番上の「データ取り込み」にプライスターの注文CSVを入れると、ここに自動で反映されます</span><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
     <table class="ntbl"><thead><tr><th></th><th>売上</th><th>累計進捗率</th><th>粗利</th><th>累計進捗率</th><th>個数</th></tr></thead><tbody>
       ${JUNS.map(junRow).join("")}${totalRow}
     </tbody></table>
@@ -3106,7 +3106,7 @@ async function renderNums(){
       ${junCard("中旬（11〜20日）","todo2","n_good2","n_bad2")}
       ${junCard("下旬（21日〜末）","todo3","n_good3","n_bad3")}
     </div>
-    <div class="ncsvrow" style="margin-top:14px"><button class="gbtn" id="nzaikoBtn">在庫CSVを取り込む</button><span class="gmsg" id="nzaikoMsg">FBAと自己発送の在庫CSVを2つまとめて選択（Ctrl/⌘＋クリック）→自動で合算</span></div>
+    <div class="ncsvrow" style="margin-top:14px"><span class="gpn">📥 一番上の「データ取り込み」に在庫CSV（FBA＋自己発送の2つまとめてOK）を入れると自動で合算・反映されます</span><span class="gmsg" id="nzaikoMsg"></span></div>
     <div class="nrow3">
       <div><label class="glbl">在庫数（個・FBA＋自己発送）</label><input class="ginput" id="n_stockCnt" inputmode="numeric" value="${V("stockCnt")}"></div>
       <div><label class="glbl">在庫販売金額（円）</label><input class="ginput" id="n_stockSales" inputmode="numeric" value="${V("stockSales")}"></div>
