@@ -508,7 +508,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-06 01:52</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-06 01:58</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -550,7 +550,7 @@ const DATA = [
       {id:"prep-shikin-lock", l:1, t:"事業用口座に最初の必要資金を入れたらそこから1年間は資金を移さない", n:"いくら増えたかわかる＆資金で資金を増やすゲームなので元手を減らしてたら伸びない"},
     ]},
     { g:"セラーアカウント", items:[
-      {id:"base-seller", l:1, t:"Amazon出品用アカウントを作成する", n:"必ず大口プランで。必要書類（顔写真付き本人確認書類＋住所が載った明細）を準備 → 本人確認 → 二段階認証 → 入金先口座・税務情報の登録まで一式完了させる", dep:"クレカ・口座"},
+      {stage:2, id:"base-seller", l:1, t:"Amazon出品用アカウントを作成する", n:"必ず大口プランで。必要書類（顔写真付き本人確認書類＋住所が載った明細）を準備 → 本人確認 → 二段階認証 → 入金先口座・税務情報の登録まで一式完了させる", dep:"クレカ・口座"},
     ]},
   ]},
   { ch:"マインド", groups:[
@@ -1240,7 +1240,7 @@ let stageOverride=null;   // 手動でステージを見たい時
 let STAGE_NUMS=null;      // ステージ判定用の自分の実績（numsのみ）
 function stageOfItem(chapterName,it){
   if(it.stage) return it.stage; // 個別指定があれば最優先
-  if(chapterName==="準備") return 2;
+  if(chapterName==="準備") return 1;
   const l=it.l||1;
   return l===1?3:(l===2?5:7); // 粗割当：⭐1→初売りまで、⭐2→〜30万、⭐3→〜100万
 }
