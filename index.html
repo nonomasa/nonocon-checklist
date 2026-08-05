@@ -272,6 +272,8 @@
   .dlytbl tr.ntotal td{position:sticky;bottom:0;background:#fdf3e7;z-index:2;box-shadow:0 -1px 0 var(--line);font-weight:700}
   .thsub{font-size:10px;color:#8a93a3;font-weight:400;white-space:nowrap}
   .djun td{background:#eef3fb;font-weight:700;color:#2f4a76;border-top:2px solid #c9d6ea}
+  .tab-todo{font-weight:800}
+  .todo-src{font-size:11px;color:#8a93a3;margin-top:2px}
   .whobar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:10px;margin:0 -4px 14px;padding:10px 4px;flex-wrap:wrap;font-size:16px;background:var(--bg,#f6f7f9);border-bottom:1px solid var(--line);box-shadow:0 4px 10px -6px rgba(0,0,0,.15)}
   li.subh{display:flex;align-items:center;gap:8px;background:#f2f4f7;border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin:4px 0 4px 18px;font-size:13.5px;font-weight:700;color:#3d4654;cursor:pointer;list-style:none}
   li.subh .gc{margin-left:auto;font-size:12px;color:var(--sub);font-weight:400}
@@ -505,7 +507,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-06 01:25</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-06 01:41</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -807,6 +809,7 @@ const DATA = [
       {sub:"家電量販店", id:"chain-ビックカメラ", l:2, t:"ビックカメラ", n:""},
       {sub:"家電量販店", id:"chain-ヤマダ電機", l:2, t:"ヤマダデンキ", n:""},
       {sub:"家電量販店", parent:"chain-ヤマダ電機", id:"tip-yamada-nichiyo", l:2, t:"日用品がある店舗は店舗一覧でわかる", n:""},
+      {sub:"家電量販店", parent:"chain-ヤマダ電機", id:"tip-yamada-maker", l:2, t:"メーカーやジャンルでまとまって安くなることがあるチェーン", n:"例：エレコム・パナソニックなどのメーカー単位、リカちゃん・仮面ライダー・日用品・プリンターなどのジャンル単位"},
       {sub:"家電量販店", id:"chain-ベスト電器", l:2, t:"ベスト電器", n:""},
       {sub:"家電量販店", id:"chain-エディオン", l:2, t:"エディオン", n:""},
       {sub:"家電量販店", id:"chain-ケーズデンキ", l:2, t:"ケーズデンキ", n:""},
@@ -1053,7 +1056,7 @@ const DATA = [
 ];
 
 /* ---------- 状態 ---------- */
-let chap=0;
+let chap=-1; // 起動時は🎯今やること（renderで解決）
 let me = JSON.parse(localStorage.getItem("nonocon_me")||"null"); // {sid,name}
 let state = {}; // {stepId:true}
 let ROSTER = []; // メンバー情報（名簿）
@@ -1225,6 +1228,90 @@ function chapStats(ci){
   DATA[ci].groups.forEach(g=>g.items.forEach(it=>{t++; if(state[it.id])d++;}));
   return {t,d};
 }
+/* ---------- 🎯今やること（ステージ別ビュー） ---------- */
+const STAGES=[
+  {n:1,label:"1.開始前"},{n:2,label:"2.アカウント開設"},{n:3,label:"3.初売り上げ"},
+  {n:4,label:"4.〜月商10万円"},{n:5,label:"5.〜月商30万円"},{n:6,label:"6.〜月商50万円"},
+  {n:7,label:"7.〜月商100万円"},{n:8,label:"8.〜月商300万円"},{n:9,label:"9.〜月商500万円"},{n:10,label:"10.それ以上"}
+];
+let stageOverride=null;   // 手動でステージを見たい時
+let STAGE_NUMS=null;      // ステージ判定用の自分の実績（numsのみ）
+function stageOfItem(chapterName,it){
+  if(it.stage) return it.stage; // 個別指定があれば最優先
+  if(chapterName==="準備") return 2;
+  const l=it.l||1;
+  return l===1?3:(l===2?5:7); // 粗割当：⭐1→初売りまで、⭐2→〜30万、⭐3→〜100万
+}
+function myStageBySales(){
+  const nums=(STAGE_NUMS||[]).filter(n=>String(n.uid)===String(me.sid));
+  if(!nums.length) return {stage:2,sales:0};
+  const byYm={}; nums.forEach(n=>{ byYm[n.ym]=(byYm[n.ym]||0)+n.sales; });
+  const yms=Object.keys(byYm).sort((a,b)=>ymSortKey(a)-ymSortKey(b)).slice(-3);
+  const mx=Math.max.apply(null,yms.map(y=>byYm[y]).concat([0]));
+  let st;
+  if(mx<=0) st=3;
+  else if(mx<100000) st=4;
+  else if(mx<300000) st=5;
+  else if(mx<500000) st=6;
+  else if(mx<1000000) st=7;
+  else if(mx<3000000) st=8;
+  else if(mx<5000000) st=9;
+  else st=10;
+  return {stage:st,sales:mx};
+}
+async function renderTodoView(){
+  const body=document.getElementById("body");
+  if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと「今やること」が表示されます</div>'; return; }
+  if(STAGE_NUMS===null){
+    const cb=cacheGet("numsbundle2");
+    if(cb&&cb.n){ STAGE_NUMS=cb.n.nums||[]; }
+    else{
+      const cn=cacheGet("stagenums");
+      if(cn){ STAGE_NUMS=cn; }
+      else{ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>'; }
+      (async()=>{ try{ const d=await jsonp({action:"nall"}); const arr=(d&&d.nums)||[]; cacheSet("stagenums",arr); if(chap===TODOV){ STAGE_NUMS=arr; renderTodoView(); } }catch(e){ if(STAGE_NUMS===null&&chap===TODOV){ STAGE_NUMS=[]; renderTodoView(); } } })();
+      if(STAGE_NUMS===null) return;
+    }
+  }
+  const det=myStageBySales();
+  const cur=stageOverride||det.stage;
+  const stLabel=(STAGES.find(x=>x.n===cur)||{}).label||cur;
+  // 全章から未完了×ステージ該当を収集
+  const behind=[],now=[];
+  DATA.forEach((c,ci)=>{
+    if(chapterHidden(ci)) return;
+    c.groups.forEach(g=>g.items.forEach(it=>{
+      if(state[it.id]) return;
+      const st=stageOfItem(c.ch,it);
+      if(st>cur) return;
+      const rec={c:c.ch,g:g.g||"",it:it,st:st};
+      (st<cur?behind:now).push(rec);
+    }));
+  });
+  const sortF=(a,b)=>((b.it.hot?1:0)-(a.it.hot?1:0))||(a.st-b.st);
+  behind.sort(sortF); now.sort(sortF);
+  const row=r=>`<li class="item todo-item" data-id="${r.it.id}">
+    <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <div style="flex:1"><div class="title${r.it.hot?' st1':''}">${r.it.t}${r.it.l?`<span class="lv">${"⭐".repeat(r.it.l)}</span>`:""}</div>
+    ${r.it.n?`<div class="note">${r.it.n}</div>`:""}
+    <div class="todo-src">${escH(r.c)}${r.g?` ▸ ${escH(r.g)}`:""}</div></div>
+    ${r.it.url?`<a class="ilink" href="${r.it.url}" target="_blank" rel="noopener">開く ↗</a>`:""}</li>`;
+  let html=`<div class="gpanel"><div class="gph">🎯 いまのステージ：<b>${escH(stLabel)}</b>
+    <span class="gpn">（直近実績月商 ${det.sales?yen(det.sales)+"円":"まだ実績なし"}・実績から自動判定）</span>
+    <select class="ginput" id="stageSel" style="max-width:190px;font-size:13px;padding:6px 10px;margin-left:8px">${STAGES.map(x=>`<option value="${x.n}"${x.n===cur?" selected":""}>${x.label}</option>`).join("")}</select>
+  </div>
+  <div class="nhint">数字報告の実績が増えるとステージは自動で上がります。全部の章から「今のステージまでにやるべき未完了」だけを集めています</div></div>`;
+  if(behind.length) html+=`<div class="group"><div class="gh">⚠️ 前のステージの残り <span class="gc">${behind.length}件</span></div><ul>${behind.map(row).join("")}</ul></div>`;
+  html+=`<div class="group"><div class="gh">📍 今のステージでやること <span class="gc">${now.length}件</span></div><ul>${now.length?now.map(row).join(""):'<li class="item" style="cursor:default"><div style="flex:1">このステージの項目は全部完了です！🎉 次のステージも覗いてみましょう</div></li>'}</ul></div>`;
+  body.innerHTML=html;
+  const flat={}; DATA.forEach(c=>c.groups.forEach(g=>g.items.forEach(it=>{flat[it.id]=it;})));
+  body.querySelectorAll(".todo-item").forEach(li=>{
+    li.onclick=()=>{ const it=flat[li.dataset.id]; if(it){ toggle(it); } };
+    const a=li.querySelector(".ilink"); if(a) a.onclick=e=>e.stopPropagation();
+  });
+  const ss=document.getElementById("stageSel");
+  if(ss) ss.onchange=()=>{ stageOverride=+ss.value===det.stage?null:+ss.value; renderTodoView(); };
+}
 const NUMS    = DATA.length;   // 数字報告タブ
 const DOKO    = DATA.length+1; // 店舗同行タブ
 const BRAND   = DATA.length+2; // ブランド解除タブ
@@ -1232,6 +1319,7 @@ const PALL    = DATA.length+3; // みんなの進捗タブ
 const MEMBERS = DATA.length+4; // メンバー情報タブ
 const ADMIN   = DATA.length+5; // 管理タブ（キー保持者のみ表示）
 const QUIZ    = DATA.length+6; // 仕入れクイズタブ
+const TODOV   = DATA.length+7; // 🎯今やることタブ
 let QUIZALL   = null;          // クイズ一覧キャッシュ
 let quizNewPhoto = null;       // 出題フォームで選択中の写真 {data,mime}
 let quizEditId = null;         // 編集中のクイズID（管理者）
@@ -1255,6 +1343,11 @@ function chapterHidden(ci){
 
 function renderTabs(){
   const el=document.getElementById("tabs"); el.innerHTML="";
+  const tb=document.createElement("button");
+  tb.className="tab tab-todo"+(chap===TODOV?" on":"");
+  tb.innerHTML=`🎯 今やること`;
+  tb.onclick=()=>{chap=TODOV;render();};
+  el.appendChild(tb);
   DATA.forEach((c,ci)=>{
     if(chapterHidden(ci)) return;
     const {t,d}=chapStats(ci);
@@ -3976,7 +4069,8 @@ function bindQuizDetail(root,qid){
 }
 
 function render(){
-  if(chap < DATA.length && chapterHidden(chap)) chap = 0;
+  if(chap===-1) chap=TODOV; // デフォルトは🎯今やること
+  if(chap>=0 && chap < DATA.length && chapterHidden(chap)) chap = 0;
   renderTabs();
   const pc=document.querySelector(".progress-card");
   if(chap===NUMS){
@@ -3992,6 +4086,11 @@ function render(){
   if(chap===QUIZ){
     pc.style.display="none";
     renderQuiz();
+    return;
+  }
+  if(chap===TODOV){
+    pc.style.display="none";
+    renderTodoView();
     return;
   }
   if(chap===BRAND){
