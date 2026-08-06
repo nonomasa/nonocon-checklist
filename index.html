@@ -508,7 +508,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-07 00:27</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-07 00:34</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -2956,7 +2956,7 @@ function dailySectionHtml(uid,allowEdit){
     const cell=(k,w)=>{
       const sub=other[k]?`<div class="dly-other">${otherLbl} ${yen(other[k])}</div>`:"";
       return editable
-        ? `<td class="pl-n"><input class="ginput dly${dlyMode==="plan"?" plan-in":""}" data-date="${ds}" data-k="${k}" data-kind="${dlyMode}" inputmode="numeric" style="width:${w}px;text-align:right;padding:4px 6px" value="${src[k]||""}">${sub}</td>`
+        ? `<td class="pl-n"><input class="ginput dly${dlyMode==="plan"?" plan-in":""}" data-date="${ds}" data-k="${k}" data-kind="${dlyMode}" inputmode="${k==="hours"?"decimal":"numeric"}" style="width:${w}px;text-align:right;padding:4px 6px" value="${src[k]||""}">${sub}</td>`
         : `<td class="pl-n">${src[k]?yen(src[k]):""}${sub}</td>`;
     };
     body_+=`<tr data-jun="${jn}"${jn!==curJun?' style="display:none"':(ds===today?' style="background:#fff7ed"':'')}><td style="white-space:nowrap;${wdCol}">${MO}/${d}（${WD[wd]}）</td>`+
@@ -3110,7 +3110,10 @@ function bindDaily(){
     const msg=document.getElementById("dlyMsg");
     const kind=dlyMode==="plan"?"plan":"actual";
     const byDate={};
-    document.querySelectorAll(".dly").forEach(i=>{ (byDate[i.dataset.date]=byDate[i.dataset.date]||{})[i.dataset.k]=i.value.replace(/[^0-9]/g,""); });
+    document.querySelectorAll(".dly").forEach(i=>{ let v;
+      if(i.dataset.k==="hours"){ const f=parseFloat(i.value.replace(/[^0-9.]/g,"")); v=isNaN(f)?"":String(f); }
+      else v=i.value.replace(/[^0-9]/g,"");
+      (byDate[i.dataset.date]=byDate[i.dataset.date]||{})[i.dataset.k]=v; });
     const orig={}; ((DAILYALL&&DAILYALL.rows)||[]).forEach(r=>{ if(String(r.uid)===String(me.sid)&&(r.kind||"actual")===kind) orig[r.date]=r; });
     const rows=[];
     Object.keys(byDate).forEach(ds=>{
