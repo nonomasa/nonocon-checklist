@@ -508,7 +508,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-07 00:16</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-07 00:18</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -539,15 +539,16 @@ const DATA = [
       {id:"prep-orientation2", l:1, t:"ののコン2回目説明を受ける", n:"進捗確認、旬の報告など"},
     ]},
     { g:"作業環境を整える", items:[
-      {id:"prep-google", l:1, t:"事業専用のGoogleアカウント（メールアドレス）を作る", n:"連絡・各種登録の管理用。プライベートと分ける"},
       {id:"prep-iphone", l:1, t:"iPhoneを用意する", n:"せどりすとプレミアムはiPhone限定"},
       {id:"prep-kounyu", l:1, t:"購入するもの", n:""},
       {parent:"prep-kounyu", id:"prep-printer", l:1, t:"プリンター", n:""},
       {parent:"prep-kounyu", id:"prep-pc", l:1, t:"パソコン", n:""},
       {parent:"prep-kounyu", id:"prep-shoes", l:1, t:"歩きやすい、疲れにくい靴", n:""},
       {parent:"prep-kounyu", id:"prep-mobat", l:1, t:"モバイルバッテリー", n:""},
-      {id:"prep-car", l:1, t:"車を用意する", n:"都心部の人はその限りではない"},
-      {id:"prep-space", l:1, t:"荷物を置くスペースを用意する", n:"1畳くらいあれば十分"},
+      {id:"prep-yoi", l:1, t:"用意するもの", n:""},
+      {parent:"prep-yoi", id:"prep-space", l:1, t:"1畳くらいのスペース", n:"荷物置き場。1畳くらいあれば十分"},
+      {parent:"prep-yoi", id:"prep-car", l:1, t:"車", n:"都心部はその限りではない"},
+      {parent:"prep-yoi", id:"prep-google", l:1, t:"Googleアカウント（メールアドレス）", n:"事業専用に。連絡・各種登録の管理用。プライベートと分ける"},
     ]},
     { g:"お金まわり", items:[
       {id:"base-bank", l:1, t:"事業専用の銀行口座を開設する", n:"住信SBI等のネット銀行が楽（楽天銀行は不可）"},
