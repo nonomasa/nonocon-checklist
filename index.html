@@ -512,7 +512,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-07 00:58</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-07 01:03</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -576,12 +576,14 @@ const DATA = [
       {stage:4, id:"mind-chiisaku", l:1, t:"小さく試す→検証するを常に心がける", n:"いきなり大きくやらない。常に最小単位で結果が出てから大きくする"},
       {id:"v05", l:1, t:"ヘイトを集める転売はしない", n:"人気商品、品薄商品の買い占め、情弱狩り系。長続きしないことはやらない"},
       {id:"mind-fukuri", l:1, hot:1, t:"物販は資金で資金を増やす複利ゲームだと理解する", n:"元手を減らしたら伸びない＝元手を1年間は抜かないつもりでやる"},
+      {stage:2, id:"mind-kasegeru", l:1, t:"せどりで稼げる人・稼げない人の違いを知る", n:"考えずに情報だけ集める人は稼げない。行動量×検証で差がつく"},
     ]},
     { g:"考え方", items:[
       {id:"mind-nobashikata", l:1, mov:1, hot:1, url:"https://app.the-online-class.com/categories/ozYjM3YDI6M2Y/category_blocks/oAM2MjNwUDI6I2Y", t:"ののコンでの物販事業の伸ばし方", n:""},
       {stage:6, id:"v11", l:1, t:"会社は辞めない・専業化を急がない", n:"月利100を最低1年は継続、月50万円を抜いても全く支障がないか確認（専業になる模擬実験）"},
       {stage:8, id:"v12", l:1, t:"物販は共同経営しない・一人でやる", n:"基本的に共同経営は絶対に揉める事を知っておく"},
       {stage:6, id:"v13", l:2, t:"販路・仕入れ先・収益源を分散する", n:"卵を一つのカゴに盛らない"},
+      {stage:6, id:"mind-next-stage", l:1, t:"せどりの次のステージ（進化ルート）を知る", n:"卸メーカー・OEM・情報発信・ツール化など、せどりの先の選択肢と良し悪し"},
     ]},
     { g:"目標と計画", items:[
       {id:"mind-mexico", l:1, t:"せどりをやる意味を「メキシコの漁師とMBA」の話から考える", n:"", url:"https://stak.tech/diary/%E3%83%A1%E3%82%AD%E3%82%B7%E3%82%B3%E3%81%AE%E9%87%A3%E3%82%8A%E5%A5%BD%E3%81%8D%E3%81%AE%E6%BC%81%E5%B8%AB%E3%81%A8mba%E3%82%92%E6%8C%81%E3%81%A3%E3%81%9F%E3%83%93%E3%82%B8%E3%83%8D%E3%82%B9/"},
@@ -661,6 +663,7 @@ const DATA = [
       {stage:3, id:"v16", l:2, t:"15日締めと月末締めのクレカ2枚で締め日を使い分ける", n:"仕入れ日で締め日が遠い方を使う"},
       {stage:3, id:"prep-card-cycle", l:2, t:"クレカの締め日・支払日と入金日のズレを把握する", n:""},
       {stage:3, id:"prep-kaikei-renkei", l:2, t:"会計ソフトに口座・クレカを連携する", n:"自動仕訳で経理をラクに"},
+      {stage:4, id:"base-hikiate", l:2, t:"引当金（入金保留）の仕組みを理解する", n:"売上の一部が保留されるため入金額は売上と一致しない"},
       {id:"prep-keihi", l:2, t:"経費にできるもの・できないものを覚える", n:"コンサル代金、ツール代など"},
       {id:"prep-zeirishi", l:3, t:"税理士と早めに契約する", n:"自力申告→修正申告になった失敗例が複数あります"},
       {id:"prep-tanaoroshi", l:3, t:"棚卸し（期末在庫の数え方）を覚える", n:""},
@@ -713,6 +716,8 @@ const DATA = [
       {id:"tool-rakujan-study", l:1, t:"らくじゃんの使い方を勉強する", n:"", url:"https://rakujan.mydns.jp/login"},
       {id:"tool-rakujan-tenpo", l:2, t:"らくじゃんの商品共有で店舗仕入れの商品を確認してみる", n:""},
       {id:"tool-rakujan-karitori", l:2, t:"らくじゃんの商品共有で刈り取り商品の確認をしてみる", n:""},
+      {id:"tool-rakujan-kaiheiten", l:2, t:"らくじゃんの開閉店・展示会情報の使い方を覚える", n:"閉店セール・改装セールは大きな仕入れチャンス"},
+      {stage:4, id:"tool-rakujan-post", l:2, t:"らくじゃんの商品共有に自分の利益商品を登録する", n:"共有し合う文化。もらうだけでなく返す"},
     ]},
     { g:"AI編", items:[
       {id:"tool-claude-pro", l:3, hot:1, t:"Claude CodeのProプランに契約する", n:"", url:"https://claude.ai/"},
@@ -736,10 +741,16 @@ const DATA = [
     ]},
     { g:"Keepa基礎", items:[
       {id:"tool-keepa-study", l:1, hot:1, t:"Keepaの基礎をしっかり学ぶ", n:"Keepaを制する者はせどりを制す。動画は49分まで見る", url:"https://www.youtube.com/watch?v=QWFnRAUN3oA"},
+      {stage:3, id:"tool-keepa-preset", l:1, t:"Keepaの列設定・プリセットを整える", n:"よく見る項目を並べて判断を高速化"},
     ]},
     { g:"Keepa応用", items:[
       {id:"tool-keepa-finder", l:3, t:"製品ファインダーを理解する", n:"動画の49:29以降【STEP7】プロダクトファインダー事前リサーチ法を見る", url:"https://www.youtube.com/watch?v=QWFnRAUN3oA&t=2969s"},
+      {parent:"tool-keepa-finder", id:"tip-pf-ranking", l:3, t:"ランキングでの絞り込み方を覚える", n:""},
+      {parent:"tool-keepa-finder", id:"tip-pf-amazon", l:3, t:"Amazon価格・BuyBox条件の使い方を覚える", n:""},
+      {parent:"tool-keepa-finder", id:"tip-pf-zaiko", l:3, t:"在庫切れ率での絞り込み方を覚える", n:""},
       {id:"tool-keepa-nowave", l:2, t:"波形が無い商品の売れ行き判定を覚える", n:"ランキング折れ＋出品者数の増減で読む"},
+      {id:"tool-keepa-amahantei", l:2, t:"Keepa波形でAmazon有無・適正価格を判断できるようになる", n:"Amazon本体の有無で値付けと勝率が変わる"},
+      {id:"tool-keepa-nolister", l:2, t:"出品者なし商品の仕入れ判断を覚える", n:"相場が無い商品の値付けと売れ行きの読み方"},
       {id:"tool-variation", l:2, t:"バリエーション商品の見方を覚える", n:"売れているサイズ・色の見極め。波形の罠に注意"},
     ]},
   ]},
@@ -750,6 +761,7 @@ const DATA = [
     { g:"考え方", items:[
       {stage:3, id:"do-mazu-tenpo", l:1, t:"考えるよりまず店舗に行く", n:"店舗フェーズでは考える時間よりもまず店舗に行って検索する方が大事。人より1分でも1店舗でも多く行く"},
       {id:"do-jan-all", l:1, t:"JANのついている商品は全て仕入れ対象", n:"勝手に見る商品を絞らない"},
+      {id:"do-tenpo-meridemi", l:1, t:"店舗せどりのメリット・デメリットを理解する", n:"電脳や刈り取りと比べた強み弱みを知って取り組む"},
     ]},
     { g:"仕入れ判断", items:[
       {id:"do-shiire-kijun", l:1, hot:1, t:"仕入れ基準を覚えよう", n:"店舗は利益率20%以上、高回転のものなら10%以上可、電脳は15%以上。複数個買う時は月の販売個数と出品者数を見る"},
@@ -770,6 +782,8 @@ const DATA = [
     { g:"実際の仕入れ", items:[
       {id:"do-10chains", l:2, t:"10チェーン行ってみよう", n:"例：ヤマダ電機・ビックカメラ・ドンキ・イオン・コストコ・カインズ・パソコン工房・スポーツオーソリティ・トイザらス・マツキヨ。色々なチェーンに行くと学びがあります"},
       {id:"do-500search", l:2, t:"500検索してみよう", n:"1日店舗せどりの目安は1000検索。素振りと同じで、やればやるほど上達します"},
+      {id:"do-my-route", l:2, t:"自宅周辺の仕入れルートを作成する", n:"ロケスマ・らくじゃんの店舗一覧を活用"},
+      {id:"do-chain-video-first", l:2, t:"初めて行くチェーンは攻略動画を観てから行く", n:"店舗せどり講座のチェーン攻略動画"},
       {id:"do-dousen-all", l:2, hot:1, t:"店内の導線は全て漏れなく歩こう", n:"下着・文具・化粧品・工具・時計部品まで「見ないコーナー」を作らない"},
     ]},
     { g:"店内", items:[
@@ -822,6 +836,7 @@ const DATA = [
       {id:"do-douko-schedule", l:2, t:"同じエリアの人と同行の日程調整をしましょう！", n:"メンバー情報タブでエリアを確認できます"},
       {id:"do-douko-route", l:2, t:"同行のルートを決める", n:"進捗確認シートの他のメンバーの同行ルートを参考に作成", url:"https://otoko-sedori.com/doukouroute"},
       {id:"do-douko-video", l:2, t:"同行するチェーンの動画を観ておく", n:"店舗せどり講座の該当チェーンの動画"},
+      {stage:4, id:"do-ureta-video", l:2, t:"過去の同行動画・売れたもの動画で仕入れ判断を学ぶ", n:"店舗せどり講座の仕入れ動画"},
       {id:"do-douko-pre", l:2, t:"同行前に自分でそのルートを回る", n:"自分で回った店舗だと同行時の学びが大きくなります"},
       {id:"do-douko-report", l:2, t:"同行のまとめを3日以内に提出する", n:"報告の速さ＝行動力。過去の先輩方のまとめも格納されているので確認しましょう"},
     ]},
@@ -980,6 +995,7 @@ const DATA = [
     { g:"トラブル・効率化", items:[
       {id:"do-shingan", l:3, t:"真贋調査が来たら落ち着いて対応する", n:"レシート＋店舗名・電話・HPをワードにまとめて提出。困ったらすぐ相談"},
       {id:"do-maker-keikoku", l:3, t:"メーカー警告が来た時の対応を覚える", n:"出品停止→謝罪文→警告共有シートに記録"},
+      {id:"do-horyu-tero", l:3, t:"保留テロの解除・通報方法を知っておく", n:"カートを大量予約され在庫が保留される嫌がらせ。解除手順と通報先を知っておく"},
       {id:"do-receipt", l:2, t:"レシートの商品名記載を確認する習慣をつける", n:"真贋対応で使えないレシートが多発"},
       {id:"do-kiroku", l:2, t:"毎日の数字を記録する習慣をつける", n:"検索数・店舗数・仕入額。目標は「月1万検索」のように数値に落とす"},
       {id:"do-jisho", l:2, t:"辞書登録・ショートカットで定型作業を高速化する", n:""},
@@ -994,6 +1010,7 @@ const DATA = [
       {id:"do-pointsite", l:2, t:"ポイントサイト（ハピタス等）経由の仕入れを習慣化する", n:""},
       {id:"den-rieki", l:2, t:"電脳の送料・ポイント込み利益計算を覚える", n:""},
       {id:"den-search", l:2, t:"電脳リサーチの基本を覚える", n:"キーワード検索・ランキング検索・セール検索"},
+      {id:"den-sedopre-ext", l:2, t:"せどプレ電脳拡張の使い方を覚える", n:"電脳リサーチをせどプレの判断基準そのままに"},
       {id:"den-coupon", l:2, t:"セール・クーポン・ポイントを組み合わせて仕入れる", n:""},
       {id:"den-zaiko-fukkatsu", l:3, t:"在庫復活を狙ってみる", n:""},
       {id:"den-rakuten-pt", l:3, t:"楽天ポイントせどりの基礎を覚える", n:"SPU・買い回り"},
@@ -1034,6 +1051,8 @@ const DATA = [
       {id:"oroshi-kakusho", l:3, t:"独占・専売の口約束に注意する", n:"必ず書面で残す"},
       {id:"oroshi-kensaku", l:3, t:"メーカー検索・地場メーカー探しをやってみる", n:""},
       {id:"oroshi-mitsumori", l:3, t:"見積書の見方を覚える", n:""},
+      {id:"oroshi-rieki-chushutsu", l:3, t:"メーカーリストから利益商品を抽出する方法を覚える", n:"1万件リストでもKeepa一括リサーチで絞り込める"},
+      {id:"oroshi-maker-search", l:3, t:"特定メーカーの商品をAmazonで一括検索する方法を覚える", n:""},
       {id:"oroshi-lot", l:3, t:"ロット・発注・納期の基本を覚える", n:""},
       {id:"oroshi-kakaku-iji", l:3, t:"価格維持・ブランド管理の考え方を覚える", n:""},
       {id:"oroshi-catalog", l:3, t:"カタログがない商品の商品選定を覚える", n:"ライバル不在の狙い目"},
