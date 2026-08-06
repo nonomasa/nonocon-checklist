@@ -508,7 +508,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-07 00:41</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-07 00:44</span>　<a href="#" id="vreload">最新に更新</a></div>
 </div>
 
 <script>
@@ -1286,7 +1286,8 @@ async function renderTodoView(){
     }
   }
   const det=myStageBySales();
-  const cur=stageOverride||det.stage;
+  const defStage=ADMIN_KEY?2:det.stage; // 管理者（のの）は作成作業しやすいよう既定2
+  const cur=stageOverride||defStage;
   const stLabel=(STAGES.find(x=>x.n===cur)||{}).label||cur;
   // 全章から未完了×ステージ該当を収集
   const behind=[],now=[];
@@ -1322,7 +1323,7 @@ async function renderTodoView(){
     const a=li.querySelector(".ilink"); if(a) a.onclick=e=>e.stopPropagation();
   });
   const ss=document.getElementById("stageSel");
-  if(ss) ss.onchange=()=>{ stageOverride=+ss.value===det.stage?null:+ss.value; renderTodoView(); };
+  if(ss) ss.onchange=()=>{ stageOverride=+ss.value===defStage?null:+ss.value; renderTodoView(); };
 }
 const NUMS    = DATA.length;   // 数字報告タブ
 const DOKO    = DATA.length+1; // 店舗同行タブ
