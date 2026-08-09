@@ -512,7 +512,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-09 10:39</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-09 10:44</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3100,18 +3100,19 @@ function actsFormat(o){ return ACT_KINDS.filter(k=>o[k]).map(k=>k+":"+o[k]).join
 function actsShort(str){ const o=actsParse(str); return ACT_KINDS.filter(k=>o[k]).map(k=>k+o[k]).join(" "); }
 
 /* ---- 日報モーダル ---- */
-function openNippo(){
-  const ds=todayStr();
+function openNippo(dsArg){
+  const ds=dsArg||todayStr();
   const inp=k=>{const i=document.querySelector(`.dly[data-date="${ds}"][data-k="${k}"][data-kind="actual"]`); return i?i.value.trim():null;};
   const saved=((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===ds&&(x.kind||"actual")==="actual")||{};
   const pre=k=>{const v=inp(k); if(v!==null&&v!=="") return v; return saved[k]||"";};
   const acts=actsParse(saved.acts||"");
-  const d=new Date(); const WD=["日","月","火","水","木","金","土"];
+  const dParts=ds.split("-"); const dObj=new Date(+dParts[0],+dParts[1]-1,+dParts[2]);
+  const WD=["日","月","火","水","木","金","土"];
   const ov=document.createElement("div"); ov.className="qovl"; ov.id="nippoOvl";
   const actRows=ACT_KINDS.map(k=>`<label style="display:inline-flex;align-items:center;gap:4px;margin:0 10px 8px 0">${k}
     <input class="ginput np-act" data-act="${k}" inputmode="decimal" style="width:52px;text-align:right;padding:4px 6px" value="${acts[k]||""}">h</label>`).join("");
   ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:520px;width:100%;padding:20px 22px;margin-top:20px">
-    <div style="font-weight:800;font-size:15px;margin-bottom:12px">📋 日報を作る　<span class="gpn">${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）</span></div>
+    <div style="font-weight:800;font-size:15px;margin-bottom:12px">📋 日報を作る　<input type="date" class="ginput" id="npDate" value="${ds}" style="padding:5px 8px;font-size:13px">　<span class="gpn">（${WD[dObj.getDay()]}）日付を変えると、その日の日報になります</span></div>
     <div class="gpn" style="margin-bottom:4px">今日やったこと（やった分だけ時間を入力。0.5h刻みOK）</div>
     <div style="margin-bottom:6px">${actRows}</div>
     <div id="npTenpoBlock" style="display:${(acts["店舗"]||pre("memo"))?"block":"none"};background:#f6f7f9;border-radius:10px;padding:10px 12px;margin-bottom:10px">
@@ -3134,6 +3135,7 @@ function openNippo(){
   document.body.appendChild(ov);
   ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
   document.getElementById("npCancel").onclick=()=>ov.remove();
+  document.getElementById("npDate").onchange=e=>{ const v=e.target.value; if(v){ ov.remove(); openNippo(v); } };
   // 店舗の時間を入れたら店舗ブロックを表示
   ov.querySelectorAll(".np-act").forEach(i=>i.oninput=()=>{
     const tenpo=parseFloat(ov.querySelector('.np-act[data-act="店舗"]').value)||0;
@@ -3156,8 +3158,7 @@ function openNippo(){
     cm+=row.mikomi;
     const goal=((DAILYALL&&DAILYALL.goals)||[]).find(g=>String(g.uid)===String(me.sid)&&g.ym===ymNow())||{};
     const gm=n(goal.gmikomi);
-    const dd=new Date(); const WD2=["日","月","火","水","木","金","土"];
-    const lines=[`【日報】${dd.getMonth()+1}/${dd.getDate()}（${WD2[dd.getDay()]}）${me.name}`];
+    const lines=[`【日報】${+dParts[1]}/${+dParts[2]}（${WD[dObj.getDay()]}）${me.name}`];
     const actStr=ACT_KINDS.filter(k=>o[k]).map(k=>`${k} ${o[k]}h`).join("・");
     if(actStr) lines.push(`やったこと：${actStr}（計 ${totalH}h）`);
     if(o["店舗"]||memo){
