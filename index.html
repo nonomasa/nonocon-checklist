@@ -484,6 +484,8 @@
     background:var(--accent);color:#fff;font-size:13.5px;font-weight:700;padding:11px 18px;cursor:pointer;
     box-shadow:0 4px 14px rgba(0,0,0,.25)}
   #reloadFab:active{transform:scale(.96)}
+  .dcopy{border:none;background:#e8effc;color:#2563eb;border-radius:6px;cursor:pointer;font-size:11px;padding:2px 6px;margin-left:6px;vertical-align:1px}
+  .dcopy:hover{background:#2563eb;color:#fff}
 </style>
 </head>
 <body>
@@ -512,7 +514,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-09 10:44</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-10 12:26</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3036,7 +3038,8 @@ function dailySectionHtml(uid,allowEdit){
     const memoCell=editable
       ? `<td><input class="ginput dly${dlyMode==="plan"?" plan-in":""}" data-date="${ds}" data-k="memo" data-kind="${dlyMode}" style="width:170px;padding:4px 6px;font-size:12px" placeholder="" value="${escH(src.memo||"")}">${other.memo?`<div class="dly-other">${otherLbl} ${escH(other.memo)}</div>`:""}${src.comment?`<div class="dly-other">💬 ${escH(src.comment)}</div>`:""}</td>`
       : `<td style="font-size:11.5px;color:#5a6472;max-width:200px">${escH(src.memo||"")}${src.comment?`<div class="dly-other">💬 ${escH(src.comment)}</div>`:""}</td>`;
-    body_+=`<tr data-jun="${jn}"${jn!==curJun?' style="display:none"':(ds===today?' style="background:#fff7ed"':'')}><td style="white-space:nowrap;${wdCol}">${MO}/${d}（${WD[wd]}）</td>`+
+    const cpBtn=(editable&&dlyMode==="plan")?`<button class="dcopy" data-date="${ds}" title="この日の予定を他の日にコピー">⧉</button>`:"";
+    body_+=`<tr data-jun="${jn}"${jn!==curJun?' style="display:none"':(ds===today?' style="background:#fff7ed"':'')}><td style="white-space:nowrap;${wdCol}">${MO}/${d}（${WD[wd]}）${cpBtn}</td>`+
       cell("cost",90)+cell("mikomi",90)+cell("hours",55)+cell("visits",55)+cell("searches",70)+memoCell+`</tr>`;
     // 旬の区切り（10日・20日・月末）で小計行を挟む（クリックで開閉）
     if(d===10||d===20||d===dim){
@@ -3273,6 +3276,43 @@ function bindDaily(){
   });
   const cp=document.getElementById("dlyCopy");
   if(cp) cp.onclick=()=>openNippo();
+
+  // 予定の行コピー（⧉）：この日の予定をこれ以降の空欄の日へ
+  document.querySelectorAll(".dcopy").forEach(b=>b.onclick=()=>{
+    const ds=b.dataset.date;
+    const keys=["cost","mikomi","hours","visits","searches","memo"];
+    const src={}; keys.forEach(k=>{const i=document.querySelector(`.dly[data-date="${ds}"][data-k="${k}"]`); src[k]=i?i.value.trim():"";});
+    if(!keys.some(k=>src[k])){ showToast("この日にはコピーする数字が入っていません"); return; }
+    const ov=document.createElement("div"); ov.className="qovl";
+    ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:380px;width:100%;padding:18px 20px;margin-top:40px">
+      <div style="font-weight:800;margin-bottom:6px">⧉ ${+ds.slice(5,7)}/${+ds.slice(8)}の予定を他の日にコピー</div>
+      <div class="gpn" style="margin-bottom:12px">この日より後の「まだ空欄の日」にだけ入ります（入力済みの日は上書きしません）。貼り付け後に「デイリーを保存」で確定してください</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="gbtn" data-tgt="all">残りの全日にコピー</button>
+        <button class="gbtn" data-tgt="wd">平日だけにコピー</button>
+        <button class="gbtn" data-tgt="we">土日だけにコピー</button>
+        <button class="gbtn" data-tgt="cancel" style="background:#9aa3af">キャンセル</button>
+      </div></div>`;
+    document.body.appendChild(ov);
+    ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+    ov.querySelectorAll("button").forEach(bt=>bt.onclick=()=>{
+      const tgt=bt.dataset.tgt; if(tgt==="cancel"){ ov.remove(); return; }
+      let filled=0;
+      document.querySelectorAll('.dly[data-k="cost"]').forEach(ci=>{
+        const d2=ci.dataset.date; if(!d2||d2<=ds) return;
+        const wd2=new Date(+d2.slice(0,4),+d2.slice(5,7)-1,+d2.slice(8)).getDay();
+        if(tgt==="wd"&&(wd2===0||wd2===6)) return;
+        if(tgt==="we"&&!(wd2===0||wd2===6)) return;
+        const ins={}; let any=false;
+        keys.forEach(k=>{const i=document.querySelector(`.dly[data-date="${d2}"][data-k="${k}"]`); ins[k]=i; if(i&&i.value.trim()) any=true;});
+        if(any) return;
+        keys.forEach(k=>{ if(ins[k]) ins[k].value=src[k]; });
+        filled++;
+      });
+      ov.remove();
+      showToast(filled?`⧉ ${filled}日分に貼り付けました。「デイリーを保存」で確定してください`:"貼り付け先（空欄の日）がありませんでした");
+    });
+  });
 
   const sv=document.getElementById("dlySave");
   if(sv) sv.onclick=async()=>{
@@ -3517,11 +3557,14 @@ async function renderNums(){
     for(const f of files){
       try{
         const buf=await f.arrayBuffer();
-        let text=""; try{ text=new TextDecoder("shift_jis").decode(buf); }catch(e){}
-        if(!/注文日|ASIN|number|在庫/.test(text)) text=new TextDecoder("utf-8").decode(buf);
-        if(text.indexOf("注文日")>=0){ await importPricetarFile(f,msg); }
-        else if(/(^|\n)"?\d{8}-/.test(text)||text.indexOf("ASIN")>=0&&text.indexOf("粗利")>=0){ await window.__applyDaily(sedopreParse(text),msg); }
-        else if(/number|在庫数/.test(text)){ zaikoFiles.push(f); }
+        let text="";
+        try{ text=new TextDecoder("utf-8",{fatal:true}).decode(buf); }        // UTF-8として厳密に読めればそれが正
+        catch(e){ text=new TextDecoder("shift_jis").decode(buf); }            // ダメならShift_JIS（せどプレDL等）
+        const head=(text.split(/\r?\n/,1)[0]||"");
+        // せどプレを最優先で判定（出品コメント定型文に「注文日」が含まれ誤判別するため、注文日はヘッダ行のみで判定）
+        if(/(^|\n)"?\d{8}-\d+-[A-Z0-9]{10}-/.test(text)||(head.indexOf("SKU")>=0&&head.indexOf("粗利")>=0)){ await window.__applyDaily(sedopreParse(text),msg); }
+        else if(head.indexOf("注文日")>=0){ await importPricetarFile(f,msg); }
+        else if(/number|在庫数/.test(head)){ zaikoFiles.push(f); }
         else{ if(msg) msg.textContent=`「${f.name}」の種類を判別できませんでした（プライスター注文／せどプレ／在庫CSVに対応）`; }
       }catch(e){ if(msg) msg.textContent=`「${f.name}」：`+String(e).slice(0,120); }
     }
