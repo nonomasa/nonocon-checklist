@@ -514,7 +514,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-14 13:44</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-14 13:48</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3205,8 +3205,8 @@ function bindDaily(){
       const mi=document.querySelector(`.dly[data-date="${ds}"][data-k="mikomi"]`);
       if(ci&&mi){
         // せどプレは過去分が消えて目減りするので、既存記録の方が大きい日は守る
-        const exM=parseFloat(mi.value.replace(/,/g,""))||exOf(ds).mikomi||0;
-        if(exM>byDt[ds].mikomi&&ds<todayStr()){ kept++; return; }
+        const exM=Math.max(parseFloat(mi.value.replace(/,/g,""))||0, exOf(ds).mikomi||0);
+        if(exM>byDt[ds].mikomi){ kept++; return; } // 在庫反映でリストから消えた分の目減り防止（今日を含む全日）
         ci.value=byDt[ds].cost; mi.value=byDt[ds].mikomi; hit++;
         // 保存行はこの時点の値で確定（モーダル待ちの間に裏の再描画で入力欄が消えても安全）
         const gv=k=>{const i=document.querySelector(`.dly[data-date="${ds}"][data-k="${k}"]`); return i?i.value.trim():"";};
@@ -3453,7 +3453,7 @@ async function renderNums(){
       <div style="margin-top:8px"><textarea class="ginput" id="uniPaste" rows="2" placeholder="せどプレの行コピペはここに貼り付け（何ヶ月分でもOK）"></textarea>
       <button class="gbtn" id="uniPasteGo" style="margin-top:6px;padding:6px 14px;font-size:12px">貼り付けを反映</button>
       <span class="gmsg" id="uniMsg"></span></div>
-      <div class="nhint">仕入日ごとにデイリーへ自動振り分け。過去の日付は既存の記録の方が大きければ守ります（せどプレは在庫反映で過去分が消えるため）</div></div>`;
+      <div class="nhint">仕入日ごとにデイリーへ自動振り分け・自動保存。既存の記録の方が大きい日は上書きしません（せどプレは在庫反映でリストから消えて目減りするため）。数字を下げたい時はその日の欄を直接修正してください</div></div>`;
   }
   html+=lifeGoalHtml(viewUid,selfView);
   if(selfView&&!trendOpen){
