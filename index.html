@@ -514,7 +514,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-14 10:52</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-14 12:10</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3214,12 +3214,37 @@ function bindDaily(){
       }
     });
     let otherNote="";
-    const ymList=Object.keys(otherByYm);
+    const ymList=Object.keys(otherByYm).sort((a,b)=>ymSortKey(a)-ymSortKey(b));
     if(ymList.length){
-      const desc=ymList.map(ym=>`${ym}:${otherByYm[ym].length}日分`).join("、");
-      if(confirm(`表示中の月以外のデータがあります（${desc}）。その月の仕入金額・見込利益として自動保存しますか？\n※時間・回訪・検索はその月を開いて入力してください`)){
+      // 月ごとに保存するかチェックボックスで選択（古い月だけ外す等ができる）
+      const selYms=await new Promise(res=>{
+        const ov=document.createElement("div"); ov.className="qovl";
+        ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:420px;width:100%;padding:18px 20px;margin-top:30px">
+          <div style="font-weight:800;margin-bottom:6px">📥 表示中の月以外のデータがあります</div>
+          <div class="gpn" style="margin-bottom:10px">保存したい月にチェック（仕入金額・見込利益として保存。時間・回訪・検索はその月を開いて入力）</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button class="gbtn" id="omAll" style="padding:4px 12px;font-size:12px;background:#6b7686">全て選択</button>
+            <button class="gbtn" id="omNone" style="padding:4px 12px;font-size:12px;background:#6b7686">全て外す</button>
+          </div>
+          <div style="max-height:260px;overflow-y:auto;margin-bottom:12px">
+            ${ymList.map(ym=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer"><input type="checkbox" class="omchk" value="${ym}" checked>${ym}（${otherByYm[ym].length}日分）</label>`).join("")}
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="gbtn" id="omGo" style="background:#2563eb">チェックした月を保存</button>
+            <button class="gbtn" id="omSkip" style="background:#9aa3af">保存しない</button>
+          </div></div>`;
+        document.body.appendChild(ov);
+        ov.querySelector("#omAll").onclick=()=>ov.querySelectorAll(".omchk").forEach(c=>c.checked=true);
+        ov.querySelector("#omNone").onclick=()=>ov.querySelectorAll(".omchk").forEach(c=>c.checked=false);
+        ov.querySelector("#omGo").onclick=()=>{ const v=[...ov.querySelectorAll(".omchk:checked")].map(c=>c.value); ov.remove(); res(v); };
+        ov.querySelector("#omSkip").onclick=()=>{ ov.remove(); res([]); };
+        ov.onclick=e=>{ if(e.target===ov){ ov.remove(); res([]); } };
+      });
+      const desc=selYms.map(ym=>`${ym}:${otherByYm[ym].length}日分`).join("、");
+      const skipped=ymList.filter(y=>selYms.indexOf(y)<0);
+      if(selYms.length){
         msg.textContent="他の月を保存中…";
-        for(const ym of ymList){
+        for(const ym of selYms){
           // 既存の時間・回訪・検索を消さないよう既存行とマージ
           const rows=otherByYm[ym].map(r=>{
             const ex=((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===r.date&&(x.kind||"actual")==="actual")||{};
@@ -3237,10 +3262,10 @@ function bindDaily(){
             });
           }catch(e){}
         }
-        otherNote=`・他の月（${desc}）は自動保存済み`;
-        showToast("✅ 他の月の分も保存しました");
+        otherNote=`・他の月（${desc}）は自動保存済み${skipped.length?`・${skipped.join("、")}はスキップ`:""}`;
+        showToast("✅ 選んだ月の分も保存しました（"+selYms.length+"ヶ月）");
       }else{
-        otherNote=`・他の月（${desc}）は保存せずスキップ`;
+        otherNote=`・他の月（${ymList.join("、")}）は保存せずスキップ`;
       }
     }
     if(msg) msg.textContent=`${items.length}商品を${Object.keys(byDt).length}日分に振り分け（この月に${hit}日反映${kept?`・${kept}日分は既存記録の方が大きいため保持`:""}${otherNote}${noDt?`・仕入日不明${noDt}件`:""}）。表示中の月の分は「デイリーを保存」で確定`;
