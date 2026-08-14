@@ -514,7 +514,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-14 13:35</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-14 13:44</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3197,6 +3197,7 @@ function bindDaily(){
     const byDt={}; let noDt=0;
     items.forEach(x=>{ if(!x.dt){noDt++;return;} const o=byDt[x.dt]=byDt[x.dt]||{cost:0,mikomi:0,n:0}; o.cost+=(x.cost||0)*(x.qty||1); o.mikomi+=(x.profit||0)*(x.qty||1); o.n++; });
     let hit=0, kept=0;
+    const curRows=[]; // 表示中の月の保存行（充填時に確定）
     const exOf=ds=>((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===ds&&(x.kind||"actual")==="actual")||{};
     const otherByYm={}; // 表示中以外の月 → まとめて自動保存
     Object.keys(byDt).forEach(ds=>{
@@ -3207,6 +3208,13 @@ function bindDaily(){
         const exM=parseFloat(mi.value.replace(/,/g,""))||exOf(ds).mikomi||0;
         if(exM>byDt[ds].mikomi&&ds<todayStr()){ kept++; return; }
         ci.value=byDt[ds].cost; mi.value=byDt[ds].mikomi; hit++;
+        // 保存行はこの時点の値で確定（モーダル待ちの間に裏の再描画で入力欄が消えても安全）
+        const gv=k=>{const i=document.querySelector(`.dly[data-date="${ds}"][data-k="${k}"]`); return i?i.value.trim():"";};
+        const nv=x=>{const f=parseFloat(String(x).replace(/,/g,""));return isNaN(f)?0:f;};
+        const ex=exOf(ds);
+        curRows.push({date:ds,kind:"actual",cost:byDt[ds].cost,mikomi:byDt[ds].mikomi,
+          hours:nv(gv("hours"))||ex.hours||0, visits:nv(gv("visits"))||ex.visits||0,
+          searches:nv(gv("searches"))||ex.searches||0, memo:gv("memo")||ex.memo||""});
       }
       else{
         const m=ds.match(/^(\d{4})-(\d{2})/);
@@ -3270,22 +3278,12 @@ function bindDaily(){
     }
     // 表示中の月の分もそのまま自動保存（取り込み＝確定。保存し忘れ・リロード消失を防ぐ）
     let curSaved=0;
-    if(hit){
-      const curRows=[];
-      Object.keys(byDt).forEach(ds=>{
-        const ci=document.querySelector(`.dly[data-date="${ds}"][data-k="cost"]`);
-        if(!ci) return;
-        const g=k=>{const i=document.querySelector(`.dly[data-date="${ds}"][data-k="${k}"]`);return i?i.value.trim():"";};
-        const num=x=>{const f=parseFloat(String(x).replace(/,/g,""));return isNaN(f)?0:f;};
-        curRows.push({date:ds,kind:"actual",cost:num(g("cost")),mikomi:num(g("mikomi")),hours:num(g("hours")),visits:num(g("visits")),searches:num(g("searches")),memo:g("memo")});
-      });
-      if(curRows.length){
-        if(msg) msg.textContent="この月の分を保存中…";
-        try{
-          const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"dysave",pass:PASS,uid:me.sid,name:me.name,rows:curRows})})).json();
-          if(d&&d.ok) curSaved=curRows.length;
-        }catch(e){}
-      }
+    if(curRows.length){
+      if(msg) msg.textContent="この月の分を保存中…";
+      try{
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"dysave",pass:PASS,uid:me.sid,name:me.name,rows:curRows})})).json();
+        if(d&&d.ok) curSaved=curRows.length;
+      }catch(e){}
     }
     const summary=`${items.length}商品を${Object.keys(byDt).length}日分に振り分け（この月${hit}日分${curSaved?"を保存済み":"は保存失敗（もう一度取り込んでください）"}${kept?`・${kept}日分は既存記録の方が大きいため保持`:""}${otherNote}${noDt?`・仕入日不明${noDt}件`:""}）`;
     if(curSaved){
