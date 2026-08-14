@@ -514,7 +514,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-14 13:48</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-14 13:53</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3118,7 +3118,8 @@ function openNippo(dsArg){
     <input class="ginput np-act" data-act="${k}" inputmode="decimal" style="width:52px;text-align:right;padding:4px 6px" value="${acts[k]||""}">h</label>`).join("");
   ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:520px;width:100%;padding:20px 22px;margin-top:20px">
     <div style="font-weight:800;font-size:15px;margin-bottom:12px">📋 日報を作る　<input type="date" class="ginput" id="npDate" value="${ds}" style="padding:5px 8px;font-size:13px">　<span class="gpn">（${WD[dObj.getDay()]}）日付を変えると、その日の日報になります</span></div>
-    <div class="gpn" style="margin-bottom:4px">今日やったこと（やった分だけ時間を入力。0.5h刻みOK）</div>
+    <div style="margin-bottom:8px">全体の時間 <input class="ginput" id="npTotalH" inputmode="decimal" style="width:60px;text-align:right;padding:5px 8px" value="${pre("hours")}">h　<span class="gpn">表に入れた時間が自動で入ります</span></div>
+    <div class="gpn" style="margin-bottom:4px">↓この時間の振り分け（やった分だけ入力。0.5h刻みOK）</div>
     <div style="margin-bottom:6px">${actRows}</div>
     <div id="npTenpoBlock" style="display:${(acts["店舗"]||pre("memo"))?"block":"none"};background:#f6f7f9;border-radius:10px;padding:10px 12px;margin-bottom:10px">
       <div class="gpn" style="margin-bottom:4px">回った店舗（スペース区切り）</div>
@@ -3150,7 +3151,8 @@ function openNippo(dsArg){
     const btn=document.getElementById("npGo"), msg=document.getElementById("npMsg");
     const n=x=>{const f=parseFloat(String(x||"").replace(/,/g,""));return isNaN(f)?0:f;};
     const o={}; ov.querySelectorAll(".np-act").forEach(i=>{ const v=n(i.value); if(v) o[i.dataset.act]=v; });
-    const totalH=Math.round(Object.values(o).reduce((a,b)=>a+b,0)*10)/10;
+    const actSum=Math.round(Object.values(o).reduce((a,b)=>a+b,0)*10)/10;
+    const totalH=n(document.getElementById("npTotalH").value)||actSum;
     const memo=document.getElementById("npMemo").value.trim();
     const tenpoCnt=memo?memo.split(/[\s、,\/]+/).filter(Boolean).length:0;
     const row={date:ds,kind:"actual",
@@ -3165,14 +3167,20 @@ function openNippo(dsArg){
     const gm=n(goal.gmikomi);
     const lines=[`【日報】${+dParts[1]}/${+dParts[2]}（${WD[dObj.getDay()]}）${me.name}`];
     const actStr=ACT_KINDS.filter(k=>o[k]).map(k=>`${k} ${o[k]}h`).join("・");
-    if(actStr) lines.push(`やったこと：${actStr}（計 ${totalH}h）`);
+    if(actStr||totalH) lines.push(`やったこと：${actStr||"—"}（計 ${totalH}h）`);
     if(o["店舗"]||memo){
       if(memo) lines.push(`回った店舗（${tenpoCnt}店）：${memo}`);
       if(row.searches) lines.push(`検索数：${yen(row.searches)}件`);
     }
     lines.push(`仕入 ${yen(row.cost)}円／見込利益 ${yen(row.mikomi)}円`);
     if(row.comment) lines.push(`一言：${row.comment}`);
-    lines.push(`今月累計：見込利益 ${yen(cm)}円`+(gm?`（目標${yen(gm)}円・${(cm/gm*100).toFixed(0)}%）`:""));
+    const dNow=+dParts[2];
+    lines.push(`今月累計（${dNow}日現在）：見込利益 ${yen(cm)}円`+(gm?`（目標${yen(gm)}円・${(cm/gm*100).toFixed(0)}%）`:""));
+    // 今月売上（旬報告の実績合計）と目標月商
+    const mySales=((NUMSALL&&NUMSALL.nums)||[]).filter(x=>String(x.uid)===String(me.sid)&&x.ym===ymNow()).reduce((a,x)=>a+(x.sales||0),0);
+    const myMeta=((NUMSALL&&NUMSALL.metas)||[]).find(x=>String(x.uid)===String(me.sid)&&x.ym===ymNow())||{};
+    const gS=n(myMeta.gsales2)||n(myMeta.gsales);
+    if(mySales||gS) lines.push(`今月売上（${dNow}日現在）：${yen(mySales)}円`+(gS?`（目標${yen(gS)}円・${(mySales/gS*100).toFixed(0)}%）`:""));
     const t=lines.join("\n");
     btn.disabled=true; msg.textContent="保存中…";
     try{
