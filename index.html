@@ -514,7 +514,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-16 12:40</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-19 12:47</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1188,8 +1188,10 @@ async function jsonpOnce(params,timeoutMs){
   try{
     const r=await fetch(API_URL+"?"+q,{signal:ctl.signal});
     const t=await r.text();
-    try{ return JSON.parse(t); }
+    let j; try{ j=JSON.parse(t); }
     catch(e){ throw "server-busy"; } // Googleの混雑エラーページ（HTML）が返った
+    if(j&&j.error==="unauthorized"&&params.action!=="roster"&&!ADMIN_KEY&&PASS){ onUnauthorized(); throw "unauthorized"; }
+    return j;
   }finally{ clearTimeout(tm); }
 }
 /* 混雑時に落ちないよう自動リトライ（2秒→6秒→15秒） */
@@ -1198,7 +1200,7 @@ async function jsonp(params){
   let lastErr;
   for(let i=0;i<waits.length;i++){
     if(waits[i]) await new Promise(r=>setTimeout(r,waits[i]));
-    try{ return await jsonpOnce(params); }catch(e){ lastErr=e; }
+    try{ return await jsonpOnce(params); }catch(e){ lastErr=e; if(String(e)==="unauthorized") throw e; }
   }
   throw lastErr;
 }
@@ -1222,12 +1224,21 @@ function fmtCohortJoin(m){
 async function loadRoster(){
   if(ROSTER.length) return ROSTER;
   const r = await jsonp({action:"roster"});
-  if(r && r.error) throw r.error;
+  if(r && r.error){ if(r.error==="unauthorized"&&PASS) onUnauthorized(); throw r.error; }
   ROSTER = r.students||[];
   return ROSTER;
 }
 
 /* ---------- 合言葉ゲート ---------- */
+let unauthShown=false;
+function onUnauthorized(){
+  if(unauthShown) return; unauthShown=true;
+  localStorage.removeItem(PASS_KEY); PASS="";
+  const el=document.getElementById("ident");
+  if(el) showPassGate(el);
+  showToast("🔑 合言葉が変わりました。ページ上部で新しい合言葉を入力してください");
+  try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(e){}
+}
 function showPassGate(el){
   el.innerHTML = '🔑 合言葉を入力してください：' +
     '<input id="pw" type="password" placeholder="合言葉" style="padding:7px 10px;border-radius:8px;border:1px solid #3a4653;background:#0e1620;color:#fff;font-size:13px">' +
@@ -1246,6 +1257,7 @@ function showPassGate(el){
       if(r && r.error) throw r.error;
       ROSTER = r.students||[];
       localStorage.setItem(PASS_KEY, PASS);
+      unauthShown=false;
       initIdent();
     }catch(e){
       PASS = "";
