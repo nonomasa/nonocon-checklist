@@ -75,6 +75,7 @@
   li.done .title{color:var(--sub);text-decoration:line-through}
   .title{font-size:14px;font-weight:600}
   .title.st1{color:#d3384f}
+  .title.stlow{color:#2563eb}
   .lvbtn.hotbtn{color:#d3384f}
   .note{font-size:12px;color:var(--sub);margin-top:1px}
   .tag{display:inline-block;font-size:10.5px;padding:1px 8px;border-radius:999px;margin-top:5px}
@@ -516,7 +517,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-20 10:11</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-21 12:41</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -665,6 +666,7 @@ const DATA = [
       {id:"base-perf-mail", l:2, t:"パフォーマンス通知が来たら即日対応する", n:"知財・真贋などの警告。放置するとアカウント停止に直結"},
       {id:"base-chizai-check", l:2, t:"出品前の知財チェックを覚える", n:"商品名にブランド名や「〇〇対応」を勝手に足さない／セット品タイトルに他社ブランド名を入れない／ブランド登録済み商品への安易な相乗り注意／公式画像・ロゴの無断使用NG"},
       {id:"base-teishi-flow", l:3, t:"アカウント停止時の対応フローを知っておく", n:"改善計画書の基本"},
+      {id:"base-trouble-jirei", l:3, low:1, t:"アカウントトラブル事例を覚える", n:"", url:"https://note.com/fo210815/n/ncf0c637310d1"},
       {id:"base-henkou-update", l:3, t:"口座・クレカ変更時のセラセン更新手順を覚える", n:""},
     ]},
     { g:"経理・資金管理", items:[
@@ -1397,7 +1399,7 @@ async function renderTodoView(){
   behind.sort(sortF); now.sort(sortF);
   const row=r=>`<li class="item todo-item" data-id="${r.it.id}">
     <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-    <div style="flex:1"><div class="title${r.it.hot?' st1':''}">${r.it.t}<span class="lv lvnum" title="${(STAGES.find(x=>x.n===r.st)||{}).label||r.st}">${r.st}</span></div>
+    <div style="flex:1"><div class="title${r.it.hot?' st1':(r.it.low?' stlow':'')}">${r.it.t}<span class="lv lvnum" title="${(STAGES.find(x=>x.n===r.st)||{}).label||r.st}">${r.st}</span></div>
     ${r.it.n?`<div class="note">${r.it.n}</div>`:""}
     <div class="todo-src">${escH(r.c)}${r.g?` ▸ ${escH(r.g)}`:""}</div></div>
     ${r.it.url?`<a class="ilink" href="${r.it.url}" target="_blank" rel="noopener">開く ↗</a>`:""}</li>`;
@@ -4423,14 +4425,15 @@ function render(){
   fb.innerHTML=`<button class="lvbtn ${lvFilter===0?"on":""}" data-lv="0">すべて</button>`
     +STAGES.map(st=>`<button class="lvbtn ${lvFilter===st.n?"on":""}" data-lv="${st.n}" title="${st.label}">${st.n} ${st.short}</button>`).join("")
     +`<button class="lvbtn hotbtn ${lvFilter==="hot"?"on":""}" data-lv="hot">🔴 重要</button>`
+    +`<button class="lvbtn ${lvFilter==="low"?"on":""}" data-lv="low" style="color:#2563eb">🔵 低め</button>`
     +`<span class="gpn" style="margin-left:6px">数字＝ステージ（🎯今やることと同じ）</span>`;
   body.appendChild(fb);
-  fb.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{lvFilter=b.dataset.lv==="hot"?"hot":+b.dataset.lv;render();});
+  fb.querySelectorAll(".lvbtn").forEach(b=>b.onclick=()=>{lvFilter=(b.dataset.lv==="hot"||b.dataset.lv==="low")?b.dataset.lv:+b.dataset.lv;render();});
   const rendered=[];
   c.groups.forEach(g=>{
     const items=(()=>{
       const stOf=it=>stageOfItem(c.ch,it);
-      const arr=g.items.filter(it=>lvFilter==="hot" ? it.hot : (!lvFilter || stOf(it)===lvFilter)).slice();
+      const arr=g.items.filter(it=>lvFilter==="hot" ? it.hot : (lvFilter==="low" ? it.low : (!lvFilter || stOf(it)===lvFilter))).slice();
       const subMin={}; arr.forEach(it=>{ if(it.sub){ const v=stOf(it); if(!(it.sub in subMin)||v<subMin[it.sub]) subMin[it.sub]=v; } });
       // ステージの小さい順。sub（小見出し）付きは塊が崩れないよう代表値でソート
       return arr.sort((a,b)=>((a.sub?subMin[a.sub]:stOf(a))-(b.sub?subMin[b.sub]:stOf(b))));
@@ -4474,7 +4477,7 @@ function render(){
       const lv = `<span class="lv lvnum" title="${(STAGES.find(x=>x.n===stN)||{}).label||stN}">${stN}</span>`;
       li.innerHTML=`<div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"
         stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div style="flex:1"><div class="title${it.hot?' st1':''}">${it.t}${lv}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}${mov}${gmov}</div>${link}`;
+        <div style="flex:1"><div class="title${it.hot?' st1':(it.low?' stlow':'')}">${it.t}${lv}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}${mov}${gmov}</div>${link}`;
       li.onclick=()=>toggle(it);
       const a=li.querySelector(".ilink");
       if(a) a.onclick=e=>e.stopPropagation(); // リンククリックではチェックを切り替えない
