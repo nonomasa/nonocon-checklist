@@ -73,6 +73,8 @@
   li.done .check svg{opacity:1}
   li.done{background:var(--done-soft);border-color:#cdeede}
   li.done .title{color:var(--sub);text-decoration:line-through}
+  li.done .title.st1{color:#e39aa6}   /* 重要（赤）はチェック後も赤系のまま */
+  li.done .title.stlow{color:#93b5ee} /* 低め（青）はチェック後も青系のまま */
   .title{font-size:14px;font-weight:600}
   .title.st1{color:#d3384f}
   .title.stlow{color:#2563eb}
@@ -517,7 +519,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-21 13:22</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-21 13:24</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
