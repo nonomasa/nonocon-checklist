@@ -517,7 +517,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-21 12:57</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-21 13:08</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -4027,18 +4027,34 @@ async function fillKaijo(){
   const box=document.getElementById("kaijoBox");
   if(!box) return;
   if(!me){ box.textContent="お名前を選ぶと、自分の解除状況を記録できます"; return; }
+  // ① 前回データ（数字報告のバンドルキャッシュ＋自分の解除状況キャッシュ）で即表示（SWR）
+  const cb=cacheGet("numsbundle2");
+  if(BRANDS===null&&cb&&cb.br) BRANDS=cb.br;
+  if(ALLKAIJO===null&&cb&&cb.kp) ALLKAIJO=cb.kp;
+  if(KGOALS===null&&cb&&cb.kg) KGOALS=cb.kg;
+  const ck=cacheGet("kget_"+me.sid);
+  if(!kaijoLoaded&&ck){ kaijoState=ck.status||{}; kaijoPdf=ck.pdf||{}; kaijoLoaded=true; }
+  const hadCache=BRANDS!==null&&ALLKAIJO!==null&&KGOALS!==null&&kaijoLoaded;
+  if(hadCache) paintKaijo();
+  // ② 裏で最新化（表示済みでも自分の状況と全員分は取り直す）
   try{
     const [r,r2,r3,kg]=await Promise.all([
       BRANDS?Promise.resolve(null):jsonp({action:"kbrands"}),
-      kaijoLoaded?Promise.resolve(null):jsonp({action:"kget", uid:me.sid}),
-      ALLKAIJO!==null?Promise.resolve(null):jsonp({action:"kpall"}),
+      jsonp({action:"kget", uid:me.sid}),
+      jsonp({action:"kpall"}),
       KGOALS!==null?Promise.resolve(null):jsonp({action:"kgall"})
     ]);
     if(r){ if(r.error) throw r.error; BRANDS=r.brands||[]; }
-    if(r2&&!r2.error){ kaijoState=r2.status||{}; kaijoPdf=r2.pdf||{}; kaijoLoaded=true; }
-    if(r3) ALLKAIJO=(r3&&r3.rows)||[];
+    if(r2&&!r2.error){ kaijoState=r2.status||{}; kaijoPdf=r2.pdf||{}; kaijoLoaded=true; cacheSet("kget_"+me.sid,{status:kaijoState,pdf:kaijoPdf}); }
+    if(r3&&!r3.error) ALLKAIJO=(r3&&r3.rows)||[];
     if(kg) KGOALS=(kg&&kg.rows)||[];
-  }catch(e){ box.textContent="読み込みに失敗しました。通信環境を確認してください"; return; }
+  }catch(e){ if(!hadCache){ const b2=document.getElementById("kaijoBox"); if(b2) b2.textContent="読み込みに失敗しました。通信環境を確認してください"; } return; }
+  if(document.getElementById("kaijoBox")){ paintKaijo(); if(hadCache) showToast("🔄 最新に更新しました"); }
+}
+
+function paintKaijo(){
+  const box=document.getElementById("kaijoBox");
+  if(!box) return;
   const myKgoal=kgoalBrandsOf(String(me.sid),ymNow());
   const cnt=document.getElementById("kaijoCnt");
   if(cnt){ const done=Object.values(kaijoState).filter(v=>v&&v!=="未確認").length; cnt.textContent=`確認済み ${done}/${BRANDS.length}`; }
