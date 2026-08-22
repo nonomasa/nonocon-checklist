@@ -382,6 +382,8 @@
   .kpanel{max-height:78vh;width:calc(100vw - 32px);margin-left:calc(50% - 50vw + 16px)}
   .kmem,.kcell{min-width:70px;max-width:70px;font-size:10.5px;text-align:center;padding:7px 4px;white-space:nowrap;overflow:hidden}
   .kspdmin{font-size:9px;color:#8a93a1;line-height:1.3}
+  .kpreq{border:none;background:#eef1f5;color:#6b7686;border-radius:6px;cursor:pointer;font-size:11px;padding:1px 5px;margin-left:4px}
+  .kpreq:hover{background:#2563eb;color:#fff}
   .kcell{color:#c2c8d0}
   .kcell.kc-ok{background:#eafaf2;color:#0e9f6e;font-weight:700}
   .kcell.kc-warn{background:#fef3e2;color:#d97706;font-weight:700}
@@ -520,7 +522,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-22 11:22</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-22 11:40</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1202,6 +1204,7 @@ const KSTATUS = ["未確認","制限なし","要承認","Ama申請中①","Ama�
 const KSPEED = ["即日解除","2週間以内","1ヶ月以内","1ヶ月以上かかった","何度も弾かれた"]; // 提出から解除までの時間
 const kspdIcon = v=>v==="即日解除"?"⚡"+v:(v==="何度も弾かれた"?"🔁"+v:v);
 let kaijoSpeed = {};
+let KREQS = null;   // 優先度リクエスト一覧
 
 /* 受講生用の合言葉（正誤はサーバー側で照合。HTMLには書かれていない） */
 const PASS_KEY = "nonocon_pass";
@@ -4050,7 +4053,7 @@ async function fillKaijo(){
   if(!me){ box.textContent="お名前を選ぶと、自分の解除状況を記録できます"; return; }
   // ① 前回データ（数字報告のバンドルキャッシュ＋自分の解除状況キャッシュ）で即表示（SWR）
   const cb=cacheGet("numsbundle2");
-  if(BRANDS===null&&cb&&cb.br) BRANDS=cb.br;
+  if(BRANDS===null&&cb&&cb.br&&!window.__skipBrandCache) BRANDS=cb.br;
   if(ALLKAIJO===null&&cb&&cb.kp) ALLKAIJO=cb.kp;
   if(KGOALS===null&&cb&&cb.kg) KGOALS=cb.kg;
   const ck=cacheGet("kget_"+me.sid);
@@ -4059,16 +4062,18 @@ async function fillKaijo(){
   if(hadCache) paintKaijo();
   // ② 裏で最新化（表示済みでも自分の状況と全員分は取り直す）
   try{
-    const [r,r2,r3,kg]=await Promise.all([
+    const [r,r2,r3,kg,kq]=await Promise.all([
       BRANDS?Promise.resolve(null):jsonp({action:"kbrands"}),
       jsonp({action:"kget", uid:me.sid}),
       jsonp({action:"kpall"}),
-      KGOALS!==null?Promise.resolve(null):jsonp({action:"kgall"})
+      KGOALS!==null?Promise.resolve(null):jsonp({action:"kgall"}),
+      jsonp({action:"kreq"}).catch(()=>null)
     ]);
-    if(r){ if(r.error) throw r.error; BRANDS=r.brands||[]; }
+    if(r){ if(r.error) throw r.error; BRANDS=r.brands||[]; window.__skipBrandCache=false; }
     if(r2&&!r2.error){ kaijoState=r2.status||{}; kaijoPdf=r2.pdf||{}; kaijoSpeed=r2.speed||{}; kaijoLoaded=true; cacheSet("kget_"+me.sid,{status:kaijoState,pdf:kaijoPdf,speed:kaijoSpeed}); }
     if(r3&&!r3.error) ALLKAIJO=(r3&&r3.rows)||[];
     if(kg) KGOALS=(kg&&kg.rows)||[];
+    if(kq&&!kq.error) KREQS=kq.rows||[];
   }catch(e){ if(!hadCache){ const b2=document.getElementById("kaijoBox"); if(b2) b2.textContent="読み込みに失敗しました。通信環境を確認してください"; } return; }
   if(document.getElementById("kaijoBox")){ paintKaijo(); if(hadCache) showToast("🔄 最新に更新しました"); }
 }
@@ -4096,7 +4101,20 @@ function paintKaijo(){
     const mei=String(m.name||"").trim().split(/[\s　]+/)[1]||"";
     return s0+mei.slice(0,1);
   };
-  let html='<div class="apanel mpanel kpanel"><table><thead><tr><th>優先度</th><th>ブランド</th><th>状態</th>'
+  // 優先度リクエスト（申請中）パネル
+  const pend=(KREQS||[]).filter(q=>q.st==="申請中");
+  let reqHtml="";
+  if(pend.length){
+    reqHtml='<div style="background:#fff7ed;border:1px solid #f3ddc3;border-radius:12px;padding:10px 14px;margin-bottom:12px">'
+      +`<div style="font-weight:700;font-size:13px;margin-bottom:6px">🙋 優先度の変更リクエスト（承認待ち ${pend.length}件）</div>`
+      +pend.map(q=>`<div style="font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:3px 0">
+        <b>${q.brand}</b>：${q.cur||"—"} → <b>${q.want}</b>（${q.name}）${q.reason?`<span class="gpn">理由：${q.reason}</span>`:""}
+        ${ADMIN_KEY?`<button class="gbtn kreq-ok" data-id="${q.id}" style="padding:3px 12px;font-size:11.5px;background:#0e9f6e">承認</button>
+        <button class="gbtn kreq-ng" data-id="${q.id}" style="padding:3px 12px;font-size:11.5px;background:#9aa3af">却下</button>`:""}
+      </div>`).join("")
+      +'</div>';
+  }
+  let html=reqHtml+'<div class="apanel mpanel kpanel"><table><thead><tr><th>優先度</th><th>ブランド</th><th>状態</th>'
     +mems.map(m=>`<th class="kmem">${memLabel(m)}</th>`).join("")+'</tr></thead><tbody>';
   BRANDS.forEach(b=>{
     const st=kaijoState[b.brand]||"未確認";
@@ -4112,7 +4130,7 @@ function paintKaijo(){
       const spd=r&&r.speed?`<div class="kspdmin" title="提出から解除までの時間">${kspdIcon(r.speed)}</div>`:"";
       return `<td class="kcell ${stx?chipCls(stx):""}" title="${memLabel(m)}：${stx||"未確認"}${r&&r.speed?"（"+r.speed+"）":""}">${stx}${pdf}${spd}</td>`;
     }).join("");
-    html+=`<tr><td style="font-size:12px;color:#6b7686">${b.pri}</td>`+
+    html+=`<tr><td style="font-size:12px;color:#6b7686">${b.pri}<button class="kpreq" data-brand="${brandEsc}" data-pri="${String(b.pri).replace(/"/g,"&quot;")}" title="優先度の変更をリクエスト">↕</button></td>`+
       `<td class="pname">${b.brand}${myKgoal.includes(b.brand)?' <span title="今月の解除目標（数字報告と連動）">🎯</span>':""}${asin}</td>`+
       `<td><select class="ksel" data-brand="${brandEsc}" style="padding:6px 10px;border:1px solid #e3e6ea;border-radius:8px;font-size:12.5px">${opts}</select>`+
       `<div style="margin-top:4px"><select class="kspd" data-brand="${brandEsc}" title="提出から解除までの時間" style="padding:4px 6px;border:1px solid #e3e6ea;border-radius:8px;font-size:11px;color:#5a6472;max-width:150px"><option value="">解除まで—</option>${KSPEED.map(o=>`<option value="${o}" ${kaijoSpeed[b.brand]===o?"selected":""}>${kspdIcon(o)}</option>`).join("")}</select></div>`+
@@ -4168,6 +4186,50 @@ function paintKaijo(){
         navigator.clipboard.writeText(asin).then(ok).catch(fallback);
       } else fallback();
     };
+  });
+  box.querySelectorAll(".kpreq").forEach(btn=>btn.onclick=()=>{
+    const brand=btn.dataset.brand, cur=btn.dataset.pri;
+    const pris=[...new Set((BRANDS||[]).map(b=>String(b.pri)))].sort();
+    const ov=document.createElement("div"); ov.className="qovl";
+    ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:400px;width:100%;padding:18px 20px;margin-top:40px">
+      <div style="font-weight:800;margin-bottom:6px">🙋 優先度の変更をリクエスト</div>
+      <div style="font-size:13px;margin-bottom:10px"><b>${brand}</b>（現在：${cur||"—"}）</div>
+      <div class="gpn" style="margin-bottom:4px">希望する優先度</div>
+      <select class="ginput" id="kqWant" style="width:100%;padding:6px 8px;margin-bottom:10px">
+        ${pris.map(p2=>`<option value="${p2}" ${p2===cur?"disabled":""}>${p2}${p2===cur?"（現在）":""}</option>`).join("")}
+      </select>
+      <div class="gpn" style="margin-bottom:4px">理由（店舗で見た実感など）</div>
+      <input class="ginput" id="kqReason" style="width:100%;padding:6px 8px;margin-bottom:14px" placeholder="例：ドンキでよく利益商品を見かける">
+      <div style="display:flex;gap:8px">
+        <button class="gbtn" id="kqGo" style="background:#2563eb">リクエストを送る</button>
+        <button class="gbtn" id="kqCancel" style="background:#9aa3af">やめる</button>
+      </div></div>`;
+    document.body.appendChild(ov);
+    ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+    ov.querySelector("#kqCancel").onclick=()=>ov.remove();
+    ov.querySelector("#kqGo").onclick=async()=>{
+      const want=ov.querySelector("#kqWant").value, reason=ov.querySelector("#kqReason").value.trim();
+      const b2=ov.querySelector("#kqGo"); b2.disabled=true; b2.textContent="送信中…";
+      try{
+        const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"kreqsave",pass:PASS,uid:me.sid,name:me.name,brand:brand,cur:cur,want:want,reason:reason})})).json();
+        if(!(d&&d.ok)) throw new Error(d&&d.error||"失敗");
+        (KREQS=KREQS||[]).push({id:"tmp",uid:String(me.sid),name:me.name,brand:brand,cur:cur,want:want,reason:reason,st:"申請中"});
+        ov.remove(); paintKaijo();
+        showToast("🙋 リクエストを送りました。ののさんの承認待ちです");
+      }catch(e){ b2.disabled=false; b2.textContent="リクエストを送る"; alert("送信に失敗しました："+e.message); }
+    };
+  });
+  box.querySelectorAll(".kreq-ok,.kreq-ng").forEach(btn=>btn.onclick=async()=>{
+    const approve=btn.classList.contains("kreq-ok");
+    btn.disabled=true; btn.textContent="…";
+    try{
+      const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"kreqjudge",key:ADMIN_KEY,id:btn.dataset.id,judge:approve?"approve":"reject"})})).json();
+      if(!(d&&d.ok)) throw new Error(d&&d.error||"失敗");
+      KREQS=(KREQS||[]).map(q=>q.id===btn.dataset.id?Object.assign({},q,{st:approve?"承認":"却下"}):q);
+      if(approve){ BRANDS=null; window.__skipBrandCache=true; }
+      showToast(approve?"✅ 承認しました。優先度を書き換えます":"却下しました");
+      fillKaijo();
+    }catch(e){ alert("失敗："+e.message); btn.disabled=false; }
   });
   box.querySelectorAll(".kspd").forEach(sel=>{
     sel.onchange=()=>{
