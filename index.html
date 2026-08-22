@@ -520,7 +520,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-22 11:15</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-22 11:18</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3289,19 +3289,22 @@ function bindDaily(){
       }
     });
     let otherNote="";
+    let saveCur=true; // 表示中の月を保存するか（モーダルで外せる）
+    const curYm=numsMonth;
     const ymList=Object.keys(otherByYm).sort((a,b)=>ymSortKey(a)-ymSortKey(b));
     if(ymList.length){
       // 月ごとに保存するかチェックボックスで選択（古い月だけ外す等ができる）
       const selYms=await new Promise(res=>{
         const ov=document.createElement("div"); ov.className="qovl";
         ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:420px;width:100%;padding:18px 20px;margin-top:30px">
-          <div style="font-weight:800;margin-bottom:6px">📥 表示中の月以外のデータがあります</div>
+          <div style="font-weight:800;margin-bottom:6px">📥 どの月を保存しますか？</div>
           <div class="gpn" style="margin-bottom:10px">保存したい月にチェック（仕入金額・見込利益として保存。時間・回訪・検索はその月を開いて入力）</div>
           <div style="display:flex;gap:8px;margin-bottom:8px">
             <button class="gbtn" id="omAll" style="padding:4px 12px;font-size:12px;background:#6b7686">全て選択</button>
             <button class="gbtn" id="omNone" style="padding:4px 12px;font-size:12px;background:#6b7686">全て外す</button>
           </div>
           <div style="max-height:260px;overflow-y:auto;margin-bottom:12px">
+            ${curRows.length?`<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer;background:#fff7ed;border-radius:8px"><input type="checkbox" class="omchk" value="__cur" checked><b>${curYm}（${curRows.length}日分・表示中）</b></label>`:""}
             ${ymList.map(ym=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer"><input type="checkbox" class="omchk" value="${ym}" checked>${ym}（${otherByYm[ym].length}日分）</label>`).join("")}
           </div>
           <div style="display:flex;gap:8px">
@@ -3315,11 +3318,13 @@ function bindDaily(){
         ov.querySelector("#omSkip").onclick=()=>{ ov.remove(); res([]); };
         ov.onclick=e=>{ if(e.target===ov){ ov.remove(); res([]); } };
       });
-      const desc=selYms.map(ym=>`${ym}:${otherByYm[ym].length}日分`).join("、");
-      const skipped=ymList.filter(y=>selYms.indexOf(y)<0);
-      if(selYms.length){
+      saveCur=selYms.indexOf("__cur")>=0;
+      const selOther=selYms.filter(y=>y!=="__cur");
+      const desc=selOther.map(ym=>`${ym}:${otherByYm[ym].length}日分`).join("、");
+      const skipped=ymList.filter(y=>selOther.indexOf(y)<0);
+      if(selOther.length){
         msg.textContent="他の月を保存中…";
-        for(const ym of selYms){
+        for(const ym of selOther){
           // 既存の時間・回訪・検索を消さないよう既存行とマージ
           const rows=otherByYm[ym].map(r=>{
             const ex=((DAILYALL&&DAILYALL.rows)||[]).find(x=>String(x.uid)===String(me.sid)&&x.date===r.date&&(x.kind||"actual")==="actual")||{};
@@ -3338,21 +3343,26 @@ function bindDaily(){
           }catch(e){}
         }
         otherNote=`・他の月（${desc}）は自動保存済み${skipped.length?`・${skipped.join("、")}はスキップ`:""}`;
-        showToast("✅ 選んだ月の分も保存しました（"+selYms.length+"ヶ月）");
+        showToast("✅ 選んだ月の分も保存しました（"+selOther.length+"ヶ月）");
       }else{
         otherNote=`・他の月（${ymList.join("、")}）は保存せずスキップ`;
       }
     }
     // 表示中の月の分もそのまま自動保存（取り込み＝確定。保存し忘れ・リロード消失を防ぐ）
     let curSaved=0;
-    if(curRows.length){
+    if(!saveCur&&curRows.length){
+      // 今月のチェックを外した→充填した値を破棄して元の表示に戻す
+      const w=document.getElementById("dailyWrap");
+      if(w){ w.innerHTML=dailySectionHtml(String(me.sid),true); bindDaily(); }
+    }
+    if(saveCur&&curRows.length){
       if(msg) msg.textContent="この月の分を保存中…";
       try{
         const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"dysave",pass:PASS,uid:me.sid,name:me.name,rows:curRows})})).json();
         if(d&&d.ok) curSaved=curRows.length;
       }catch(e){}
     }
-    const summary=`${items.length}商品を${Object.keys(byDt).length}日分に振り分け（この月${hit}日分${curSaved?"を保存済み":"は保存失敗（もう一度取り込んでください）"}${kept?`・${kept}日分は既存記録の方が大きいため保持`:""}${otherNote}${noDt?`・仕入日不明${noDt}件`:""}）`;
+    const summary=`${items.length}商品を${Object.keys(byDt).length}日分に振り分け（この月${hit}日分${!saveCur?"はスキップ":(curSaved?"を保存済み":"は保存失敗（もう一度取り込んでください）")}${kept?`・${kept}日分は既存記録の方が大きいため保持`:""}${otherNote}${noDt?`・仕入日不明${noDt}件`:""}）`;
     if(curSaved){
       DAILYALL=null; await renderNums();
       const m2=document.getElementById("uniMsg"); if(m2) m2.textContent=summary;
