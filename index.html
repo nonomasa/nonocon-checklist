@@ -519,7 +519,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-21 13:24</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-22 10:33</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3672,9 +3672,9 @@ async function renderNums(){
         try{ text=new TextDecoder("utf-8",{fatal:true}).decode(buf); }        // UTF-8として厳密に読めればそれが正
         catch(e){ text=new TextDecoder("shift_jis").decode(buf); }            // ダメならShift_JIS（せどプレDL等）
         const head=(text.split(/\r?\n/,1)[0]||"");
-        // せどプレを最優先で判定（出品コメント定型文に「注文日」が含まれ誤判別するため、注文日はヘッダ行のみで判定）
-        if(/(^|\n)"?\d{8}-\d+-[A-Z0-9]{10}-/.test(text)||(head.indexOf("SKU")>=0&&head.indexOf("粗利")>=0)){ await window.__applyDaily(sedopreParse(text),msg); }
-        else if(head.indexOf("注文日")>=0){ await importPricetarFile(f,msg); }
+        // 判別はヘッダ行ベース。プライスター注文CSV（注文日あり。SKU・粗利益列もあるので先に判定）→せどプレ（SKU行 or 仕入原価/出品予定価格列）→在庫
+        if(head.indexOf("注文日")>=0){ await importPricetarFile(f,msg); }
+        else if(/(^|\n)"?\d{8}-\d+-[A-Z0-9]{10}-/.test(text)||(head.indexOf("SKU")>=0&&(head.indexOf("仕入原価")>=0||head.indexOf("出品予定価格")>=0))){ await window.__applyDaily(sedopreParse(text),msg); }
         else if(/number|在庫数/.test(head)){ zaikoFiles.push(f); }
         else{ if(msg) msg.textContent=`「${f.name}」の種類を判別できませんでした（プライスター注文／せどプレ／在庫CSVに対応）`; }
       }catch(e){ if(msg) msg.textContent=`「${f.name}」：`+String(e).slice(0,120); }
