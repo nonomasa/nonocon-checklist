@@ -519,7 +519,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-22 10:33</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-22 10:35</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3253,6 +3253,7 @@ function bindDaily(){
   if(sel) sel.onchange=()=>{ numsWho=sel.value; renderNums(); };
 
   const applyDailyItems=window.__applyDaily=async(items,msgEl)=>{
+    captureNumsDraft(); // 旬報告②や目標の入力中の値が、取り込み後の再描画で消えないように退避
     if(dlyMode!=="actual"){ dlyMode="actual"; const w=document.getElementById("dailyWrap"); if(w){ w.innerHTML=dailySectionHtml(String(me.sid),true); bindDaily(); } }
     const msg=msgEl||document.getElementById("uniMsg")||document.getElementById("dlyPasteMsg");
     if(!items.length){ if(msg) msg.textContent="せどプレのデータが読み取れませんでした"; return; }
