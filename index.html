@@ -522,7 +522,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-22 11:40</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-22 11:49</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2170,6 +2170,7 @@ function addMinutes(hm,min){
 const drNum=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
 const PHOTO_KINDS=[["shelf","店頭"],["list","せどプレ"],["sold","売れた"]];
 let PHOTOCTX={}; // {routeId:{shopKey:{kind:url}}}
+let PHOTOWHO={}; // {routeId:{url:登録者名}}（写真の削除権限判定用）
 /* せどプレの行コピペ（タブ区切り・ヘッダ無し）をパース。列位置はCSVと同じ */
 function sedoprePasteParse(text){
   const raw=String(text).replace(/\r/g,"");
@@ -2282,11 +2283,11 @@ function applyPhotoLocal(rid,shop,kind,url,mode){
   r.photos=r.photos||[];
   if(mode==="del-one"){ r.photos=r.photos.filter(p=>!(p.shop===shop&&p.kind===kind&&p.url===url)); }
   else if(mode==="del-all"){ r.photos=r.photos.filter(p=>!(p.shop===shop&&p.kind===kind)); }
-  else if(mode==="set"){ r.photos=r.photos.filter(p=>!(p.shop===shop&&p.kind===kind)); if(url) r.photos.push({shop,kind,url}); }
-  else if(mode==="add"){ r.photos.push({shop,kind,url}); }
+  else if(mode==="set"){ r.photos=r.photos.filter(p=>!(p.shop===shop&&p.kind===kind)); if(url) r.photos.push({shop,kind,url,who:me?me.name:""}); }
+  else if(mode==="add"){ r.photos.push({shop,kind,url,who:me?me.name:""}); }
   // PHOTOCTX再構築（この同行だけ）
-  PHOTOCTX[rid]={};
-  r.photos.forEach(p=>{const sh=PHOTOCTX[rid][p.shop]=PHOTOCTX[rid][p.shop]||{}; if(p.kind==="memo"||p.kind==="products"){sh[p.kind]=p.url;} else {(sh[p.kind]=sh[p.kind]||[]).push(p.url);}});
+  PHOTOCTX[rid]={}; PHOTOWHO[rid]={};
+  r.photos.forEach(p=>{const sh=PHOTOCTX[rid][p.shop]=PHOTOCTX[rid][p.shop]||{}; if(p.kind==="memo"||p.kind==="products"){sh[p.kind]=p.url;} else {(sh[p.kind]=sh[p.kind]||[]).push(p.url); PHOTOWHO[rid][p.url]=p.who||"";}});
 }
 function photoCell(rid,shopKey){
   const m=(PHOTOCTX[rid]||{})[shopKey]||{};
@@ -2297,7 +2298,7 @@ function photoCell(rid,shopKey){
     if(!urls.length && !canEdit) return ""; // 閲覧者には空の枠を出さない
     const imgs=urls.map(u=>
       `<span class="drph-w"><a class="drph" href="${u}" target="_blank" rel="noopener" title="${k[1]}"><img src="${u}" alt="${k[1]}"></a>`+
-      `${canEdit?`<button class="drph-del" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" data-url="${escH(u)}" title="削除">×</button>`:""}</span>`).join("");
+      `${(ADMIN_KEY||((PHOTOWHO[rid]||{})[u]&&(PHOTOWHO[rid]||{})[u]===me.name))?`<button class="drph-del" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" data-url="${escH(u)}" title="削除（アップした本人とののだけ）">×</button>`:""}</span>`).join("");
     return `<span class="drph-group"><span class="drph-lbl">${k[1]}</span>${imgs}`+
       `${canEdit?`<button class="drph-add" data-rid="${rid}" data-shop="${escH(shopKey)}" data-kind="${k[0]}" title="${k[1]}の写真を追加">＋</button>`:""}</span>`;
   }).join("")+`</div>`;
@@ -2481,10 +2482,10 @@ async function renderDoko(){
       <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　📝 ${escH(r.memo)}`:""}</div>
       <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
       ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${(()=>{
-        PHOTOCTX[r.id]={};(r.photos||[]).forEach(p=>{
+        PHOTOCTX[r.id]={};PHOTOWHO[r.id]={};(r.photos||[]).forEach(p=>{
           const sh=PHOTOCTX[r.id][p.shop]=PHOTOCTX[r.id][p.shop]||{};
           if(p.kind==="memo"||p.kind==="products"){ sh[p.kind]=p.url; }
-          else{ (sh[p.kind]=sh[p.kind]||[]).push(p.url); }
+          else{ (sh[p.kind]=sh[p.kind]||[]).push(p.url); PHOTOWHO[r.id][p.url]=p.who||""; }
         });
         const plan=parseRoute(r.planRoute);
         const differs=plan.length&&r.planRoute!==r.route;
@@ -2705,7 +2706,7 @@ function bindRouteBox(scope){
       const rid=btn.dataset.rid, shop=btn.dataset.shop, kind=btn.dataset.kind, url=btn.dataset.url;
       applyPhotoLocal(rid,shop,kind,url,"del-one"); refreshRouteBox(rid); // 画面は即更新
       try{ await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
-        body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:kind,url:url,data:""})}); }catch(e){}
+        body:JSON.stringify({action:"dphoto",pass:PASS,key:ADMIN_KEY||"",name:me?me.name:"",id:rid,shop:shop,kind:kind,url:url,data:""})}); }catch(e){}
     };
   });
   scope.querySelectorAll(".drph-add").forEach(btn=>{
