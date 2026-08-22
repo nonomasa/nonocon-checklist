@@ -520,7 +520,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-22 11:20</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-22 11:22</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1199,7 +1199,7 @@ let kaijoPdf = {};        // 自分のPDF {brand: url}
 let ALLKAIJO = null;      // 全員の解除状況
 let kaijoLoaded = false;
 const KSTATUS = ["未確認","制限なし","要承認","Ama申請中①","Ama申請中②","Ama申請中③","Ama申請中それ以上","SD解除","楽天解除","ヨド解除","ビック解除","アマ解除","卸解除","公式解除","その他解除"];
-const KSPEED = ["即日解除","2週間以内","1ヶ月以内","何度も弾かれた"]; // 提出から解除までの時間
+const KSPEED = ["即日解除","2週間以内","1ヶ月以内","1ヶ月以上かかった","何度も弾かれた"]; // 提出から解除までの時間
 const kspdIcon = v=>v==="即日解除"?"⚡"+v:(v==="何度も弾かれた"?"🔁"+v:v);
 let kaijoSpeed = {};
 
