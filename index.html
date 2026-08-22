@@ -520,7 +520,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-22 11:18</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-22 11:20</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3305,7 +3305,7 @@ function bindDaily(){
           </div>
           <div style="max-height:260px;overflow-y:auto;margin-bottom:12px">
             ${curRows.length?`<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer;background:#fff7ed;border-radius:8px"><input type="checkbox" class="omchk" value="__cur" checked><b>${curYm}（${curRows.length}日分・表示中）</b></label>`:""}
-            ${ymList.map(ym=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer"><input type="checkbox" class="omchk" value="${ym}" checked>${ym}（${otherByYm[ym].length}日分）</label>`).join("")}
+            ${ymList.map(ym=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 2px;cursor:pointer"><input type="checkbox" class="omchk" value="${ym}">${ym}（${otherByYm[ym].length}日分）</label>`).join("")}
           </div>
           <div style="display:flex;gap:8px">
             <button class="gbtn" id="omGo" style="background:#2563eb">チェックした月を保存</button>
