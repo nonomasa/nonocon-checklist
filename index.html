@@ -191,6 +191,11 @@
   .drph-group{display:inline-flex;align-items:center;gap:3px;margin-right:8px;padding:2px 4px;border:1px solid var(--line);border-radius:8px}
   .drph-lbl{font-size:9px;color:#8a93a3;margin-right:2px}
   .drph-w{position:relative;display:inline-block}
+  .drcmts{margin-top:5px;text-align:left}
+  .drcmt1{font-size:11px;color:#5a6472;background:#f6f8fa;border-radius:6px;padding:4px 7px;margin-top:3px;line-height:1.55}
+  .drcmt1 b{color:#3b4652;font-weight:700}
+  .drcmt1.clamp{cursor:pointer}
+  .drcmt1.clamp:not(.open) .drcmt-t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .drph-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:none;background:#dc2626;color:#fff;font-size:10px;line-height:1;cursor:pointer;padding:0}
   .ph-stack{flex:1;display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0}
   .ph-stack img{width:100%;object-fit:contain;background:#1c1f28;border-radius:10px}
@@ -522,7 +527,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-22 11:49</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-25 23:07</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2340,6 +2345,19 @@ function riekiVal(rid,x){
 }
 
 /* 単一ルート表（計画のみ／実際のみ）。実際(分)列は廃止 */
+/* 店舗行に、その店に紐づく感想を小さく表示（2行で折りたたみ・タップで全文） */
+function cmtInlineHtml(rid,x){
+  if(!rid) return "";
+  const r=(DOKOALL||[]).find(v=>v.id===rid); if(!r||!r.comments||!r.comments.length) return "";
+  const target=(x.ch?x.ch+(x.n?" "+x.n:""):x.n)||"";
+  const cs=r.comments.filter(c=>(c.target||"全体")===target&&String(c.text||"").trim());
+  if(!cs.length) return "";
+  return `<div class="drcmts">`+cs.map(c=>{
+    const long=String(c.text).length>60;
+    const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
+    return `<div class="drcmt1${long?" clamp":""}"${long?` title="タップで全文表示"`:""}><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(c.text)}</span></div>`;
+  }).join("")+`</div>`;
+}
 function routeTableHtml(route,RID){
   if(!route.length) return "";
   route=sortRoute(route);
@@ -2351,7 +2369,7 @@ function routeTableHtml(route,RID){
       const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
       const ph=RID?photoCell(RID,drKey(x)):"";
       return `<tr${x.in?' class="drin-row"':""}><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
-      `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}${ph}</td><td style="text-align:left">${escH(x.k)}</td>`+
+      `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}${ph}${cmtInlineHtml(RID,x)}</td><td style="text-align:left">${escH(x.k)}</td>`+
       `<td>${x.p?escH(x.p):""}</td><td>${riekiCellHtml(RID,x)}</td></tr>`;}).join("")+
     `<tr class="ntotal"><td colspan="4">合計</td><td>${tp||""}</td><td>${(()=>{const t=route.reduce((a,x)=>a+riekiVal(RID,x),0);return t?yen(t)+"円":"";})()}</td></tr>`+
     `</tbody></table>`;
@@ -2392,7 +2410,7 @@ function routeMergedHtml(actual, plan, RID){
     body+=`<tr class="${cls}${x.in?" drin-row":""}">`+
       `<td style="white-space:nowrap" class="${timeChg}">${timeCell}</td>`+
       `<td style="text-align:center">${mustCell}</td>`+
-      `<td style="text-align:left">${nmCell}${ph}</td>`+
+      `<td style="text-align:left">${nmCell}${ph}${cmtInlineHtml(RID,x)}</td>`+
       `<td style="text-align:left">${escH(x.k)}</td>`+
       `<td class="${pChg}">${pCell}</td>`+
       `<td>${riekiCellHtml(RID,x)}</td></tr>`;
@@ -2700,6 +2718,7 @@ async function renderDoko(){
   };
 function bindRouteBox(scope){
   scope=scope||document.getElementById("body");
+  scope.querySelectorAll(".drcmt1.clamp").forEach(el=>{ el.onclick=()=>el.classList.toggle("open"); });
   scope.querySelectorAll(".drph-del").forEach(btn=>{
     btn.onclick=async()=>{
       if(!confirm("この写真を削除しますか？")) return;
