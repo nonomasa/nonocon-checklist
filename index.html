@@ -540,7 +540,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-25 23:29</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-25 23:54</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2318,7 +2318,8 @@ function photoCell(rid,shopKey){
   const m=(PHOTOCTX[rid]||{})[shopKey]||{};
   const memo=m.memo||"";
   const canEdit=canEditDokoId(rid);
-  const photos=`<div class="drphotos">`+PHOTO_KINDS.map(k=>{
+  const kinds=ADMIN_KEY?PHOTO_KINDS.concat([["kyozai","📚講座素材"]]):PHOTO_KINDS;
+  const photos=`<div class="drphotos">`+kinds.map(k=>{
     const urls=m[k[0]]||[];
     if(!urls.length && !canEdit) return ""; // 閲覧者には空の枠を出さない
     const imgs=urls.map(u=>
@@ -2527,7 +2528,7 @@ async function renderDoko(){
       <div class="dcardh">
         <span class="ddate">${dokoDateLabel(r.date)}</span>
         <span class="dplace">${escH(r.place)}</span>
-        ${route.length?`<button class="dtoggle" data-id="${r.id}">🗺 ルート表（${route.length}店舗）▼</button>`:""}
+        ${route.length?`<button class="dtoggle" data-id="${r.id}">🗺 ルート表（${route.filter(x=>!(x.k==="食事・休憩"||/昼食|懇親会|休憩|兼移動|^移動/.test(String(x.ch||"")+String(x.n||"")))).length}店舗）▼</button>`:""}
         ${r.review?`<button class="dtoggle drev" data-rev="${r.id}">📖 振り返り ▼</button>`:""}
         <button class="dtoggle dcmt" data-cmt="${r.id}">💬 感想（${new Set((r.comments||[]).map(c=>c.name)).size}人）▼</button>
         <span style="flex:1"></span>
