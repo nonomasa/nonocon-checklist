@@ -195,6 +195,9 @@
   .drcmt1{font-size:11px;color:#5a6472;background:#f6f8fa;border-radius:6px;padding:4px 7px;margin-top:3px;line-height:1.55}
   .drcmt1 b{color:#3b4652;font-weight:700}
   .drcmt-t{white-space:pre-line}
+  .dpin{border:1px solid #e3e6ea;background:#fff;color:#8a93a1;border-radius:8px;cursor:pointer;font-size:11.5px;padding:4px 9px}
+  .dpin.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+  .dpin:hover{border-color:var(--accent);color:var(--accent)}
   .drsummary{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
   .drsumh{font-weight:800;font-size:13px;margin-bottom:4px}
   .pl-skiprow td{background:#f7f8fa;color:#a7afba}
@@ -536,7 +539,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-25 23:17</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-25 23:22</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2511,8 +2514,11 @@ async function renderDoko(){
   const editing=dokoEditId?DOKOALL.find(r=>r.id===dokoEditId):null;
   const today=new Date(); today.setHours(0,0,0,0);
   const rows=[...DOKOALL].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-  const future=rows.filter(r=>{const d=new Date(r.date); return !isNaN(d)&&d>=today;});
-  const past=rows.filter(r=>{const d=new Date(r.date); return isNaN(d)||d<today;}).reverse();
+  const pinId=localStorage.getItem("nonocon_doko_pin")||"";
+  const pinned=rows.filter(r=>String(r.id)===pinId);
+  const rest=rows.filter(r=>String(r.id)!==pinId);
+  const future=rest.filter(r=>{const d=new Date(r.date); return !isNaN(d)&&d>=today;});
+  const past=rest.filter(r=>{const d=new Date(r.date); return isNaN(d)||d<today;}).reverse();
   const entryHtml=r=>{
     const route=parseRoute(r.route);
     const mine=String(r.uid)===String(me.sid);
@@ -2524,6 +2530,7 @@ async function renderDoko(){
         ${r.review?`<button class="dtoggle drev" data-rev="${r.id}">📖 振り返り ▼</button>`:""}
         <button class="dtoggle dcmt" data-cmt="${r.id}">💬 感想（${new Set((r.comments||[]).map(c=>c.name)).size}人）▼</button>
         <span style="flex:1"></span>
+        <button class="dpin${String(r.id)===(localStorage.getItem("nonocon_doko_pin")||"")?" on":""}" data-id="${r.id}" title="この同行を一番上に固定">${String(r.id)===(localStorage.getItem("nonocon_doko_pin")||"")?"📌 固定中":"📌"}</button>
         <button class="dedit" data-id="${r.id}">編集</button>
         ${(mine||ADMIN_KEY)?`<button class="ddel" data-id="${r.id}">削除</button>`:""}
       </div>
@@ -2596,6 +2603,7 @@ async function renderDoko(){
       <span class="gmsg" id="dmsg"></span></div>
     </div>
   </div>
+  ${pinned.length?`<div class="gpanel" style="border:2px solid var(--accent)"><div class="gph">📌 固定中の同行 <span class="gpn">（📌をもう一度押すと解除）</span></div>${listHtml(pinned)}</div>`:""}
   <div class="gpanel"><div class="gph gtoggle" id="dfutureT"><span class="caret">${dokoOpen.future?"▼":"▶"}</span> これからの同行（${future.length}件）</div><div id="dfutureB" style="${dokoOpen.future?"":"display:none"}">${listHtml(future)}</div></div>
   <div class="gpanel"><div class="gph gtoggle" id="dpastT"><span class="caret">${dokoOpen.past?"▼":"▶"}</span> 過去の同行（${past.length}件）</div><div id="dpastB" style="${dokoOpen.past?"":"display:none"}">${listHtml(past)}</div></div>`;
   body.innerHTML=html;
@@ -2951,6 +2959,14 @@ _bindRouteBox=bindRouteBox;
         DOKOALL=null; await renderDoko();
         const nb=document.querySelector(`div[data-cmtbody="${rid}"]`); if(nb) nb.style.display="";
       }catch(e){ msg.textContent="通信エラー"; b.disabled=false; }
+    };
+  });
+  body.querySelectorAll(".dpin").forEach(b=>{
+    b.onclick=()=>{
+      const cur=localStorage.getItem("nonocon_doko_pin")||"";
+      if(cur===b.dataset.id){ localStorage.removeItem("nonocon_doko_pin"); showToast("📌 固定を解除しました"); }
+      else{ localStorage.setItem("nonocon_doko_pin",b.dataset.id); showToast("📌 一番上に固定しました"); }
+      renderDoko();
     };
   });
   body.querySelectorAll(".dedit").forEach(b=>{
