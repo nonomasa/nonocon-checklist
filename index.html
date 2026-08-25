@@ -554,7 +554,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-26 00:31</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-26 00:42</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1059,12 +1059,15 @@ const DATA = [
       {sub:"こども", id:"chain-トイザらス", l:2, t:"トイザらス", n:""},
       {sub:"こども", id:"chain-バースデイ", l:2, t:"バースデイ", n:""},
       {sub:"こども", id:"chain-西松屋", l:2, t:"西松屋", n:""},
-      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-pb", l:2, t:"スマートエンジェルは西松屋のPB→取れない", n:"PB商品はスルーでOK"},
-      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-dakko", l:2, t:"抱っこ紐は相場3万円程度", n:"エルゴベビー・ベビービョルン・アップリカなど"},
-      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-toosenbo", l:2, t:"とおせんぼ棚（ベビーゲート）は誰も見ない", n:"利益商品がある穴場"},
-      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-toy", l:2, t:"おもちゃは割引品を狙う", n:""},
-      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-nichiyo", l:2, t:"日用品は結構取れる", n:"さく乳器などのベビー家電・衛生用品もチェック"},
-      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-fuda", l:2, t:"割引札の種類を覚える", n:"赤「値下価格」札／黒矢印「PRICE DOWN」札／赤POP「プライスダウン!」のワゴン・カゴ／黄色「MONTHLY SALE 期間限定」札（当社平常価格→値下げ表記・掲示期間つき）"},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-pb", l:2, cat:"情報", t:"スマートエンジェルは西松屋のPB→取れない", n:"PB商品はスルーでOK", imgs:["https://drive.google.com/thumbnail?id=1vhdZ50tUJitskhcn5aqedK04JsY2A8pT&sz=w1000"]},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-fuda1", l:2, cat:"値札", t:"【最重要】「値下価格」の赤札・「PRICE DOWN」札", n:"個別の値下げ・処分。最優先でチェック", imgs:["https://drive.google.com/thumbnail?id=1KAU2LAddfFLRlZEP425gdOTf01WfADIv&sz=w1000","https://drive.google.com/thumbnail?id=1xjDuambVFLlyUTYDHuzw71RXHk0qTpIR&sz=w1000"]},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-fuda2", l:2, cat:"値札", t:"【重要】黄色「MONTHLY SALE 期間限定」札", n:"当社平常価格→値下げ表記・掲示期間つきの月間セール", imgs:["https://drive.google.com/thumbnail?id=16TMAxfiEK9bcXT1B2Hw0BLDwY5RSUODQ&sz=w1000"]},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-fuda3", l:2, cat:"値札", t:"【通常札】白い棚札", n:"平常価格。基本は取れないが相場感の基準として見る", imgs:["https://drive.google.com/thumbnail?id=18Wj4rTy7DbmoSSRM1CzQFhKcWL_AMwLA&sz=w1000"]},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-kago", l:2, cat:"店内", t:"「プライスダウン!」のカゴ・ワゴンをチェック", n:"赤POPのカゴ・ワゴンにまとめられている", imgs:["https://drive.google.com/thumbnail?id=1pUu0V7GanrS3TkW3y_0yzsbmsRwTuL4s&sz=w1000"]},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-toosenbo", l:2, cat:"店内", t:"とおせんぼ棚（ベビーゲート）は誰も見ない", n:"利益商品がある穴場"},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-dakko", l:2, cat:"商品", t:"抱っこ紐は相場3万円程度", n:"エルゴベビー・ベビービョルン・アップリカなど"},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-toy", l:2, cat:"商品", t:"おもちゃは割引品を狙う", n:""},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-nichiyo", l:2, cat:"商品", t:"日用品は結構取れる", n:"さく乳器などのベビー家電・衛生用品もチェック"},
       {sub:"こども", id:"chain-アカチャンホンポ", l:2, t:"アカチャンホンポ", n:""},
       {sub:"こども", id:"chain-赤ちゃんデパート水谷", l:2, t:"赤ちゃんデパート水谷", n:""},
       {sub:"カー用品", id:"chain-イエローハット", l:2, t:"イエローハット", n:""},
@@ -2494,8 +2497,19 @@ async function openChainPage(name){
     let h=`<div style="font-weight:800;font-size:17px">🏬 ${escH(name)}</div>`;
     if(kind) h+=`<div class="gpn" style="margin-bottom:8px">${escH(kind)}</div>`;
     h+=`<div style="font-weight:700;font-size:13px;margin:12px 0 4px">📖 攻略ポイント</div>`;
+    const tipHtml=t2=>`<div style="background:#f6f8fa;border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px"><b>${escH(t2.t)}</b>${t2.n?`<div class="gpn" style="margin-top:2px">${escH(t2.n)}</div>`:""}${(t2.imgs&&t2.imgs.length)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${t2.imgs.map(u2=>`<a href="${u2}" target="_blank" rel="noopener"><img src="${u2}" style="height:96px;border-radius:8px;border:1px solid var(--line)" loading="lazy"></a>`).join("")}</div>`:""}</div>`;
     if(tips.length){
-      h+=tips.map(t2=>`<div style="background:#f6f8fa;border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px"><b>${escH(t2.t)}</b>${t2.n?`<div class="gpn" style="margin-top:2px">${escH(t2.n)}</div>`:""}</div>`).join("");
+      const CATS=["情報","値札","店内","商品"];
+      const used=new Set();
+      CATS.forEach(cat=>{
+        const cs2=tips.filter(t2=>t2.cat===cat);
+        if(!cs2.length) return;
+        cs2.forEach(t2=>used.add(t2.id));
+        h+=`<div style="font-size:12px;font-weight:800;color:#fff;background:#5a6472;border-radius:6px;display:inline-block;padding:2px 10px;margin:8px 0 5px">${cat}</div>`;
+        h+=cs2.map(tipHtml).join("");
+      });
+      const rest=tips.filter(t2=>!used.has(t2.id));
+      if(rest.length){ if(used.size) h+=`<div style="font-size:12px;font-weight:800;color:#fff;background:#5a6472;border-radius:6px;display:inline-block;padding:2px 10px;margin:8px 0 5px">その他</div>`; h+=rest.map(tipHtml).join(""); }
     }else{
       h+=`<div class="gpn">まだ攻略ポイントは登録されていません（気づきがあればLINEでののに送ってください。追加します）</div>`;
     }
