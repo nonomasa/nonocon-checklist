@@ -195,6 +195,8 @@
   .drcmt1{font-size:11px;color:#5a6472;background:#f6f8fa;border-radius:6px;padding:4px 7px;margin-top:3px;line-height:1.55}
   .drcmt1 b{color:#3b4652;font-weight:700}
   .drcmt-t{white-space:pre-line}
+  .drsummary{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+  .drsumh{font-weight:800;font-size:13px;margin-bottom:4px}
   .pl-skiprow td{background:#f7f8fa;color:#a7afba}
   .pl-skiprow .pl-asin,.pl-skiprow .pl-profit{color:#a7afba}
   .pl-skiptag{display:inline-block;background:#eef1f5;color:#6b7686;font-size:10px;border-radius:6px;padding:1px 6px;margin-right:5px;font-weight:700}
@@ -2292,7 +2294,7 @@ function refreshRouteBox(rid){
   const plan=parseRoute(r.planRoute);
   const differs=plan.length&&r.planRoute!==r.route;
   const tbl=differs?routeMergedHtml(route,plan,rid):routeTableHtml(route,rid);
-  box.innerHTML=`<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${rid}">📷 スライド表示</button></div>`+tbl;
+  box.innerHTML=`<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${rid}">📷 スライド表示</button></div>`+tbl+overallCmtsHtml(rid);
   if(_bindRouteBox) _bindRouteBox(box);
   box.style.display="";
 }
@@ -2369,6 +2371,19 @@ function cmtInlineHtml(rid,x){
   return `<div class="drcmts">`+cs.map(c=>{
     const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
     const long=t.length>60;
+    const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
+    return `<div class="drcmt1${long?" clamp":""}"${long?` title="タップで全文表示"`:""}><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span></div>`;
+  }).join("")+`</div>`;
+}
+/* ルート表の下に出す「全体総括」＝対象が全体の感想 */
+function overallCmtsHtml(rid){
+  if(!rid) return "";
+  const r=(DOKOALL||[]).find(v=>v.id===rid); if(!r||!r.comments) return "";
+  const cs=r.comments.filter(c=>(c.target||"全体")==="全体"&&String(c.text||"").trim());
+  if(!cs.length) return "";
+  return `<div class="drsummary"><div class="drsumh">🗒 全体総括</div>`+cs.map(c=>{
+    const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
+    const long=t.length>120;
     const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
     return `<div class="drcmt1${long?" clamp":""}"${long?` title="タップで全文表示"`:""}><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span></div>`;
   }).join("")+`</div>`;
@@ -2523,7 +2538,7 @@ async function renderDoko(){
         const plan=parseRoute(r.planRoute);
         const differs=plan.length&&r.planRoute!==r.route;
         const tbl=differs?routeMergedHtml(route,plan,r.id):routeTableHtml(route,r.id);
-        return `<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${r.id}">📷 スライド表示</button></div>`+tbl;
+        return `<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${r.id}">📷 スライド表示</button></div>`+tbl+overallCmtsHtml(r.id);
       })()}</div>`:""}
       ${r.review?`<div class="drevbox" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
       <div class="dcmtbox" data-cmtbody="${r.id}" style="display:none">
