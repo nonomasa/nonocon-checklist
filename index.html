@@ -540,7 +540,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-25 23:54</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-25 23:55</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2314,11 +2314,11 @@ function applyPhotoLocal(rid,shop,kind,url,mode){
   PHOTOCTX[rid]={}; PHOTOWHO[rid]={};
   r.photos.forEach(p=>{const sh=PHOTOCTX[rid][p.shop]=PHOTOCTX[rid][p.shop]||{}; if(p.kind==="memo"||p.kind==="products"){sh[p.kind]=p.url;} else {(sh[p.kind]=sh[p.kind]||[]).push(p.url); PHOTOWHO[rid][p.url]=p.who||"";}});
 }
-function photoCell(rid,shopKey){
+function photoCell(rid,shopKey,isMeal){
   const m=(PHOTOCTX[rid]||{})[shopKey]||{};
   const memo=m.memo||"";
   const canEdit=canEditDokoId(rid);
-  const kinds=ADMIN_KEY?PHOTO_KINDS.concat([["kyozai","📚講座素材"]]):PHOTO_KINDS;
+  const kinds=isMeal?[["shelf","写真"]]:(ADMIN_KEY?PHOTO_KINDS.concat([["kyozai","📚講座素材"]]):PHOTO_KINDS);
   const photos=`<div class="drphotos">`+kinds.map(k=>{
     const urls=m[k[0]]||[];
     if(!urls.length && !canEdit) return ""; // 閲覧者には空の枠を出さない
@@ -2335,9 +2335,10 @@ function photoCell(rid,shopKey){
   const prodLine=(prodArr.length||canEdit)
     ? `<div class="drmemo"><button class="drmemo-edit pl-toggle" data-rid="${rid}" data-shop="${escH(shopKey)}">🛒 商品リスト（${prodArr.length}）</button></div><div class="pl-wrap" data-plwrap="${rid}__${escH(shopKey)}" style="display:none">${productListHtml(rid,shopKey)}</div>`
     : "";
-  return photos+memoLine+prodLine;
+  return isMeal?photos:(photos+memoLine+prodLine);
 }
 const drName=x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n);
+const drIsMeal=x=>x.k==="食事・休憩"||/昼食|懇親会|休憩|兼移動|^移動/.test(String(x.ch||"")+String(x.n||""));
 const drKey=x=>drName(x).replace(/\s+/g,"");
 /* 同行の編集可否：参加メンバー本人・作成者・管理者のみ編集可（他は閲覧のみ） */
 function dokoMembers(r){ return String((r&&r.members)||"").split(/[・、,／]+/).map(s=>s.trim()).filter(Boolean); }
@@ -2402,7 +2403,7 @@ function routeTableHtml(route,RID){
       const end=x.e||addMinutes(x.s,drNum(x.p));
       const nm=drName(x);
       const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
-      const ph=RID?photoCell(RID,drKey(x)):"";
+      const ph=RID?photoCell(RID,drKey(x),drIsMeal(x)):"";
       return `<tr${x.in?' class="drin-row"':""}><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
       `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}${ph}${cmtInlineHtml(RID,x)}</td><td style="text-align:left">${escH(x.k)}</td>`+
       `<td>${x.p?escH(x.p):""}</td><td>${riekiCellHtml(RID,x)}</td></tr>`;}).join("")+
@@ -2425,7 +2426,7 @@ function routeMergedHtml(actual, plan, RID){
     const end=addMinutes(x.s,drNum(x.p));
     const nm=drName(x);
     const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
-    const ph=RID?photoCell(RID,drKey(x)):"";
+    const ph=RID?photoCell(RID,drKey(x),drIsMeal(x)):"";
     let cls="", mustCell=escH(x.m||"");
     if(kind==="added"){ cls="dr-add"; mustCell=`<span class="dr-touban">当</span>`; }
     else if(kind==="skipped"){ cls="dr-skip"; }
