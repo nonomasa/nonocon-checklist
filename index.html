@@ -194,6 +194,13 @@
   .drcmts{margin-top:5px;text-align:left}
   .drcmt1{font-size:11px;color:#5a6472;background:#f6f8fa;border-radius:6px;padding:4px 7px;margin-top:3px;line-height:1.55}
   .drcmt1 b{color:#3b4652;font-weight:700}
+  .drcmt-t{white-space:pre-line}
+  .pl-skiprow td{background:#f7f8fa;color:#a7afba}
+  .pl-skiprow .pl-asin,.pl-skiprow .pl-profit{color:#a7afba}
+  .pl-skiptag{display:inline-block;background:#eef1f5;color:#6b7686;font-size:10px;border-radius:6px;padding:1px 6px;margin-right:5px;font-weight:700}
+  .pl-skip-t{border:1px solid #e3e6ea;background:#fff;color:#8a93a1;border-radius:6px;cursor:pointer;font-size:10px;padding:1px 6px;margin-left:4px}
+  .pl-skip-t:hover{border-color:#6b7686;color:#3b4652}
+  .dcmtt{white-space:pre-line}
   .drcmt1.clamp{cursor:pointer}
   .drcmt1.clamp:not(.open) .drcmt-t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .drph-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:none;background:#dc2626;color:#fff;font-size:10px;line-height:1;cursor:pointer;padding:0}
@@ -527,7 +534,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-25 23:07</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-25 23:16</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2242,23 +2249,29 @@ function sedopreParse(text){
 function productListHtml(rid,shopKey){
   const arr=((PHOTOCTX[rid]||{})[shopKey]||{}).products;
   let items=[]; try{ items=arr?JSON.parse(arr):[]; }catch(e){ items=[]; }
-  const totProfit=items.reduce((a,x)=>a+(x.profit||0)*(x.qty||1),0);
-  const rowsHtml=items.length?items.map(p=>
-    `<tr><td class="pl-id">${p.jan?`<span class="pl-jan">JAN ${escH(p.jan)}</span>`:""}<span class="pl-asin">${escH(p.asin)}</span></td>`+
+  const act=items.filter(x=>!x.skip); // 見送りは集計から除外
+  const totProfit=act.reduce((a,x)=>a+(x.profit||0)*(x.qty||1),0);
+  const canEd=canEditDokoId(rid);
+  const rowsHtml=items.length?items.map((p,idx)=>
+    `<tr${p.skip?' class="pl-skiprow"':''}><td class="pl-id">${p.skip?'<span class="pl-skiptag" title="サイズ・出品制限などで仕入れなかった商品">見送り</span>':''}${p.jan?`<span class="pl-jan">JAN ${escH(p.jan)}</span>`:""}<span class="pl-asin">${escH(p.asin)}</span></td>`+
     `<td class="pl-n">${p.qty>1?p.qty+"個":""}</td>`+
     `<td class="pl-n">${p.price?yen(p.price)+"円":""}</td>`+
     `<td class="pl-n">${p.cost?yen(p.cost)+"円":""}</td>`+
     `<td class="pl-n pl-profit">${p.profit?yen(p.profit*(p.qty||1))+"円":""}</td>`+
+    `<td class="pl-n" style="color:#2563eb;font-weight:700">${(p.ap!=null&&p.ap!=="")?yen(p.ap)+"円":""}${(p.lt!=null&&p.lt!=="")?`<div style="font-size:10px;color:#8a93a1;font-weight:400">⏱${p.lt}日</div>`:""}</td>`+
     `<td class="pl-k"><a href="https://keepa.com/#!product/5-${encodeURIComponent(p.asin)}" target="_blank" rel="noopener">Keepa↗</a>`+
-    ` <a href="https://www.amazon.co.jp/dp/${encodeURIComponent(p.asin)}" target="_blank" rel="noopener">Amazon↗</a></td></tr>`
-  ).join(""):`<tr><td colspan="6" style="color:#c2c8d0">まだ商品がありません</td></tr>`;
-  const totCost=items.reduce((a,x)=>a+(x.cost||0),0), totPrice=items.reduce((a,x)=>a+(x.price||0),0);
+    ` <a href="https://www.amazon.co.jp/dp/${encodeURIComponent(p.asin)}" target="_blank" rel="noopener">Amazon↗</a>`+
+    `${canEd?` <button class="pl-skip-t" data-rid="${rid}" data-shop="${escH(shopKey)}" data-i="${idx}" title="サイズ・出品制限などで仕入れなかった商品の印">${p.skip?"戻す":"見送り"}</button>`:""}</td></tr>`
+  ).join(""):`<tr><td colspan="7" style="color:#c2c8d0">まだ商品がありません</td></tr>`;
+  const totCost=act.reduce((a,x)=>a+(x.cost||0),0), totPrice=act.reduce((a,x)=>a+(x.price||0),0);
+  const skipCnt=items.length-act.length;
   return `<div class="plbox">
-    <table class="ntbl pltbl"><thead><tr><th>JAN / ASIN</th><th>個数</th><th>販売価格</th><th>仕入価格</th><th>見込利益</th><th>リンク</th></tr></thead>
-    <tbody>${rowsHtml}${items.length?`<tr class="ntotal"><td>合計 ${items.length}点</td><td></td><td>${totPrice?yen(totPrice)+"円":""}</td><td>${totCost?yen(totCost)+"円":""}</td><td>${yen(totProfit)}円</td><td></td></tr>`:""}</tbody></table>
+    <table class="ntbl pltbl"><thead><tr><th>JAN / ASIN</th><th>個数</th><th>販売価格</th><th>仕入価格</th><th>見込利益</th><th>実利益<div class="thsub">実績1個平均／⏱仕入→販売</div></th><th>リンク</th></tr></thead>
+    <tbody>${rowsHtml}${items.length?`<tr class="ntotal"><td>合計 ${act.length}点${skipCnt?`<div style="font-size:10px;color:#9aa3af;font-weight:400">見送り${skipCnt}点は除外</div>`:""}</td><td></td><td>${totPrice?yen(totPrice)+"円":""}</td><td>${totCost?yen(totCost)+"円":""}</td><td>${yen(totProfit)}円</td><td style="color:#2563eb">${(()=>{const t=act.reduce((a,x)=>a+((x.ap!=null&&x.ap!=="")?x.ap*(x.qty||1):0),0);return t?yen(t)+"円":"";})()}</td><td></td></tr>`:""}</tbody></table>
     ${items.length?`<div style="margin-top:8px"><button class="gbtn pl-keepa-all" data-rid="${rid}" data-shop="${escH(shopKey)}" style="background:#2563eb">Keepaを一括で開く↗（${items.length}件）</button><span class="gpn" style="margin-left:8px">初回はブラウザの「ポップアップを許可」が必要です</span></div>`:""}
     ${canEditDokoId(rid)?`<div class="plbtns"><button class="gbtn pl-csv" data-rid="${rid}" data-shop="${escH(shopKey)}">せどプレCSVを取り込む</button>
     <button class="gbtn pl-paste-open" data-rid="${rid}" data-shop="${escH(shopKey)}" style="background:#6b7686">行を貼り付けて取り込む</button>
+    <button class="gbtn pl-actual" data-rid="${rid}" data-shop="${escH(shopKey)}" style="background:#2563eb">プライスターCSVで実利益を反映</button>
     ${items.length?`<button class="pl-clear" data-rid="${rid}" data-shop="${escH(shopKey)}">クリア</button>`:""}
     <span class="gpn">Keepaリンク付きで一覧＋見込利益を自動計算</span></div>
     <div class="pl-pastebox" data-pastebox="${rid}__${escH(shopKey)}" style="display:none;margin-top:8px">
@@ -2353,9 +2366,10 @@ function cmtInlineHtml(rid,x){
   const cs=r.comments.filter(c=>(c.target||"全体")===target&&String(c.text||"").trim());
   if(!cs.length) return "";
   return `<div class="drcmts">`+cs.map(c=>{
-    const long=String(c.text).length>60;
+    const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
+    const long=t.length>60;
     const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
-    return `<div class="drcmt1${long?" clamp":""}"${long?` title="タップで全文表示"`:""}><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(c.text)}</span></div>`;
+    return `<div class="drcmt1${long?" clamp":""}"${long?` title="タップで全文表示"`:""}><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span></div>`;
   }).join("")+`</div>`;
 }
 function routeTableHtml(route,RID){
@@ -2783,6 +2797,72 @@ function bindRouteBox(scope){
           fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
             body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"products",name:me.name,text:JSON.stringify(list)})}).catch(()=>{});
         }catch(e){ alert(String(e)); btn.textContent="せどプレCSVを取り込む"; btn.disabled=false; }
+      };
+      inp.click();
+    };
+  });
+  scope.querySelectorAll(".pl-skip-t").forEach(btn=>{
+    btn.onclick=()=>{
+      const rid=btn.dataset.rid, shop=btn.dataset.shop, i=+btn.dataset.i;
+      const cur=((PHOTOCTX[rid]||{})[shop]||{}).products;
+      let list=[]; try{ list=cur?JSON.parse(cur):[]; }catch(e){}
+      if(!list[i]) return;
+      if(list[i].skip) delete list[i].skip; else list[i].skip=1;
+      applyPhotoLocal(rid,shop,"products",JSON.stringify(list),"set"); refreshRouteBox(rid);
+      const w=document.querySelector(`div[data-plwrap="${rid}__${shop}"]`); if(w)w.style.display="";
+      fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"products",name:me.name,text:JSON.stringify(list)})}).catch(()=>{});
+    };
+  });
+  scope.querySelectorAll(".pl-actual").forEach(btn=>{
+    btn.onclick=()=>{
+      const inp=document.createElement("input"); inp.type="file"; inp.accept=".csv,text/csv";
+      inp.onchange=async()=>{
+        const f=inp.files[0]; if(!f) return;
+        btn.textContent="突合中…"; btn.disabled=true;
+        const reset=()=>{ btn.textContent="プライスターCSVで実利益を反映"; btn.disabled=false; };
+        try{
+          const buf=await f.arrayBuffer();
+          let text;
+          try{ text=new TextDecoder("utf-8",{fatal:true}).decode(buf); }
+          catch(e){ text=new TextDecoder("shift_jis").decode(buf); }
+          const rows=parseCSV(text);
+          const head=rows[0]||[];
+          const ci={asin:head.indexOf("ASIN"),profit:head.indexOf("粗利益"),qty:head.indexOf("売れた個数"),unit:head.indexOf("単価"),status:head.indexOf("出荷状態"),date:head.indexOf("注文日"),sku:head.indexOf("SKU"),listed:head.indexOf("出品情報作成日")};
+          if(ci.asin<0||ci.profit<0){ alert("プライスター注文CSV（ASIN・粗利益列）を選んでください"); reset(); return; }
+          const num=x=>{const v=parseFloat(String(x).replace(/,/g,""));return isNaN(v)?0:v;};
+          const agg={};
+          for(let r2=1;r2<rows.length;r2++){
+            const a=String(rows[r2][ci.asin]||"").trim(); if(!a) continue;
+            if(ci.status>=0){ const st=String(rows[r2][ci.status]||"").toLowerCase();
+              if(st.indexOf("cancel")>=0||st.indexOf("キャンセル")>=0||st.indexOf("pending")>=0||st.indexOf("保留")>=0) continue; }
+            if(ci.unit>=0&&num(rows[r2][ci.unit])===0&&num(rows[r2][ci.profit])<0) continue;
+            const o=agg[a]=agg[a]||{p:0,q:0,lt:0,ltn:0};
+            o.p+=num(rows[r2][ci.profit]); o.q+=(ci.qty>=0?num(rows[r2][ci.qty]):0)||1;
+            // リードタイム：注文日 −（SKU先頭の仕入日 or 出品情報作成日）
+            if(ci.date>=0){
+              const om=String(rows[r2][ci.date]||"").match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+              let base=null;
+              const sm=ci.sku>=0?String(rows[r2][ci.sku]||"").match(/^(\d{4})(\d{2})(\d{2})-/):null;
+              if(sm) base=new Date(+sm[1],+sm[2]-1,+sm[3]);
+              else if(ci.listed>=0){ const lm=String(rows[r2][ci.listed]||"").match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/); if(lm) base=new Date(+lm[1],+lm[2]-1,+lm[3]); }
+              if(om&&base){ const d2=(new Date(+om[1],+om[2]-1,+om[3])-base)/86400000; if(d2>=0&&d2<400){ o.lt+=d2; o.ltn++; } }
+            }
+          }
+          const rid=btn.dataset.rid, shop=btn.dataset.shop;
+          const cur=((PHOTOCTX[rid]||{})[shop]||{}).products;
+          let list=[]; try{ list=cur?JSON.parse(cur):[]; }catch(e){}
+          if(!list.length){ alert("この店舗の商品リストが空です"); reset(); return; }
+          let hit=0;
+          list.forEach(p2=>{ const o=agg[String(p2.asin||"").trim()]; if(o&&o.q){ p2.ap=Math.round(o.p/o.q); if(o.ltn) p2.lt=Math.round(o.lt/o.ltn); hit++; } });
+          if(!hit){ alert("プライスターの注文データとASINが一致する商品がありませんでした（まだ売れていない可能性）"); reset(); return; }
+          applyPhotoLocal(rid,shop,"products",JSON.stringify(list),"set"); refreshRouteBox(rid);
+          const w=document.querySelector(`div[data-plwrap="${rid}__${shop}"]`); if(w)w.style.display="";
+          fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+            body:JSON.stringify({action:"dphoto",pass:PASS,id:rid,shop:shop,kind:"products",name:me.name,text:JSON.stringify(list)})}).catch(()=>{});
+          showToast(`💹 ${hit}件に実利益（1個あたり平均）を反映しました`);
+        }catch(e){ alert(String(e)); }
+        reset();
       };
       inp.click();
     };
