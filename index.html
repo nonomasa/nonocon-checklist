@@ -244,6 +244,12 @@
   .slide-imgs{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;justify-content:center}
   .slide-imgs.cover{align-items:center}
   .ph-flow{display:grid;gap:14px;width:100%;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));align-content:center;justify-items:center}
+  .ph-split{display:flex;gap:16px;width:100%;height:100%;min-height:0;align-items:stretch}
+  .ph-split-l{flex:1;min-width:0;overflow-y:auto}
+  .ph-split-l .ph-flow{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));align-content:start}
+  .ph-split-l .ph-tile img{max-height:38vh}
+  .ph-split-r{width:42%;max-width:560px;min-width:280px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+  .ph-split-r .ph-tile img{max-height:none;width:100%}
   .ph-tile{display:flex;flex-direction:column;align-items:center;min-width:0;width:100%;margin:0}
   .ph-tile figcaption{font-size:13px;font-weight:700;text-align:center;margin-bottom:6px;color:#cfd3db}
   .ph-tile img{max-width:100%;max-height:66vh;width:auto;height:auto;object-fit:contain;background:#1c1f28;border-radius:10px}
@@ -253,6 +259,8 @@
     .slide-h b{font-size:20px}
     .slide-h span{font-size:13px}
     .ph-flow{grid-template-columns:repeat(2,1fr);gap:10px;align-content:start}
+    .ph-split{flex-direction:column}
+    .ph-split-r{width:100%;max-width:none;min-width:0}
     .ph-tile img{max-height:48vh}
     .slide-nav button{padding:12px 24px;font-size:15px}
   }
@@ -540,7 +548,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-25 23:55</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-26 00:14</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2475,14 +2483,20 @@ function openSlide(rid){
     if(!sl.shop){
       imgs=`<div class="slide-cover">🚗 同行スタート<br><span>${escH(r.memo||"")}</span></div>`;
     }else{
-      const tiles=[];
-      PHOTO_KINDS.forEach(k=>{ (ph[k[0]]||[]).forEach(u=>tiles.push(`<figure class="ph-tile"><figcaption>${k[1]}</figcaption><img src="${u}" alt="${k[1]}"></figure>`)); });
-      imgs=tiles.length?`<div class="ph-flow">${tiles.join("")}</div>`:`<div class="ph-none">この店舗の写真はまだありません</div>`;
+      // 左＝店頭・売れた等の写真グリッド／右＝せどプレ（縦読みのスクショ）
+      const leftTiles=[], sedTiles=[];
+      PHOTO_KINDS.forEach(k=>{ (ph[k[0]]||[]).forEach(u=>{
+        const tile=`<figure class="ph-tile"><figcaption>${k[1]}</figcaption><img src="${u}" alt="${k[1]}"></figure>`;
+        if(k[0]==="list") sedTiles.push(tile); else leftTiles.push(tile);
+      }); });
+      if(!leftTiles.length&&!sedTiles.length) imgs=`<div class="ph-none">この店舗の写真はまだありません</div>`;
+      else if(!sedTiles.length) imgs=`<div class="ph-flow">${leftTiles.join("")}</div>`;
+      else imgs=`<div class="ph-split"><div class="ph-split-l">${leftTiles.length?`<div class="ph-flow">${leftTiles.join("")}</div>`:`<div class="ph-none">店頭写真なし</div>`}</div><div class="ph-split-r">${sedTiles.join("")}</div></div>`;
     }
     ov.innerHTML=`<div class="slide-top"><button class="slide-x">✕ 閉じる</button><span class="slide-page">${i+1} / ${slides.length}</span></div>
       <div class="slide-body">
         <div class="slide-h"><b>${sl.title}</b><span>${sl.sub}</span>${sl.memo?`<div class="slide-memo">📝 ${escH(sl.memo)}</div>`:""}</div>
-        <div class="slide-imgs ${sl.shop?"":"cover"}">${imgs}</div>
+        <div class="slide-imgs ${sl.shop?"":"cover"}" style="${imgs.indexOf("ph-split")>=0?"justify-content:stretch":""}">${imgs}</div>
       </div>
       <div class="slide-nav">
         <button class="slide-prev" ${i===0?"disabled":""}>← 前</button>
