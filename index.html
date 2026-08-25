@@ -196,6 +196,10 @@
   .drcmt1{font-size:11px;color:#5a6472;background:#f6f8fa;border-radius:6px;padding:4px 7px;margin-top:3px;line-height:1.55}
   .drcmt1 b{color:#3b4652;font-weight:700}
   .drcmt-t{white-space:pre-line}
+  .chainpg{color:#2563eb;text-decoration:none;cursor:pointer}
+  a.chainpg:hover{text-decoration:underline}
+  .chainpg-btn{border:1px solid #d9e3f7;background:#f2f6ff;color:#2563eb;border-radius:8px;cursor:pointer;font-size:11px;padding:2px 8px;margin-left:8px;vertical-align:1px}
+  .chainpg-btn:hover{background:#2563eb;color:#fff}
   .dslide1{border:none;background:#fdeee8;border-radius:6px;cursor:pointer;font-size:12px;padding:2px 6px;margin-left:6px;vertical-align:1px}
   .dslide1:hover{background:var(--accent)}
   .dpin{border:1px solid #e3e6ea;background:#fff;color:#8a93a1;border-radius:8px;cursor:pointer;font-size:11.5px;padding:4px 9px}
@@ -550,7 +554,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-26 00:17</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-26 00:23</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2412,7 +2416,8 @@ function routeTableHtml(route,RID){
     route.map(x=>{
       const end=x.e||addMinutes(x.s,drNum(x.p));
       const nm=drName(x);
-      const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
+      const nmHtml=(x.ch&&!drIsMeal(x))?`<a href="#" class="chainpg" data-chain="${escH(x.ch)}" title="チェーン攻略ページを見る">${escH(x.ch)}</a>${x.n?" "+escH(x.n):""}`:escH(nm);
+      const nmCell=x.in?`<span class="drin-nm">└ ${nmHtml}</span>`:nmHtml;
       const ph=RID?photoCell(RID,drKey(x),drIsMeal(x)):"";
       return `<tr${x.in?' class="drin-row"':""}><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
       `<td style="text-align:center">${escH(x.m)}</td><td style="text-align:left">${nmCell}${RID&&!drIsMeal(x)?`<button class="dslide1" data-id="${RID}" data-shop="${escH(drKey(x))}" title="この店舗のスライド表示">📷</button>`:""}${ph}${cmtInlineHtml(RID,x)}</td><td style="text-align:left">${escH(x.k)}</td>`+
@@ -2435,7 +2440,8 @@ function routeMergedHtml(actual, plan, RID){
     const p0=planMap[drKey(x)];
     const end=addMinutes(x.s,drNum(x.p));
     const nm=drName(x);
-    const nmCell=x.in?`<span class="drin-nm">└ ${escH(nm)}</span>`:escH(nm);
+    const nmHtml=(x.ch&&!drIsMeal(x))?`<a href="#" class="chainpg" data-chain="${escH(x.ch)}" title="チェーン攻略ページを見る">${escH(x.ch)}</a>${x.n?" "+escH(x.n):""}`:escH(nm);
+    const nmCell=x.in?`<span class="drin-nm">└ ${nmHtml}</span>`:nmHtml;
     const ph=RID?photoCell(RID,drKey(x),drIsMeal(x)):"";
     let cls="", mustCell=escH(x.m||"");
     if(kind==="added"){ cls="dr-add"; mustCell=`<span class="dr-touban">当</span>`; }
@@ -2466,6 +2472,72 @@ function routeMergedHtml(actual, plan, RID){
     `<div class="drlegend"><span class="dr-touban">当</span> 当日追加　<span class="dr-chg-legend">青字</span>＝計画から変更　<span class="dr-skip-legend">取消線</span>＝計画したが未訪問</div>`;
 }
 /* 同行スライド表示（全画面。1店舗ずつ 情報＋3枚の写真を大きく） */
+/* チェーン攻略ページ：チェックリストの攻略ポイント＋過去の同行の記録を自動集約 */
+async function openChainPage(name){
+  const ov=document.createElement("div"); ov.className="qovl"; ov.id="chainPgOvl";
+  const boxHtml=inner=>`<div style="background:#fff;border-radius:14px;max-width:640px;width:100%;padding:20px 22px;margin:20px 0;max-height:86vh;overflow-y:auto">${inner}
+    <div style="margin-top:14px"><button class="gbtn" id="cpClose" style="background:#9aa3af">閉じる</button></div></div>`;
+  const build=()=>{
+    // ①チェックリストのチェーン項目＋攻略ポイント
+    const tc=DATA.find(c=>c.ch==="店舗せどり");
+    const g=tc&&tc.groups.find(g2=>g2.g==="チェーン");
+    const norm=t=>String(t||"").replace(/[\s　]/g,"").replace(/電機/g,"デンキ");
+    const main=g&&g.items.find(it=>!it.parent&&norm(it.t)===norm(name));
+    const tips=main?g.items.filter(it=>it.parent===main.id):[];
+    const kind=(DR_CHAINS.find(x=>norm(x[0])===norm(name))||[])[1]||"";
+    let h=`<div style="font-weight:800;font-size:17px">🏬 ${escH(name)}</div>`;
+    if(kind) h+=`<div class="gpn" style="margin-bottom:8px">${escH(kind)}</div>`;
+    h+=`<div style="font-weight:700;font-size:13px;margin:12px 0 4px">📖 攻略ポイント</div>`;
+    if(tips.length){
+      h+=tips.map(t2=>`<div style="background:#f6f8fa;border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px"><b>${escH(t2.t)}</b>${t2.n?`<div class="gpn" style="margin-top:2px">${escH(t2.n)}</div>`:""}</div>`).join("");
+    }else{
+      h+=`<div class="gpn">まだ攻略ポイントは登録されていません（気づきがあればLINEでののに送ってください。追加します）</div>`;
+    }
+    // ②過去の同行でこのチェーンを回った記録
+    h+=`<div style="font-weight:700;font-size:13px;margin:14px 0 4px">🚗 過去の同行での記録</div>`;
+    const visits=[];
+    (DOKOALL||[]).forEach(r=>{
+      let route=[]; try{ route=parseRoute(r.route); }catch(e){}
+      route.filter(x=>norm(x.ch)===norm(name)).forEach(x=>{
+        const key=drKey(x);
+        const cs=(r.comments||[]).filter(c2=>(c2.target||"全体")===((x.ch?x.ch+(x.n?" "+x.n:""):x.n)||"")&&String(c2.text||"").trim());
+        let prods=0; try{ prods=JSON.parse((((r.photos||[]).find(p2=>p2.shop===key&&p2.kind==="products")||{}).url)||"[]").length; }catch(e){}
+        visits.push({date:r.date,place:r.place,shop:drName(x),rieki:x.r,cs,prods});
+      });
+    });
+    if(visits.length){
+      visits.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+      h+=visits.map(v=>{
+        let vh=`<div style="border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px">
+          <div style="font-size:12.5px;font-weight:700">${escH(dokoDateLabel(v.date))} ${escH(v.place||"")}　<span class="gpn">${escH(v.shop)}</span>${v.rieki?`　<span style="color:#0e9f6e;font-weight:700">見込${yen(drNum(v.rieki))}円</span>`:""}${v.prods?`　<span class="gpn">🛒${v.prods}件</span>`:""}</div>`;
+        vh+=v.cs.map(c2=>{
+          const t2=String(c2.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
+          const sei=String(c2.name||"").trim().split(/[\s　]+/)[0];
+          return `<div class="drcmt1"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t2)}</span></div>`;
+        }).join("");
+        return vh+`</div>`;
+      }).join("");
+    }else{
+      h+=`<div class="gpn">まだ同行での訪問記録はありません</div>`;
+    }
+    ov.innerHTML=boxHtml(h);
+    ov.querySelector("#cpClose").onclick=()=>ov.remove();
+  };
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  document.body.appendChild(ov);
+  if(DOKOALL===null){
+    ov.innerHTML=boxHtml(`<div style="font-weight:800;font-size:17px">🏬 ${escH(name)}</div><div class="gpn" style="padding:16px 0">同行データを読み込み中…</div>`);
+    const cbtn=ov.querySelector("#cpClose"); if(cbtn) cbtn.onclick=()=>ov.remove();
+    try{ const d=await jsonp({action:"dall"}); DOKOALL=(d&&d.rows)||[]; }catch(e){ DOKOALL=DOKOALL||[]; }
+  }
+  build();
+}
+// チェーン攻略ページを開くリンクの共通デリゲート
+document.addEventListener("click",e=>{
+  const b=e.target.closest(".chainpg");
+  if(b){ e.preventDefault(); e.stopPropagation(); openChainPage(b.dataset.chain); }
+},true);
+
 function openSlide(rid,startShop){
   const r=(DOKOALL||[]).find(x=>x.id===rid); if(!r) return;
   const route=sortRoute(parseRoute(r.route));
@@ -4771,7 +4843,7 @@ function render(){
       const lv = `<span class="lv lvnum" title="${(STAGES.find(x=>x.n===stN)||{}).label||stN}">${stN}</span>`;
       li.innerHTML=`<div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"
         stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div style="flex:1"><div class="title${it.hot?' st1':(it.low?' stlow':'')}">${it.t}${lv}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}${mov}${gmov}</div>${link}`;
+        <div style="flex:1"><div class="title${it.hot?' st1':(it.low?' stlow':'')}">${it.t}${lv}${(String(it.id||"").indexOf("chain-")===0&&!it.parent)?`<button class="chainpg chainpg-btn" data-chain="${it.t.replace(/"/g,"&quot;")}">📖 攻略ページ</button>`:""}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}${mov}${gmov}</div>${link}`;
       li.onclick=()=>toggle(it);
       const a=li.querySelector(".ilink");
       if(a) a.onclick=e=>e.stopPropagation(); // リンククリックではチェックを切り替えない
