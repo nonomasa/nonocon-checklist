@@ -199,6 +199,8 @@
   .chainpg{color:#2563eb;text-decoration:none;cursor:pointer}
   a.chainpg:hover{text-decoration:underline}
   .chainpg-btn{border:1px solid #d9e3f7;background:#f2f6ff;color:#2563eb;border-radius:8px;cursor:pointer;font-size:11px;padding:2px 8px;margin-left:8px;vertical-align:1px}
+  .chainpin{border:1px solid #e3e6ea;background:#fff;color:#b6bdc7;border-radius:8px;cursor:pointer;font-size:11px;padding:2px 6px;margin-left:6px;vertical-align:1px}
+  .chainpin.on{border-color:var(--accent);background:#fdeee8;color:var(--accent)}
   .chainpg-btn:hover{background:#2563eb;color:#fff}
   .dslide1{border:none;background:#fdeee8;border-radius:6px;cursor:pointer;font-size:12px;padding:2px 6px;margin-left:6px;vertical-align:1px}
   .dslide1:hover{background:var(--accent)}
@@ -554,7 +556,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-26 00:47</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-26 08:33</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1058,14 +1060,17 @@ const DATA = [
       {sub:"書店/音楽", id:"chain-ヴィレッジヴァンガード", l:2, t:"ヴィレッジヴァンガード", n:""},
       {sub:"こども", id:"chain-トイザらス", l:2, t:"トイザらス", n:""},
       {sub:"こども", id:"chain-バースデイ", l:2, t:"バースデイ", n:""},
-      {sub:"こども", id:"chain-西松屋", l:2, t:"西松屋", n:""},
-      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-pb", l:2, cat:"情報", t:"スマートエンジェルは西松屋のPB→取れない", n:"PB商品はスルーでOK", imgs:["https://drive.google.com/thumbnail?id=1vhdZ50tUJitskhcn5aqedK04JsY2A8pT&sz=w1000"]},
-      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-fuda1", l:2, cat:"値札", t:"【最重要】「値下価格」の赤札・「PRICE DOWN」札", n:"個別の値下げ・処分。最優先でチェック", imgs:["https://drive.google.com/thumbnail?id=1KAU2LAddfFLRlZEP425gdOTf01WfADIv&sz=w1000","https://drive.google.com/thumbnail?id=1xjDuambVFLlyUTYDHuzw71RXHk0qTpIR&sz=w1000"]},
+      {sub:"こども", id:"chain-西松屋", l:2, t:"西松屋", n:"", img:"https://drive.google.com/thumbnail?id=1DRUXpX3w8FzDe7rqNVf3z5D9amo-Nu8H&sz=w1000"},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-yasui", l:2, cat:"情報", t:"西松屋はこどもチェーンの中でもかなり安い方", n:"PBもNBも全体的にちょっと安い"},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-pb", l:2, cat:"情報", t:"スマートエンジェルは西松屋のPB→取れない", n:"PB商品はスルーでOK"},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-shutten", l:2, cat:"情報", t:"西松屋の出店戦略（ガラガラ商法）を知る", n:"あえて客が密集しないように郊外に店舗を多く出し、少ない人手で効率よく利益を出すモデル。子連れにやさしい", url:"https://note.com/toshino_hanashi/n/n299935610612"},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-fuda1", l:2, cat:"値札", t:"【最重要】「値下価格」の赤札・「PRICE DOWN」札", n:"個別の値下げ・処分。最優先でチェック", imgs:["https://drive.google.com/thumbnail?id=1z8G-KfePAn0kGOWQ_YnKlqJc_HKzqaIJ&sz=w1000","https://drive.google.com/thumbnail?id=1u4COo_1vr7G6R10twsMHVUyXBnqjLOz4&sz=w1000"]},
       {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-fuda2", l:2, cat:"値札", t:"【重要】黄色「MONTHLY SALE 期間限定」札", n:"当社平常価格→値下げ表記・掲示期間つきの月間セール", imgs:["https://drive.google.com/thumbnail?id=16TMAxfiEK9bcXT1B2Hw0BLDwY5RSUODQ&sz=w1000"]},
       {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-fuda3", l:2, cat:"値札", t:"【通常札】白い棚札", n:"平常価格。基本は取れないが相場感の基準として見る", imgs:["https://drive.google.com/thumbnail?id=18Wj4rTy7DbmoSSRM1CzQFhKcWL_AMwLA&sz=w1000"]},
       {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-kago", l:2, cat:"店内", t:"「プライスダウン!」のカゴ・ワゴンをチェック", n:"赤POPのカゴ・ワゴンにまとめられている", imgs:["https://drive.google.com/thumbnail?id=1pUu0V7GanrS3TkW3y_0yzsbmsRwTuL4s&sz=w1000"]},
       {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-toosenbo", l:2, cat:"商品", t:"とおせんぼ棚（ベビーゲート）は誰も見ない", n:"利益商品がある穴場"},
       {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-dakko", l:2, cat:"商品", t:"抱っこ紐は相場3万円程度", n:"エルゴベビー・ベビービョルン・アップリカなど"},
+      {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-yofuku", l:2, cat:"商品", t:"洋服は利益取れない", n:""},
       {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-toy", l:2, cat:"商品", t:"おもちゃは割引品を狙う", n:""},
       {sub:"こども", parent:"chain-西松屋", id:"tip-nishi-nichiyo", l:2, cat:"商品", t:"日用品は結構取れる", n:"さく乳器などのベビー家電・衛生用品もチェック"},
       {sub:"こども", id:"chain-アカチャンホンポ", l:2, t:"アカチャンホンポ", n:""},
@@ -1426,6 +1431,17 @@ const STAGES=[
 ];
 let stageOverride=null;   // 手動でステージを見たい時
 let STAGE_NUMS=null;      // ステージ判定用の自分の実績（numsのみ）
+function chainPins(){ try{ return JSON.parse(localStorage.getItem("nonocon_chain_pins")||"[]"); }catch(e){ return []; } }
+document.addEventListener("click",e=>{
+  const b=e.target.closest(".chainpin");
+  if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  let pins=chainPins();
+  if(pins.includes(b.dataset.id)){ pins=pins.filter(x=>x!==b.dataset.id); showToast("📌 固定を解除しました"); }
+  else{ pins.push(b.dataset.id); showToast("📌 チェーン一覧の一番上に固定しました"); }
+  localStorage.setItem("nonocon_chain_pins",JSON.stringify(pins));
+  render();
+},true);
 function stageOfItem(chapterName,it){
   if(it.stage) return it.stage; // 個別指定があれば最優先
   if(chapterName==="準備"||chapterName==="マインド") return 1;
@@ -2494,10 +2510,9 @@ async function openChainPage(name){
     const main=g&&g.items.find(it=>!it.parent&&norm(it.t)===norm(name));
     const tips=main?g.items.filter(it=>it.parent===main.id):[];
     const kind=(DR_CHAINS.find(x=>norm(x[0])===norm(name))||[])[1]||"";
-    let h=`<div style="font-weight:800;font-size:17px">🏬 ${escH(name)}</div>`;
-    if(kind) h+=`<div class="gpn" style="margin-bottom:8px">${escH(kind)}</div>`;
+    let h=`<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:17px">🏬 ${escH(name)}</div>${kind?`<div class="gpn">${escH(kind)}</div>`:""}</div>${(main&&main.img)?`<a href="${main.img}" target="_blank" rel="noopener"><img src="${main.img}" style="height:72px;border-radius:10px;border:1px solid var(--line)"></a>`:""}</div><div style="margin-bottom:4px"></div>`;
     h+=`<div style="font-weight:700;font-size:13px;margin:12px 0 4px">📖 攻略ポイント</div>`;
-    const tipHtml=t2=>`<div style="background:#f6f8fa;border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px"><b>${escH(t2.t)}</b>${t2.n?`<div class="gpn" style="margin-top:2px">${escH(t2.n)}</div>`:""}${(t2.imgs&&t2.imgs.length)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${t2.imgs.map(u2=>`<a href="${u2}" target="_blank" rel="noopener"><img src="${u2}" style="height:96px;border-radius:8px;border:1px solid var(--line)" loading="lazy"></a>`).join("")}</div>`:""}</div>`;
+    const tipHtml=t2=>`<div style="background:#f6f8fa;border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px"><b>${escH(t2.t)}</b>${t2.url?` <a href="${t2.url}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb">開く↗</a>`:""}${t2.n?`<div class="gpn" style="margin-top:2px">${escH(t2.n)}</div>`:""}${(t2.imgs&&t2.imgs.length)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${t2.imgs.map(u2=>`<a href="${u2}" target="_blank" rel="noopener"><img src="${u2}" style="height:96px;border-radius:8px;border:1px solid var(--line)" loading="lazy"></a>`).join("")}</div>`:""}</div>`;
     if(tips.length){
       const CATS=["情報","値札","店内","商品"];
       const used=new Set();
@@ -4822,7 +4837,17 @@ function render(){
       const arr=g.items.filter(it=>lvFilter==="hot" ? it.hot : (lvFilter==="low" ? it.low : (!lvFilter || stOf(it)===lvFilter))).slice();
       const subMin={}; arr.forEach(it=>{ if(it.sub){ const v=stOf(it); if(!(it.sub in subMin)||v<subMin[it.sub]) subMin[it.sub]=v; } });
       // ステージの小さい順。sub（小見出し）付きは塊が崩れないよう代表値でソート
-      return arr.sort((a,b)=>((a.sub?subMin[a.sub]:stOf(a))-(b.sub?subMin[b.sub]:stOf(b))));
+      let sorted=arr.sort((a,b)=>((a.sub?subMin[a.sub]:stOf(a))-(b.sub?subMin[b.sub]:stOf(b))));
+      // 📌ピン留めチェーンは（ポイントごと）小見出しから出して先頭へ
+      if(g.g==="チェーン"){
+        const pins=chainPins();
+        if(pins.length){
+          const isPin=it=>pins.includes(it.id)||(it.parent&&pins.includes(it.parent));
+          const pinned=sorted.filter(isPin).map(it=>{ const cp=Object.assign({},it); delete cp.sub; return cp; });
+          sorted=pinned.concat(sorted.filter(it=>!isPin(it)));
+        }
+      }
+      return sorted;
     })();
     if(items.length) rendered.push({g,items});
   });
@@ -4863,7 +4888,7 @@ function render(){
       const lv = `<span class="lv lvnum" title="${(STAGES.find(x=>x.n===stN)||{}).label||stN}">${stN}</span>`;
       li.innerHTML=`<div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"
         stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div style="flex:1"><div class="title${it.hot?' st1':(it.low?' stlow':'')}">${it.t}${lv}${(String(it.id||"").indexOf("chain-")===0&&!it.parent)?`<button class="chainpg chainpg-btn" data-chain="${it.t.replace(/"/g,"&quot;")}">📖 攻略ページ</button>`:""}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}${mov}${gmov}</div>${link}`;
+        <div style="flex:1"><div class="title${it.hot?' st1':(it.low?' stlow':'')}">${it.t}${lv}${(String(it.id||"").indexOf("chain-")===0&&!it.parent)?`<button class="chainpg chainpg-btn" data-chain="${it.t.replace(/"/g,"&quot;")}">📖 攻略ページ</button><button class="chainpin${chainPins().includes(it.id)?" on":""}" data-id="${it.id}" title="このチェーンを一番上に固定">📌</button>`:""}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}${mov}${gmov}</div>${link}`;
       li.onclick=()=>toggle(it);
       const a=li.querySelector(".ilink");
       if(a) a.onclick=e=>e.stopPropagation(); // リンククリックではチェックを切り替えない
