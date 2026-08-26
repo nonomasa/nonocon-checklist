@@ -210,6 +210,8 @@
   .drsummary{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
   .drsumh{font-weight:800;font-size:13px;margin-bottom:4px}
   .drsumtheme{font-size:12px;font-weight:800;color:#fff;background:#5a6472;border-radius:6px;display:inline-block;padding:2px 10px;margin:8px 0 5px}
+  .dcmtrow-sub{margin-left:22px}
+  .dcmtgh-sub{margin-left:22px}
   .pl-skiprow td{background:#f7f8fa;color:#a7afba}
   .pl-skiprow .pl-asin,.pl-skiprow .pl-profit{color:#a7afba}
   .pl-skiptag{display:inline-block;background:#eef1f5;color:#6b7686;font-size:10px;border-radius:6px;padding:1px 6px;margin-right:5px;font-weight:700}
@@ -557,7 +559,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-26 10:23</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-26 10:30</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2757,7 +2759,9 @@ async function renderDoko(){
       <div class="dcmtbox" data-cmtbody="${r.id}" style="display:none">
         ${(()=>{
           const route=parseRoute(r.route);
-          const shops=["全体"].concat(route.map(x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n)).filter(Boolean));
+          const GTHEMES=["全体","全体：仕入れ判断","全体：商品知識と相場観","全体：ツール"];
+          const shops=GTHEMES.concat(route.map(x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n)).filter(Boolean));
+          const shLabel=sh=>sh==="全体"?"🗒 全体（感想・気づき）":(sh.indexOf("全体：")===0?"└ "+sh.slice(3):"🏬 "+escH(sh));
           const mine=c=>String(c.uid)===String(me.sid);
           const canEdit=canEditDokoId(r.id);
           // 他の人の感想（対象ごとにグループ化）
@@ -2765,14 +2769,14 @@ async function renderDoko(){
           shops.forEach(sh=>{
             const cs=(r.comments||[]).filter(c=>(c.target||"全体")===sh && !mine(c));
             if(!cs.length) return;
-            others+=`<div class="dcmtg"><div class="dcmtgh">${sh==="全体"?"🗒 全体":"🏬 "+escH(sh)}</div>`+
+            others+=`<div class="dcmtg"><div class="dcmtgh${sh.indexOf("全体：")===0?" dcmtgh-sub":""}">${shLabel(sh)}</div>`+
               cs.map(c=>`<div class="dcmt1"><div class="dcmth">${escH(c.name)}<span class="dwho" style="margin-left:8px">${escH(c.updated)}</span></div><div class="dcmtt">${escH(c.text)}</div></div>`).join("")+`</div>`;
           });
           // 自分の入力欄（全店舗を並べて一括保存）
           const myText=sh=>{const c=(r.comments||[]).find(c=>mine(c)&&(c.target||"全体")===sh);return c?c.text:"";};
           const inputs=shops.map((sh,i)=>
-            `<div class="dcmtrow"><div class="dcmtlbl">${sh==="全体"?"🗒 全体":"🏬 "+escH(sh)}</div>`+
-            `<textarea class="ginput dcmtcell" data-target="${escH(sh)}" rows="2" placeholder="${sh==="全体"?"全体の感想":"この店舗の感想"}">${escH(myText(sh))}</textarea></div>`).join("");
+            `<div class="dcmtrow${sh.indexOf("全体：")===0?" dcmtrow-sub":""}"><div class="dcmtlbl">${shLabel(sh)}</div>`+
+            `<textarea class="ginput dcmtcell" data-target="${escH(sh)}" rows="2" placeholder="${sh==="全体"?"全体の感想・気づき":(sh.indexOf("全体：")===0?sh.slice(3)+"について":"この店舗の感想")}">${escH(myText(sh))}</textarea></div>`).join("");
           return (others?`<div class="dcmto">${others}</div>`:"")+
             (canEdit
               ? `<div class="dcmtform"><label class="glbl">あなたの感想 <span class="gpn">（店舗ごとに書いて、最後にまとめて保存）</span></label>
