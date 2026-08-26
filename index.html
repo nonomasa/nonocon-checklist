@@ -216,9 +216,10 @@
   .sumc p{font-size:12.5px;line-height:1.85;color:#3b4652;margin:0 0 9px}
   .sumc p:last-child{margin-bottom:0}
   .sumc ul{list-style:none;margin:0;padding:0}
-  .sumc li{font-size:12.5px;line-height:1.75;color:#3b4652;position:relative;padding-left:15px;margin-bottom:6px}
+  .sumc li{font-size:12.5px;line-height:1.8;color:#5a6472;position:relative;padding-left:16px;margin-bottom:11px}
   .sumc li:last-child{margin-bottom:0}
-  .sumc li:before{content:"";position:absolute;left:3px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+  .sumc li:before{content:"";position:absolute;left:3px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+  .sumc li b{color:#3b4652;font-weight:700}
   .sumc ul+p{margin-top:9px}
   .dmemo-tgl{border:1px solid #e3e6ea;background:#fff;color:#6b7686;border-radius:8px;cursor:pointer;font-size:11.5px;padding:2px 9px}
   .dmemobox{font-size:12.5px;color:#5a6472;background:#f6f8fa;border-radius:8px;padding:8px 12px;margin:6px 0;white-space:pre-line}
@@ -231,6 +232,7 @@
   .pl-skip-t:hover{border-color:#6b7686;color:#3b4652}
   .dcmtt{white-space:pre-line}
   .drcmt1.clamp{cursor:pointer}
+  .drcmt-more{font-size:11px;font-weight:700;color:#2563eb;margin-top:4px}
   .drcmt1.clamp:not(.open) .drcmt-t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .drph-del{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;border:none;background:#dc2626;color:#fff;font-size:10px;line-height:1;cursor:pointer;padding:0}
   .ph-stack{flex:1;display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0}
@@ -571,7 +573,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-27 00:14</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-27 00:24</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2500,7 +2502,7 @@ function cmtInlineHtml(rid,x){
     const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
     const long=t.length>60;
     const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
-    return `<div class="drcmt1${long?" clamp":""}"${long?` title="タップで全文表示"`:""}><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span></div>`;
+    return `<div class="drcmt1${long?" clamp":""}"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span>${long?`<div class="drcmt-more">▼ もっと見る</div>`:""}</div>`;
   }).join("")+`</div>`;
 }
 /* ルート表の下に出す「全体総括」＝対象が全体の感想 */
@@ -2514,9 +2516,12 @@ function overallCmtsHtml(rid){
     const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
     const lines=t.split(/\n/).map(x=>x.trim()).filter(Boolean);
     let body="",buf=[];
-    const flush=()=>{ if(buf.length){ body+=`<ul>${buf.map(x=>`<li>${escH(x)}</li>`).join("")}</ul>`; buf=[]; } };
-    lines.forEach(l=>{ if(l.indexOf("・")===0) buf.push(l.slice(1).trim()); else { flush(); body+=`<p>${escH(l)}</p>`; } });
-    flush();
+
+    // 箇条書きは「最初の一文＝要点」を太字にして拾い読みできるように
+    const li=x=>{ const m=x.match(/^([\s\S]{6,60}?。)([\s\S]+)$/); return m?`<li><b>${escH(m[1])}</b>${escH(m[2])}</li>`:`<li>${escH(x)}</li>`; };
+    const flushLi=()=>{ if(buf.length){ body+=`<ul>${buf.map(li).join("")}</ul>`; buf=[]; } };
+    lines.forEach(l=>{ if(l.indexOf("・")===0) buf.push(l.slice(1).trim()); else { flushLi(); body+=`<p>${escH(l)}</p>`; } });
+    flushLi();
     const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
     return `<div class="sumc"><div class="sumc-h">💬 ${escH(sei)}</div>${body}</div>`;
   };
@@ -2991,7 +2996,10 @@ async function renderDoko(){
   };
 function bindRouteBox(scope){
   scope=scope||document.getElementById("body");
-  scope.querySelectorAll(".drcmt1.clamp").forEach(el=>{ el.onclick=()=>el.classList.toggle("open"); });
+  scope.querySelectorAll(".drcmt1.clamp").forEach(el=>{ el.onclick=()=>{
+    el.classList.toggle("open");
+    const m=el.querySelector(".drcmt-more"); if(m) m.textContent=el.classList.contains("open")?"▲ 閉じる":"▼ もっと見る";
+  }; });
   scope.querySelectorAll(".drph-del").forEach(btn=>{
     btn.onclick=async()=>{
       if(!confirm("この写真を削除しますか？")) return;
