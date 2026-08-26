@@ -18,6 +18,7 @@
   header .wrap{max-width:860px;margin:0 auto}
   header h1{font-size:17px;font-weight:700}
   header .sub{font-size:12px;color:#cdd5e0;margin:3px 0 14px}
+  .hdrver{display:inline-block;margin-left:10px;font-size:11px;color:#9fb0c4;background:#0e1620;border-radius:999px;padding:2px 10px;vertical-align:1px}
   /* mode toggle */
   .mode{display:inline-flex;background:#0e1620;border-radius:999px;padding:3px;gap:2px;margin-bottom:14px}
   .mode button{background:none;border:none;color:#9aa6b4;font-size:12.5px;font-weight:700;
@@ -551,7 +552,7 @@
 <header>
   <div class="wrap">
     <h1>ののコン スタートアップ チェックリスト</h1>
-    <div class="sub">動画は<b>オンクラス</b>で。ここでは「実際に手を動かすこと」を順に潰していきます。</div>
+    <div class="sub">動画は<b>オンクラス</b>で。ここでは「実際に手を動かすこと」を順に潰していきます。<span class="hdrver" id="appVerTop"></span></div>
     <div class="ident" id="ident"></div>
     <div class="tabs" id="tabs"></div>
   </div>
@@ -573,7 +574,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-27 00:57</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-27 02:39</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5044,6 +5045,10 @@ const doFreshReload=e=>{
 };
 document.getElementById("vreload").onclick=doFreshReload;
 document.getElementById("reloadFab").onclick=doFreshReload;
+
+// ヘッダーにも最終更新を表示（一番下までスクロールしなくても分かるように）
+(function(){ const a=document.getElementById("appVer"), t=document.getElementById("appVerTop");
+  if(a&&t) t.textContent="最終更新 "+a.textContent; })();
 
 // リロード時は常に準備タブから（#adminは管理キー入力のトリガーとしてだけ使う）
 initIdent();
