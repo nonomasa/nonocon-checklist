@@ -561,7 +561,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-26 10:32</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-27 00:08</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2501,9 +2501,9 @@ function overallCmtsHtml(rid){
   if(!all.length) return "";
   const one=c=>{
     const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
-    const long=t.length>120;
     const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
-    return `<div class="drcmt1${long?" clamp":""}"${long?` title="タップで全文表示"`:""}><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span></div>`;
+    // 総括は学びの本体なので折りたたまず全文表示
+    return `<div class="drcmt1"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span></div>`;
   };
   // テーマ（対象「全体：◯◯」）ごとに見出しを付けて表示
   const THEME_ORDER=["仕入れ判断","商品知識と相場観","ツール"];
