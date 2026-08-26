@@ -573,7 +573,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-27 00:24</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-27 00:28</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2526,7 +2526,7 @@ function overallCmtsHtml(rid){
     return `<div class="sumc"><div class="sumc-h">💬 ${escH(sei)}</div>${body}</div>`;
   };
   // テーマ（対象「全体：◯◯」）ごとに見出しを付けて表示
-  const THEME_ORDER=["仕入れ判断","商品知識と相場観","ツール"];
+  const THEME_ORDER=["仕入れ判断","商品知識と相場観","店舗の回り方","販売・出品","ツール"];
   const themes=[...new Set(all.filter(c=>(c.target||"").indexOf("全体：")===0).map(c=>c.target.slice(3)))];
   themes.sort((a,b)=>{const ia=THEME_ORDER.indexOf(a),ib=THEME_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
   let h=`<div class="drsummary"><div class="drsumh">🗒 全体総括</div>`;
@@ -2789,7 +2789,7 @@ async function renderDoko(){
       <div class="dcmtbox" data-cmtbody="${r.id}" style="display:none">
         ${(()=>{
           const route=parseRoute(r.route);
-          const GTHEMES=["全体","全体：仕入れ判断","全体：商品知識と相場観","全体：ツール"];
+          const GTHEMES=["全体","全体：仕入れ判断","全体：商品知識と相場観","全体：店舗の回り方","全体：販売・出品","全体：ツール"];
           const shops=GTHEMES.concat(route.map(x=>(x.ch?x.ch+(x.n?" "+x.n:""):x.n)).filter(Boolean));
           const shLabel=sh=>sh==="全体"?"🗒 全体（感想・気づき）":(sh.indexOf("全体：")===0?"└ "+sh.slice(3):"🏬 "+escH(sh));
           const mine=c=>String(c.uid)===String(me.sid);
