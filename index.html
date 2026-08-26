@@ -209,7 +209,17 @@
   .dpin:hover{border-color:var(--accent);color:var(--accent)}
   .drsummary{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
   .drsumh{font-weight:800;font-size:13px;margin-bottom:4px}
-  .drsumtheme{font-size:12px;font-weight:800;color:#fff;background:#5a6472;border-radius:6px;display:inline-block;padding:2px 10px;margin:8px 0 5px}
+  .drsumtheme{font-size:12px;font-weight:800;color:#fff;background:#5a6472;border-radius:6px;display:inline-block;padding:2px 10px;margin:14px 0 7px}
+  .drsummary .drsumtheme:first-of-type{margin-top:6px}
+  .sumc{background:#f7f9fb;border-radius:10px;padding:11px 15px;margin-bottom:9px}
+  .sumc-h{font-size:11.5px;font-weight:700;color:#8a93a1;margin-bottom:7px}
+  .sumc p{font-size:12.5px;line-height:1.85;color:#3b4652;margin:0 0 9px}
+  .sumc p:last-child{margin-bottom:0}
+  .sumc ul{list-style:none;margin:0;padding:0}
+  .sumc li{font-size:12.5px;line-height:1.75;color:#3b4652;position:relative;padding-left:15px;margin-bottom:6px}
+  .sumc li:last-child{margin-bottom:0}
+  .sumc li:before{content:"";position:absolute;left:3px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+  .sumc ul+p{margin-top:9px}
   .dmemo-tgl{border:1px solid #e3e6ea;background:#fff;color:#6b7686;border-radius:8px;cursor:pointer;font-size:11.5px;padding:2px 9px}
   .dmemobox{font-size:12.5px;color:#5a6472;background:#f6f8fa;border-radius:8px;padding:8px 12px;margin:6px 0;white-space:pre-line}
   .dcmtrow-sub{margin-left:22px}
@@ -561,7 +571,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-27 00:08</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-27 00:14</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2500,10 +2510,15 @@ function overallCmtsHtml(rid){
   const all=r.comments.filter(c=>{const tg=c.target||"全体"; return (tg==="全体"||tg.indexOf("全体：")===0)&&String(c.text||"").trim();});
   if(!all.length) return "";
   const one=c=>{
+    // 箇条書き（・）は本物のリストに、地の文は段落にして読みやすく
     const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
+    const lines=t.split(/\n/).map(x=>x.trim()).filter(Boolean);
+    let body="",buf=[];
+    const flush=()=>{ if(buf.length){ body+=`<ul>${buf.map(x=>`<li>${escH(x)}</li>`).join("")}</ul>`; buf=[]; } };
+    lines.forEach(l=>{ if(l.indexOf("・")===0) buf.push(l.slice(1).trim()); else { flush(); body+=`<p>${escH(l)}</p>`; } });
+    flush();
     const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
-    // 総括は学びの本体なので折りたたまず全文表示
-    return `<div class="drcmt1"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span></div>`;
+    return `<div class="sumc"><div class="sumc-h">💬 ${escH(sei)}</div>${body}</div>`;
   };
   // テーマ（対象「全体：◯◯」）ごとに見出しを付けて表示
   const THEME_ORDER=["仕入れ判断","商品知識と相場観","ツール"];
