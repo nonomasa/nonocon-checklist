@@ -210,6 +210,8 @@
   .drsummary{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
   .drsumh{font-weight:800;font-size:13px;margin-bottom:4px}
   .drsumtheme{font-size:12px;font-weight:800;color:#fff;background:#5a6472;border-radius:6px;display:inline-block;padding:2px 10px;margin:8px 0 5px}
+  .dmemo-tgl{border:1px solid #e3e6ea;background:#fff;color:#6b7686;border-radius:8px;cursor:pointer;font-size:11.5px;padding:2px 9px}
+  .dmemobox{font-size:12.5px;color:#5a6472;background:#f6f8fa;border-radius:8px;padding:8px 12px;margin:6px 0;white-space:pre-line}
   .dcmtrow-sub{margin-left:22px}
   .dcmtgh-sub{margin-left:22px}
   .pl-skiprow td{background:#f7f8fa;color:#a7afba}
@@ -559,7 +561,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-26 10:30</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-26 10:32</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1498,6 +1500,12 @@ let stageOverride=null;   // 手動でステージを見たい時
 let STAGE_NUMS=null;      // ステージ判定用の自分の実績（numsのみ）
 function chainPins(){ try{ return JSON.parse(localStorage.getItem("nonocon_chain_pins")||"[]"); }catch(e){ return []; } }
 document.addEventListener("click",e=>{
+  const mb=e.target.closest(".dmemo-tgl");
+  if(mb){
+    const box=document.querySelector(`div[data-memobox="${mb.dataset.id}"]`);
+    if(box){ const open=box.style.display==="none"; box.style.display=open?"":"none"; mb.textContent=open?"📝 メモ ▼":"📝 メモ ▶"; }
+    return;
+  }
   const b=e.target.closest(".chainpin");
   if(!b) return;
   e.preventDefault(); e.stopPropagation();
@@ -2402,7 +2410,7 @@ function refreshRouteBox(rid){
   const plan=parseRoute(r.planRoute);
   const differs=plan.length&&r.planRoute!==r.route;
   const tbl=differs?routeMergedHtml(route,plan,rid):routeTableHtml(route,rid);
-  box.innerHTML=`<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${rid}">📷 スライド表示</button></div>`+tbl+overallCmtsHtml(rid);
+  box.innerHTML=`<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${rid}">📷 スライド表示</button></div>`+tbl;
   if(_bindRouteBox) _bindRouteBox(box);
   box.style.display="";
 }
@@ -2742,8 +2750,10 @@ async function renderDoko(){
         <button class="dedit" data-id="${r.id}">編集</button>
         ${(mine||ADMIN_KEY)?`<button class="ddel" data-id="${r.id}">削除</button>`:""}
       </div>
-      <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　📝 ${escH(r.memo)}`:""}</div>
+      <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　<button class="dmemo-tgl" data-id="${r.id}">📝 メモ ▶</button>`:""}</div>
+      ${r.memo?`<div class="dmemobox" data-memobox="${r.id}" style="display:none">${escH(r.memo)}</div>`:""}
       <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
+      ${overallCmtsHtml(r.id)}
       ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${(()=>{
         PHOTOCTX[r.id]={};PHOTOWHO[r.id]={};(r.photos||[]).forEach(p=>{
           const sh=PHOTOCTX[r.id][p.shop]=PHOTOCTX[r.id][p.shop]||{};
@@ -2753,7 +2763,7 @@ async function renderDoko(){
         const plan=parseRoute(r.planRoute);
         const differs=plan.length&&r.planRoute!==r.route;
         const tbl=differs?routeMergedHtml(route,plan,r.id):routeTableHtml(route,r.id);
-        return `<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${r.id}">📷 スライド表示</button></div>`+tbl+overallCmtsHtml(r.id);
+        return `<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${r.id}">📷 スライド表示</button></div>`+tbl;
       })()}</div>`:""}
       ${r.review?`<div class="drevbox" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
       <div class="dcmtbox" data-cmtbody="${r.id}" style="display:none">
