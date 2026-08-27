@@ -211,6 +211,9 @@
   .drsummary{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
   .drsumh{font-weight:800;font-size:13px;margin-bottom:4px}
   .drsumtgl{cursor:pointer;user-select:none}
+  .dsech{cursor:pointer;user-select:none;font-weight:700;font-size:13px;color:#3b4652;background:#f2f5f8;border-radius:10px;padding:8px 12px;margin:10px 0 0}
+  .dsech:hover{background:#e9eef4}
+  .dsech .caret{font-size:12px;color:#8a93a1;margin-right:4px}
   .drsumtgl .caret{font-size:10px;color:#8a93a1;margin-right:2px}
   .drsumtheme{font-size:12px;font-weight:800;color:#fff;background:#5a6472;border-radius:6px;display:inline-block;padding:2px 10px;margin:14px 0 7px}
   .drsummary .drsumtheme:first-of-type{margin-top:6px}
@@ -576,7 +579,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-27 10:10</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-27 10:33</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1515,6 +1518,13 @@ let stageOverride=null;   // 手動でステージを見たい時
 let STAGE_NUMS=null;      // ステージ判定用の自分の実績（numsのみ）
 function chainPins(){ try{ return JSON.parse(localStorage.getItem("nonocon_chain_pins")||"[]"); }catch(e){ return []; } }
 document.addEventListener("click",e=>{
+  const sec=e.target.closest(".dsech");
+  if(sec){
+    const box=document.querySelector(`[data-secbody="${sec.dataset.sectgl}"]`);
+    if(box){ const open=box.style.display==="none"; box.style.display=open?"":"none";
+      const c=sec.querySelector(".caret"); if(c) c.textContent=open?"−":"＋"; }
+    return;
+  }
   const st=e.target.closest(".drsumtgl");
   if(st){
     const id=st.dataset.sumtgl, box=document.querySelector(`div[data-sumbody="${id}"]`);
@@ -2436,6 +2446,7 @@ function refreshRouteBox(rid){
   box.innerHTML=`<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${rid}">📷 スライド表示</button></div>`+tbl;
   if(_bindRouteBox) _bindRouteBox(box);
   box.style.display="";
+  const sh=document.querySelector(`.dsech[data-sectgl="route-${rid}"] .caret`); if(sh) sh.textContent="−";
 }
 /* ローカルのDOKOALLとPHOTOCTXに1件の変更を反映（サーバー往復せず即時） */
 function applyPhotoLocal(rid,shop,kind,url,mode){
@@ -2774,9 +2785,6 @@ async function renderDoko(){
       <div class="dcardh">
         <span class="ddate">${dokoDateLabel(r.date)}</span>
         <span class="dplace">${escH(r.place)}</span>
-        ${route.length?`<button class="dtoggle" data-id="${r.id}">🗺 ルート表（${route.filter(x=>!(x.k==="食事・休憩"||/昼食|懇親会|休憩|兼移動|^移動/.test(String(x.ch||"")+String(x.n||"")))).length}店舗）＋</button>`:""}
-        ${r.review?`<button class="dtoggle drev" data-rev="${r.id}">📖 振り返り ＋</button>`:""}
-        <button class="dtoggle dcmt" data-cmt="${r.id}">💬 感想（${new Set((r.comments||[]).map(c=>c.name)).size}人）＋</button>
         <span style="flex:1"></span>
         <button class="dpin${String(r.id)===(localStorage.getItem("nonocon_doko_pin")||"")?" on":""}" data-id="${r.id}" title="この同行を一番上に固定">${String(r.id)===(localStorage.getItem("nonocon_doko_pin")||"")?"📌 固定中":"📌"}</button>
         <button class="dedit" data-id="${r.id}">編集</button>
@@ -2786,7 +2794,8 @@ async function renderDoko(){
       ${r.memo?`<div class="dmemobox" data-memobox="${r.id}" style="display:none">${escH(r.memo)}</div>`:""}
       <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
       ${overallCmtsHtml(r.id)}
-      ${route.length?`<div class="droutebox" data-route="${r.id}" style="display:none">${(()=>{
+      ${route.length?`<div class="dsech" data-sectgl="route-${r.id}"><span class="caret">＋</span> 🗺 ルート表（${route.filter(x=>!(x.k==="食事・休憩"||/昼食|懇親会|休憩|兼移動|^移動/.test(String(x.ch||"")+String(x.n||"")))).length}店舗）</div>`:""}
+      ${route.length?`<div class="droutebox" data-secbody="route-${r.id}" data-route="${r.id}" style="display:none">${(()=>{
         PHOTOCTX[r.id]={};PHOTOWHO[r.id]={};(r.photos||[]).forEach(p=>{
           const sh=PHOTOCTX[r.id][p.shop]=PHOTOCTX[r.id][p.shop]||{};
           if(p.kind==="memo"||p.kind==="products"){ sh[p.kind]=p.url; }
@@ -2797,8 +2806,9 @@ async function renderDoko(){
         const tbl=differs?routeMergedHtml(route,plan,r.id):routeTableHtml(route,r.id);
         return `<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${r.id}">📷 スライド表示</button></div>`+tbl;
       })()}</div>`:""}
-      ${r.review?`<div class="drevbox" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
-      <div class="dcmtbox" data-cmtbody="${r.id}" style="display:none">
+      ${r.review?`<div class="dsech" data-sectgl="rev-${r.id}"><span class="caret">＋</span> 📖 振り返り</div><div class="drevbox" data-secbody="rev-${r.id}" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
+      <div class="dsech" data-sectgl="cmt-${r.id}"><span class="caret">＋</span> 💬 感想（${new Set((r.comments||[]).map(c=>c.name)).size}人）</div>
+      <div class="dcmtbox" data-secbody="cmt-${r.id}" data-cmtbody="${r.id}" style="display:none">
         ${(()=>{
           const route=parseRoute(r.route);
           const GTHEMES=["全体","全体：仕入れ判断","全体：商品知識と相場観","全体：店舗の回り方","全体：販売・出品","全体：ツール"];
