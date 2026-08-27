@@ -210,6 +210,8 @@
   .dpin:hover{border-color:var(--accent);color:var(--accent)}
   .drsummary{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
   .drsumh{font-weight:800;font-size:13px;margin-bottom:4px}
+  .drsumtgl{cursor:pointer;user-select:none}
+  .drsumtgl .caret{font-size:10px;color:#8a93a1;margin-right:2px}
   .drsumtheme{font-size:12px;font-weight:800;color:#fff;background:#5a6472;border-radius:6px;display:inline-block;padding:2px 10px;margin:14px 0 7px}
   .drsummary .drsumtheme:first-of-type{margin-top:6px}
   .sumc{background:#f7f9fb;border-radius:10px;padding:11px 15px;margin-bottom:9px}
@@ -574,7 +576,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-27 02:42</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-27 10:06</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1513,6 +1515,14 @@ let stageOverride=null;   // 手動でステージを見たい時
 let STAGE_NUMS=null;      // ステージ判定用の自分の実績（numsのみ）
 function chainPins(){ try{ return JSON.parse(localStorage.getItem("nonocon_chain_pins")||"[]"); }catch(e){ return []; } }
 document.addEventListener("click",e=>{
+  const st=e.target.closest(".drsumtgl");
+  if(st){
+    const id=st.dataset.sumtgl, box=document.querySelector(`div[data-sumbody="${id}"]`);
+    if(box){ const open=box.style.display==="none"; box.style.display=open?"":"none";
+      const c=st.querySelector(".caret"); if(c) c.textContent=open?"▼":"▶";
+      window.__sumClosed=window.__sumClosed||{}; window.__sumClosed[id]=!open; }
+    return;
+  }
   const mb=e.target.closest(".dmemo-tgl");
   if(mb){
     const box=document.querySelector(`div[data-memobox="${mb.dataset.id}"]`);
@@ -2530,7 +2540,8 @@ function overallCmtsHtml(rid){
   const THEME_ORDER=["仕入れ判断","商品知識と相場観","店舗の回り方","販売・出品","ツール"];
   const themes=[...new Set(all.filter(c=>(c.target||"").indexOf("全体：")===0).map(c=>c.target.slice(3)))];
   themes.sort((a,b)=>{const ia=THEME_ORDER.indexOf(a),ib=THEME_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
-  let h=`<div class="drsummary"><div class="drsumh">🗒 全体総括</div>`;
+  const sumOpen=(window.__sumClosed||{})[rid]!==true;
+  let h=`<div class="drsummary"><div class="drsumh drsumtgl" data-sumtgl="${rid}"><span class="caret">${sumOpen?"▼":"▶"}</span> 🗒 全体総括</div><div class="drsumbody" data-sumbody="${rid}"${sumOpen?"":' style="display:none"'}>`;
   themes.forEach(th=>{
     h+=`<div class="drsumtheme">${escH(th)}</div>`;
     h+=all.filter(c=>c.target==="全体："+th).map(one).join("");
@@ -2540,7 +2551,7 @@ function overallCmtsHtml(rid){
     if(themes.length) h+=`<div class="drsumtheme">感想・気づき</div>`;
     h+=plain.map(one).join("");
   }
-  return h+`</div>`;
+  return h+`</div></div>`;
 }
 function routeTableHtml(route,RID){
   if(!route.length) return "";
