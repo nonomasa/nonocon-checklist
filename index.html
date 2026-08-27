@@ -576,7 +576,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-27 10:06</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-27 10:10</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1519,14 +1519,14 @@ document.addEventListener("click",e=>{
   if(st){
     const id=st.dataset.sumtgl, box=document.querySelector(`div[data-sumbody="${id}"]`);
     if(box){ const open=box.style.display==="none"; box.style.display=open?"":"none";
-      const c=st.querySelector(".caret"); if(c) c.textContent=open?"▼":"▶";
+      const c=st.querySelector(".caret"); if(c) c.textContent=open?"−":"＋";
       window.__sumClosed=window.__sumClosed||{}; window.__sumClosed[id]=!open; }
     return;
   }
   const mb=e.target.closest(".dmemo-tgl");
   if(mb){
     const box=document.querySelector(`div[data-memobox="${mb.dataset.id}"]`);
-    if(box){ const open=box.style.display==="none"; box.style.display=open?"":"none"; mb.textContent=open?"📝 メモ ▼":"📝 メモ ▶"; }
+    if(box){ const open=box.style.display==="none"; box.style.display=open?"":"none"; mb.textContent=open?"📝 メモ −":"📝 メモ ＋"; }
     return;
   }
   const b=e.target.closest(".chainpin");
@@ -2541,7 +2541,7 @@ function overallCmtsHtml(rid){
   const themes=[...new Set(all.filter(c=>(c.target||"").indexOf("全体：")===0).map(c=>c.target.slice(3)))];
   themes.sort((a,b)=>{const ia=THEME_ORDER.indexOf(a),ib=THEME_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
   const sumOpen=(window.__sumClosed||{})[rid]!==true;
-  let h=`<div class="drsummary"><div class="drsumh drsumtgl" data-sumtgl="${rid}"><span class="caret">${sumOpen?"▼":"▶"}</span> 🗒 全体総括</div><div class="drsumbody" data-sumbody="${rid}"${sumOpen?"":' style="display:none"'}>`;
+  let h=`<div class="drsummary"><div class="drsumh drsumtgl" data-sumtgl="${rid}"><span class="caret">${sumOpen?"−":"＋"}</span> 🗒 全体総括</div><div class="drsumbody" data-sumbody="${rid}"${sumOpen?"":' style="display:none"'}>`;
   themes.forEach(th=>{
     h+=`<div class="drsumtheme">${escH(th)}</div>`;
     h+=all.filter(c=>c.target==="全体："+th).map(one).join("");
@@ -2774,15 +2774,15 @@ async function renderDoko(){
       <div class="dcardh">
         <span class="ddate">${dokoDateLabel(r.date)}</span>
         <span class="dplace">${escH(r.place)}</span>
-        ${route.length?`<button class="dtoggle" data-id="${r.id}">🗺 ルート表（${route.filter(x=>!(x.k==="食事・休憩"||/昼食|懇親会|休憩|兼移動|^移動/.test(String(x.ch||"")+String(x.n||"")))).length}店舗）▼</button>`:""}
-        ${r.review?`<button class="dtoggle drev" data-rev="${r.id}">📖 振り返り ▼</button>`:""}
-        <button class="dtoggle dcmt" data-cmt="${r.id}">💬 感想（${new Set((r.comments||[]).map(c=>c.name)).size}人）▼</button>
+        ${route.length?`<button class="dtoggle" data-id="${r.id}">🗺 ルート表（${route.filter(x=>!(x.k==="食事・休憩"||/昼食|懇親会|休憩|兼移動|^移動/.test(String(x.ch||"")+String(x.n||"")))).length}店舗）＋</button>`:""}
+        ${r.review?`<button class="dtoggle drev" data-rev="${r.id}">📖 振り返り ＋</button>`:""}
+        <button class="dtoggle dcmt" data-cmt="${r.id}">💬 感想（${new Set((r.comments||[]).map(c=>c.name)).size}人）＋</button>
         <span style="flex:1"></span>
         <button class="dpin${String(r.id)===(localStorage.getItem("nonocon_doko_pin")||"")?" on":""}" data-id="${r.id}" title="この同行を一番上に固定">${String(r.id)===(localStorage.getItem("nonocon_doko_pin")||"")?"📌 固定中":"📌"}</button>
         <button class="dedit" data-id="${r.id}">編集</button>
         ${(mine||ADMIN_KEY)?`<button class="ddel" data-id="${r.id}">削除</button>`:""}
       </div>
-      <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　<button class="dmemo-tgl" data-id="${r.id}">📝 メモ ▶</button>`:""}</div>
+      <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　<button class="dmemo-tgl" data-id="${r.id}">📝 メモ ＋</button>`:""}</div>
       ${r.memo?`<div class="dmemobox" data-memobox="${r.id}" style="display:none">${escH(r.memo)}</div>`:""}
       <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
       ${overallCmtsHtml(r.id)}
@@ -2832,10 +2832,10 @@ async function renderDoko(){
   const listHtml=list=>list.length?list.map(entryHtml).join("")
     :'<div style="color:#c2c8d0;font-size:13px;padding:6px 2px">まだ登録がありません</div>';
   const editRoute=editing?parseRoute(editing.route):[];
-  let html=`<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">▶</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
+  let html=`<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">＋</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
     <div id="dmatomeB" style="display:none">${DOKO_MATOME}</div></div>`;
   const formOpen=editing?true:dokoOpen.form;
-  html+=`<div class="gpanel"><div class="gph gtoggle" id="dformT"><span class="caret">${formOpen?"▼":"▶"}</span> ${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
+  html+=`<div class="gpanel"><div class="gph gtoggle" id="dformT"><span class="caret">${formOpen?"−":"＋"}</span> ${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
     <div id="dformB" style="${formOpen?"":"display:none"}">
     <div class="nrow3">
       <div><label class="glbl">日付</label><input class="ginput" type="date" id="d_date" value="${editing?escH(editing.date):""}"></div>
@@ -2856,8 +2856,8 @@ async function renderDoko(){
     </div>
   </div>
   ${pinned.length?`<div class="gpanel" style="border:2px solid var(--accent)"><div class="gph">📌 固定中の同行 <span class="gpn">（📌をもう一度押すと解除）</span></div>${listHtml(pinned)}</div>`:""}
-  <div class="gpanel"><div class="gph gtoggle" id="dfutureT"><span class="caret">${dokoOpen.future?"▼":"▶"}</span> これからの同行（${future.length}件）</div><div id="dfutureB" style="${dokoOpen.future?"":"display:none"}">${listHtml(future)}</div></div>
-  <div class="gpanel"><div class="gph gtoggle" id="dpastT"><span class="caret">${dokoOpen.past?"▼":"▶"}</span> 過去の同行（${past.length}件）</div><div id="dpastB" style="${dokoOpen.past?"":"display:none"}">${listHtml(past)}</div></div>`;
+  <div class="gpanel"><div class="gph gtoggle" id="dfutureT"><span class="caret">${dokoOpen.future?"−":"＋"}</span> これからの同行（${future.length}件）</div><div id="dfutureB" style="${dokoOpen.future?"":"display:none"}">${listHtml(future)}</div></div>
+  <div class="gpanel"><div class="gph gtoggle" id="dpastT"><span class="caret">${dokoOpen.past?"−":"＋"}</span> 過去の同行（${past.length}件）</div><div id="dpastB" style="${dokoOpen.past?"":"display:none"}">${listHtml(past)}</div></div>`;
   body.innerHTML=html;
 
   // 参加メンバーのチップ（現役メンバーから選択）
@@ -2883,7 +2883,7 @@ async function renderDoko(){
       const b=document.getElementById(bid);
       const open=b.style.display!=="none";
       b.style.display=open?"none":"";
-      t.querySelector(".caret").textContent=open?"▶":"▼";
+      t.querySelector(".caret").textContent=open?"＋":"−";
       if(key) dokoOpen[key]=!open;
     };
   };
@@ -2946,7 +2946,7 @@ async function renderDoko(){
           : body.querySelector(`div[data-route="${b.dataset.id}"]`));
       const open=el.style.display!=="none";
       el.style.display=open?"none":"";
-      b.textContent=b.textContent.replace(open?"▲":"▼",open?"▼":"▲");
+      b.textContent=b.textContent.replace(open?"−":"＋",open?"＋":"−");
     };
   });
   // 店舗写真のアップロード（＋店頭/せどプレ/売れた ボタン）
@@ -3291,17 +3291,17 @@ function lifeGoalHtml(uid,allowEdit){
   const filled=!!(lg.life||lg.purpose||lg.need);
   const open=editable?(lgOpen===null?!filled:lgOpen):true; // 記入済みなら普段は閉じる（閲覧モードは常に表示）
   if(editable&&!open){
-    return `<div class="gpanel" id="lgWrap"><div class="gph lg-tgl" style="cursor:pointer;margin-bottom:0">▶ 🧭 目的（何のためのせどりか）<span class="gpn" style="margin-left:8px">記入済み。クリックで確認・編集</span></div></div>`;
+    return `<div class="gpanel" id="lgWrap"><div class="gph lg-tgl" style="cursor:pointer;margin-bottom:0">＋ 🧭 目的（何のためのせどりか）<span class="gpn" style="margin-left:8px">記入済み。クリックで確認・編集</span></div></div>`;
   }
   const fld=(k,label,ph)=>editable
     ? `<div class="lgf"><label class="glbl">${label}</label><textarea class="ginput lg-in" data-k="${k}" rows="2" placeholder="${ph}">${escH(lg[k]||"")}</textarea></div>`
     : `<div class="lgf"><label class="glbl">${label}</label><div class="lg-view">${lg[k]?escH(lg[k]):'<span class="gpn">未記入</span>'}</div></div>`;
-  return `<div class="gpanel" id="lgWrap"><div class="gph${editable?" lg-tgl":""}"${editable?' style="cursor:pointer"':''}>${editable?"▼ ":""}🧭 目的（何のためのせどりか）${editable?`<span class="gpn" style="margin-left:8px">クリックで閉じる</span>`:""}</div>
+  return `<div class="gpanel" id="lgWrap"><div class="gph${editable?" lg-tgl":""}"${editable?' style="cursor:pointer"':''}>${editable?"− ":""}🧭 目的（何のためのせどりか）${editable?`<span class="gpn" style="margin-left:8px">クリックで閉じる</span>`:""}</div>
     ${fld("life","人生の目標","例：お金のことを気にすることなく大事な人たちと過ごす")}
     ${fld("purpose","せどり・刈り取りをする目的","例：家族が増えてもお金に困らないよう、選択肢が狭まらないようにする")}
     ${fld("need","必要な金額といつまで","例：2028年までに貯金1,000万・月収50万。だから卒業時に月利50万")}
     ${editable?`<button class="gbtn" id="lgSave" style="margin-top:4px">目的を保存</button><span class="gmsg" id="lgMsg"></span>`:""}
-    <button class="drmemo-edit" id="lgQToggle" style="margin-top:8px">▶ 考え方の10の問い（書く前にこれを考える）</button>
+    <button class="drmemo-edit" id="lgQToggle" style="margin-top:8px">＋ 考え方の10の問い（書く前にこれを考える）</button>
     <div id="lgQBox" style="display:none;margin-top:8px" class="nhint">${LIFE_Q10.map(q=>`<div style="margin-bottom:6px">${escH(q)}</div>`).join("")}
     <div style="margin-top:8px;color:#3d4654">↑を考えた上で、エッセンスだけを上の3つの欄に書けばOK。ここの目的が、下の月次推移の目標数字の根拠になります。</div></div>
   </div>`;
@@ -3316,7 +3316,7 @@ function bindLifeGoal(){
     lw.outerHTML=lifeGoalHtml(String(me.sid),true); bindLifeGoal();
   };
   const t=document.getElementById("lgQToggle");
-  if(t) t.onclick=()=>{ const b=document.getElementById("lgQBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; t.textContent=(open?"▼":"▶")+" 考え方の10の問い（書く前にこれを考える）"; };
+  if(t) t.onclick=()=>{ const b=document.getElementById("lgQBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; t.textContent=(open?"−":"＋")+" 考え方の10の問い（書く前にこれを考える）"; };
   const sv=document.getElementById("lgSave");
   if(sv) sv.onclick=async()=>{
     const msg=document.getElementById("lgMsg");
@@ -3496,7 +3496,7 @@ function dailySectionHtml(uid,allowEdit){
       cell("cost",90)+cell("mikomi",90)+cell("hours",55)+cell("visits",55)+cell("searches",70)+memoCell+`</tr>`;
     // 旬の区切り（10日・20日・月末）で小計行を挟む（クリックで開閉）
     if(d===10||d===20||d===dim){
-      body_+=`<tr class="djun" data-juntgl="${jn}" style="cursor:pointer" title="クリックで${junName(d)}の日次を開閉"><td><span class="djarrow">${jn===curJun?"▼":"▶"}</span> ${junName(d)}計</td><td class="pl-n">${jC?yen(jC)+"円":""}</td><td class="pl-n">${jM?yen(jM)+"円":""}</td><td class="pl-n">${jH||""}</td><td class="pl-n">${jV||""}</td><td class="pl-n">${jS?yen(jS):""}</td><td></td></tr>`;
+      body_+=`<tr class="djun" data-juntgl="${jn}" style="cursor:pointer" title="クリックで${junName(d)}の日次を開閉"><td><span class="djarrow">${jn===curJun?"−":"＋"}</span> ${junName(d)}計</td><td class="pl-n">${jC?yen(jC)+"円":""}</td><td class="pl-n">${jM?yen(jM)+"円":""}</td><td class="pl-n">${jH||""}</td><td class="pl-n">${jV||""}</td><td class="pl-n">${jS?yen(jS):""}</td><td></td></tr>`;
       jC=0;jM=0;jH=0;jV=0;jS=0;
     }
   }
@@ -3769,7 +3769,7 @@ function bindDaily(){
       const rows=document.querySelectorAll(`.dlytbl tr[data-jun="${jn}"]`);
       const open=rows.length&&rows[0].style.display==="none";
       rows.forEach(r=>{ r.style.display=open?"":"none"; });
-      const a=tr.querySelector(".djarrow"); if(a) a.textContent=open?"▼":"▶";
+      const a=tr.querySelector(".djarrow"); if(a) a.textContent=open?"−":"＋";
     };
   });
   const ft=document.getElementById("dlygFromTrend");
@@ -3927,10 +3927,10 @@ async function renderNums(){
   }
   html+=lifeGoalHtml(viewUid,selfView);
   if(selfView&&!trendOpen){
-    html+=`<div class="gpanel"><div class="gph">📈 月次推移 <button class="drmemo-edit" id="trendToggle" style="margin-left:8px">▶ 卒業までの全期間を見る・目標を編集</button></div>
+    html+=`<div class="gpanel"><div class="gph">📈 月次推移 <button class="drmemo-edit" id="trendToggle" style="margin-left:8px">＋ 卒業までの全期間を見る・目標を編集</button></div>
       <div id="trendBox">${miniTrendHtml(viewUid)}</div></div>`;
   }else{
-    html+=`<div class="gpanel"><div class="gph">📈 月次推移${selfView?` <button class="drmemo-edit" id="trendToggle" style="margin-left:8px">▼ 今月だけの表示に戻す</button>`:""}</div>
+    html+=`<div class="gpanel"><div class="gph">📈 月次推移${selfView?` <button class="drmemo-edit" id="trendToggle" style="margin-left:8px">− 今月だけの表示に戻す</button>`:""}</div>
       <div id="trendBox">${trendTableHtml(viewUid,selfView)}</div></div>`;
   }
 
@@ -3952,7 +3952,7 @@ async function renderNums(){
     <div style="margin-top:12px"><label class="glbl">🔓 今月の解除目標 <span class="gpn">（選ぶだけ。達成は制限解除タブのステータスから自動判定）</span></label>
     <div id="kgoalWrap">${kgoalChipsHtml(me.sid,true)}</div></div>
     ${(()=>{const hasRev=!!(V("gsales2")||V("gprofit2"));return `
-    <button class="drmemo-edit" id="revToggle" style="margin-top:10px">${hasRev?"▼":"▶"} 修正目標（旬の途中で立て直す時だけ）</button>
+    <button class="drmemo-edit" id="revToggle" style="margin-top:10px">${hasRev?"−":"＋"} 修正目標（旬の途中で立て直す時だけ）</button>
     <div class="nrow3" id="revBox" style="margin-top:10px;${hasRev?"":"display:none"}">
       <div><label class="glbl">修正目標月商（円・任意）</label><input class="ginput" id="n_gsales2" inputmode="numeric" placeholder="旬の途中で見直したら入力" value="${V("gsales2")}"></div>
       <div><label class="glbl">修正目標粗利（円・任意）</label><input class="ginput" id="n_gprofit2" inputmode="numeric" placeholder="当初目標は残ります" value="${V("gprofit2")}"></div>
@@ -4031,7 +4031,7 @@ async function renderNums(){
     return d&&d.name?d.name:u;};
   if(numsMode==="view") html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
     memHas.map((u,i)=>
-      `<div class="nmem"><div class="nmemh" data-uid="${u}">▶ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}</div><div class="nrbody" style="display:none" data-body="${u}"></div></div>`).join("")+`</div>`;
+      `<div class="nmem"><div class="nmemh" data-uid="${u}">＋ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}</div><div class="nrbody" style="display:none" data-body="${u}"></div></div>`).join("")+`</div>`;
 
   body.innerHTML=html;
 
@@ -4040,7 +4040,7 @@ async function renderNums(){
     b.onclick=()=>{ b.insertAdjacentHTML("beforebegin",tdRowHtml()); bindTdRow(b.previousElementSibling); };
   });
   const rt=document.getElementById("revToggle");
-  if(rt) rt.onclick=()=>{ const b=document.getElementById("revBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; rt.textContent=(open?"▼":"▶")+" 修正目標（旬の途中で立て直す時だけ）"; };
+  if(rt) rt.onclick=()=>{ const b=document.getElementById("revBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; rt.textContent=(open?"−":"＋")+" 修正目標（旬の途中で立て直す時だけ）"; };
   const rg=document.getElementById("tgRateGo");
   if(rg) rg.onclick=()=>{
     const rate=parseFloat(document.getElementById("tgRate").value);
@@ -4192,7 +4192,7 @@ async function renderNums(){
       const el=body.querySelector(`div.nrbody[data-body="${h.dataset.uid}"]`);
       const open=el.style.display!=="none";
       el.style.display=open?"none":"";
-      h.innerHTML=(open?"▶ ":"▼ ")+h.innerHTML.slice(2);
+      h.innerHTML=(open?"＋ ":"− ")+h.innerHTML.slice(2);
       if(!open) el.innerHTML=numsReportHtml(h.dataset.uid,numsMonth);
     };
   });
@@ -4221,7 +4221,7 @@ function renderMembers(){
   let html="";
   if(me){
     const gOpen = goalPanelOpen!==null ? goalPanelOpen : !(mine.num||mine.after);
-    html+=`<div class="gpanel"><div class="gph gtoggle" id="gphToggle"><span class="caret">${gOpen?"▼":"▶"}</span> 🎯 あなたの目標を入力 <span class="gpn">（メンバー全員に表示・月ごとにログが残ります）</span></div>
+    html+=`<div class="gpanel"><div class="gph gtoggle" id="gphToggle"><span class="caret">${gOpen?"−":"＋"}</span> 🎯 あなたの目標を入力 <span class="gpn">（メンバー全員に表示・月ごとにログが残ります）</span></div>
       <div id="gbody" style="${gOpen?"":"display:none"}">
       <label class="glbl">卒業までに達成したい数字</label>
       <input class="ginput" id="gnum" placeholder="例：月利50万円" value="${escH(mine.num)}">
@@ -4272,7 +4272,7 @@ function renderMembers(){
       const open=gb.style.display!=="none";
       goalPanelOpen=!open;
       gb.style.display=open?"none":"";
-      gt.querySelector(".caret").textContent=open?"▶":"▼";
+      gt.querySelector(".caret").textContent=open?"＋":"−";
     };
   }
   const btn=document.getElementById("gsaveBtn");
@@ -4798,7 +4798,7 @@ function quizCard(q,isAdmin){
     <button class="gbtn qans-save" data-q="${q.id}" style="margin-top:8px">${answered?"回答を更新":"回答する"}</button><span class="gmsg qans-msg" data-q="${q.id}"></span>
   </div>`;
   if(canSeeOthers){
-    h+=`<div class="qothers"><button class="qoth-tgl">👥 みんなの回答（⭕${buyN}／❌${noN}）<span class="caret" style="margin-left:6px">▶</span></button><div class="qoth-body" style="display:none">`;
+    h+=`<div class="qothers"><button class="qoth-tgl">👥 みんなの回答（⭕${buyN}／❌${noN}）<span class="caret" style="margin-left:6px">＋</span></button><div class="qoth-body" style="display:none">`;
     if(myAns){
       h+=`<div class="qo1 qo-mine"><div class="qo-top"><span class="qo-dec ${myAns.decision==="仕入れる"?"buy":"no"}">${escH(myAns.decision||"—")}</span><b>あなた（${escH(myAns.name)}）</b><span class="dwho">${escH(myAns.updated)}</span></div>`;
       if(myAns.cost||myAns.price) h+=`<div class="qo-jan">💰 仕入${myAns.cost?yen(+myAns.cost)+"円":"—"} → 販売${myAns.price?yen(+myAns.price)+"円":"—"}</div>`;
@@ -4859,7 +4859,7 @@ function bindQuizForm(){
 }
 function bindQuizDetail(root,qid){
   const tgl=root.querySelector(".qoth-tgl");
-  if(tgl) tgl.onclick=()=>{ const b=root.querySelector(".qoth-body"); const open=b.style.display==="none"; b.style.display=open?"":"none"; tgl.querySelector(".caret").textContent=open?"▼":"▶"; };
+  if(tgl) tgl.onclick=()=>{ const b=root.querySelector(".qoth-body"); const open=b.style.display==="none"; b.style.display=open?"":"none"; tgl.querySelector(".caret").textContent=open?"−":"＋"; };
   root.querySelectorAll(".qedit").forEach(b=>{
     b.onclick=()=>{ quizEditId=b.dataset.id; quizNewPhoto=null; root.remove(); renderQuiz(); window.scrollTo({top:0,behavior:"smooth"}); };
   });
@@ -4997,7 +4997,7 @@ function render(){
           const subItems=items.filter(x=>x.sub===curSub);
           const sdone=subItems.filter(x=>state[x.id]).length;
           const sh=document.createElement("li"); sh.className="subh";
-          sh.innerHTML=`<span class="caret">${curSubOpen?"▼":"▶"}</span>${curSub}<span class="gc">${sdone}/${subItems.length}</span>`;
+          sh.innerHTML=`<span class="caret">${curSubOpen?"−":"＋"}</span>${curSub}<span class="gc">${sdone}/${subItems.length}</span>`;
           const wasOpen=curSubOpen;
           sh.onclick=()=>{ openSub[skey]=!wasOpen; render(); };
           ul.appendChild(sh);
@@ -5023,7 +5023,7 @@ function render(){
       if(childCount[it.id]){
         const eb=document.createElement("button");
         eb.className="iexp";
-        eb.textContent=(openItem[it.id]?"▼":"▶")+" ポイント"+childCount[it.id];
+        eb.textContent=(openItem[it.id]?"−":"＋")+" ポイント"+childCount[it.id];
         eb.onclick=e=>{ e.stopPropagation(); openItem[it.id]=!openItem[it.id]; render(); };
         const tt=li.querySelector(".title");
         if(tt) tt.appendChild(eb);
@@ -5035,7 +5035,7 @@ function render(){
       const open = key in openG ? openG[key] : gi===firstOpen;
       const gh=document.createElement("div");
       gh.className="gh acc";
-      gh.innerHTML=`<span class="caret">${open?"▼":"▶"}</span>${g.g}<span class="gc">${gdone}/${gt}</span>`;
+      gh.innerHTML=`<span class="caret">${open?"−":"＋"}</span>${g.g}<span class="gc">${gdone}/${gt}</span>`;
       gh.onclick=()=>{openG[key]=!open;render();};
       gd.appendChild(gh);
       if(!open) ul.style.display="none";
