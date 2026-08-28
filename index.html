@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 00:58</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 01:04</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2453,7 +2453,8 @@ function refreshRouteBox(rid){
   const plan=parseRoute(r.planRoute);
   const differs=plan.length&&r.planRoute!==r.route;
   const tbl=differs?routeMergedHtml(route,plan,rid):routeTableHtml(route,rid);
-  box.innerHTML=`<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${rid}">📷 スライド表示</button></div>`+tbl;
+  const kn=(()=>{const a=new Set();(r.photos||[]).forEach(p=>{if(p.kind!=="products")return;try{JSON.parse(p.url||"[]").forEach(x=>{if(x.asin)a.add(x.asin);});}catch(e){}});return a.size;})();
+  box.innerHTML=`<div style="text-align:right;margin-bottom:6px"><button class="gbtn dkeepa-all" data-id="${rid}" style="background:#2563eb;margin-right:6px">🔗 この日のKeepaを一括で開く（${kn}件）</button><button class="gbtn dslide" data-id="${rid}">📷 スライド表示</button></div>`+tbl;
   if(_bindRouteBox) _bindRouteBox(box);
   box.style.display="";
   const sh=document.querySelector(`.dsech[data-sectgl="route-${rid}"] .caret`); if(sh) sh.textContent="−";
@@ -2819,7 +2820,7 @@ async function renderDoko(){
         const plan=parseRoute(r.planRoute);
         const differs=plan.length&&r.planRoute!==r.route;
         const tbl=differs?routeMergedHtml(route,plan,r.id):routeTableHtml(route,r.id);
-        return `<div style="text-align:right;margin-bottom:6px"><button class="gbtn dslide" data-id="${r.id}">📷 スライド表示</button></div>`+tbl;
+        return `<div style="text-align:right;margin-bottom:6px"><button class="gbtn dkeepa-all" data-id="${r.id}" style="background:#2563eb;margin-right:6px">🔗 この日のKeepaを一括で開く（${(()=>{const a=new Set();(r.photos||[]).forEach(p=>{if(p.kind!=="products")return;try{JSON.parse(p.url||"[]").forEach(x=>{if(x.asin)a.add(x.asin);});}catch(e){}});return a.size;})()}件）</button><button class="gbtn dslide" data-id="${r.id}">📷 スライド表示</button></div>`+tbl;
       })()}</div>`:""}
       ${r.review?`<div class="dsech" data-sectgl="rev-${r.id}"><span class="caret">＋</span> 📖 振り返り</div><div class="drevbox" data-secbody="rev-${r.id}" data-revbody="${r.id}" style="display:none">${escH(r.review)}</div>`:""}
       <div class="dsech" data-sectgl="cmt-${r.id}"><span class="caret">＋</span> 💬 感想（${new Set((r.comments||[]).map(c=>c.name)).size}人）</div>
@@ -3207,6 +3208,18 @@ function bindRouteBox(scope){
     btn.onclick=()=>{
       let items=[]; try{ items=JSON.parse(((PHOTOCTX[btn.dataset.rid]||{})[btn.dataset.shop]||{}).products||"[]"); }catch(e){}
       items.forEach(p=>{ if(p.asin) window.open("https://keepa.com/#!product/5-"+encodeURIComponent(p.asin),"_blank"); });
+    };
+  });
+  scope.querySelectorAll(".dkeepa-all").forEach(btn=>{
+    btn.onclick=()=>{
+      const r=(DOKOALL||[]).find(x=>x.id===btn.dataset.id); if(!r) return;
+      const seen=new Set();
+      (r.photos||[]).forEach(p=>{ if(p.kind!=="products") return;
+        try{ JSON.parse(p.url||"[]").forEach(x=>{ if(x.asin) seen.add(x.asin); }); }catch(e){} });
+      const list=[...seen];
+      if(!list.length){ alert("この同行には商品リストがまだありません"); return; }
+      if(list.length>15&&!confirm(`${list.length}件のタブを開きます。よろしいですか？（初回はブラウザの「ポップアップを許可」が必要です）`)) return;
+      list.forEach(a=>window.open("https://keepa.com/#!product/5-"+encodeURIComponent(a),"_blank"));
     };
   });
   scope.querySelectorAll(".dslide").forEach(b=>{
