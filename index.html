@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 01:35</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 01:36</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2189,6 +2189,13 @@ function dmName(n){
   return __dmMap[s];
 }
 function dmNames(v){ return DEMO?String(v||"").split(/[・、,／\/]+/).map(x=>x.trim()).filter(Boolean).map(dmName).join("・"):String(v||""); }
+let __dmPlaceRe=null;
+function dmSetPlace(place){
+  const NG=/^(ルート|エリア|家電|同行|せどり|店舗|ツアー)$/;
+  const w=String(place||"").split(/[〜~・,、\/\s　]+/).map(t=>t.replace(/(ルート|エリア)$/,"").trim()).filter(t=>t.length>=2&&!NG.test(t));
+  __dmPlaceRe=w.length?new RegExp(w.sort((a,b)=>b.length-a.length).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"),"g"):null;
+}
+function dmText(t){ return (DEMO&&__dmPlaceRe)?String(t).replace(__dmPlaceRe,"◯◯"):String(t); }
 function dmShop(v){ if(!DEMO) return String(v||""); const t=String(v||"").replace(/[\s　]+\S*店$/,"").trim(); return t||String(v||""); }
 if(DEMO){
   const st=document.createElement("style");
@@ -2553,7 +2560,7 @@ function cmtInlineHtml(rid,x){
   const cs=r.comments.filter(c=>(c.target||"全体")===target&&String(c.text||"").trim());
   if(!cs.length) return "";
   return `<div class="drcmts">`+cs.map(c=>{
-    const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
+    const t=dmText(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
     const long=t.length>60;
     const sei=dmName(String(c.name||"").trim().split(/[\s　]+/)[0]);
     return `<div class="drcmt1${long?" clamp":""}"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span>${long?`<div class="drcmt-more">▼ もっと見る</div>`:""}</div>`;
@@ -2567,7 +2574,7 @@ function overallCmtsHtml(rid){
   if(!all.length) return "";
   const one=c=>{
     // 箇条書き（・）は本物のリストに、地の文は段落にして読みやすく
-    const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
+    const t=dmText(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
     const lines=t.split(/\n/).map(x=>x.trim()).filter(Boolean);
     let body="",buf=[];
 
@@ -2710,7 +2717,7 @@ async function openChainPage(name){
         let vh=`<div style="border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px">
           <div style="font-size:12.5px;font-weight:700">${DEMO?"":escH(dokoDateLabel(v.date))+" "+escH(v.place||"")+"　"}<span class="gpn">${escH(DEMO?dmShop(v.shop):v.shop)}</span>${v.rieki?`　<span style="color:#0e9f6e;font-weight:700">見込${yen(drNum(v.rieki))}円</span>`:""}${v.prods?`　<span class="gpn">🛒${v.prods}件</span>`:""}</div>`;
         vh+=v.cs.map(c2=>{
-          const t2=String(c2.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
+          const t2=dmText(c2.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
           const sei=dmName(String(c2.name||"").trim().split(/[\s　]+/)[0]);
           return `<div class="drcmt1"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t2)}</span></div>`;
         }).join("");
@@ -2879,6 +2886,7 @@ async function renderDoko(){
   const listHtml=list=>list.length?list.map(entryHtml).join("")
     :'<div style="color:#c2c8d0;font-size:13px;padding:6px 2px">まだ登録がありません</div>';
   const demoTgt=DEMO?((DEMO_ID?rows.find(r=>String(r.id)===String(DEMO_ID)):null)||pinned[0]||past[0]||null):null;
+  if(demoTgt) dmSetPlace(demoTgt.place);
   const editRoute=editing?parseRoute(editing.route):[];
   let html=`<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">＋</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
     <div id="dmatomeB" style="display:none">${DOKO_MATOME}</div></div>`;
