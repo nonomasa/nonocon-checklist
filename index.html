@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 01:18</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 01:35</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2176,6 +2176,25 @@ const DOKO_MATOME=`
 let DOKOALL=null;
 let dokoEditId=null;   // 編集中の同行ID（nullなら新規）
 let dokoOpen={form:false, future:true, past:true}; // 各セクションの開閉
+/* ===== 収録モード（プレゼント動画用）：?demo=1 で氏名・日付・店名の枝番をマスク ===== */
+const DEMOQ=new URLSearchParams(location.search);
+const DEMO=/^(1|on|true)$/i.test(DEMOQ.get("demo")||"");
+const DEMO_ID=DEMOQ.get("doko")||"";
+const __dmMap={}; let __dmSeq=0;
+function dmName(n){
+  const s=String(n||"").trim().split(/[\s　]+/)[0];
+  if(!DEMO||!s) return String(n||"");
+  if(/野々脇|のの/.test(s)) return "のの";
+  if(!__dmMap[s]) __dmMap[s]="受講生"+"ABCDEFGHIJKLMNOPQRST".charAt(__dmSeq++);
+  return __dmMap[s];
+}
+function dmNames(v){ return DEMO?String(v||"").split(/[・、,／\/]+/).map(x=>x.trim()).filter(Boolean).map(dmName).join("・"):String(v||""); }
+function dmShop(v){ if(!DEMO) return String(v||""); const t=String(v||"").replace(/[\s　]+\S*店$/,"").trim(); return t||String(v||""); }
+if(DEMO){
+  const st=document.createElement("style");
+  st.textContent='.dmhide{display:none!important}.dwho,.dmemobox,.dmemo-tgl,.ddate,.dpin,.dedit,.ddel,.dsech[data-sectgl^="cmt-"],.dcmtbox,.dsech[data-sectgl^="rev-"],.drevbox{display:none!important}';
+  document.head.appendChild(st);
+}
 function dokoDateLabel(ds){
   const m=String(ds).match(/(\d{4})-(\d{2})-(\d{2})/);
   if(!m) return escH(ds);
@@ -2536,7 +2555,7 @@ function cmtInlineHtml(rid,x){
   return `<div class="drcmts">`+cs.map(c=>{
     const t=String(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
     const long=t.length>60;
-    const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
+    const sei=dmName(String(c.name||"").trim().split(/[\s　]+/)[0]);
     return `<div class="drcmt1${long?" clamp":""}"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span>${long?`<div class="drcmt-more">▼ もっと見る</div>`:""}</div>`;
   }).join("")+`</div>`;
 }
@@ -2557,7 +2576,7 @@ function overallCmtsHtml(rid){
     const flushLi=()=>{ if(buf.length){ body+=`<ul>${buf.map(li).join("")}</ul>`; buf=[]; } };
     lines.forEach(l=>{ if(l.indexOf("・")===0) buf.push(l.slice(1).trim()); else { flushLi(); body+=`<p>${escH(l)}</p>`; } });
     flushLi();
-    const sei=String(c.name||"").trim().split(/[\s　]+/)[0];
+    const sei=dmName(String(c.name||"").trim().split(/[\s　]+/)[0]);
     return `<div class="sumc"><div class="sumc-h">💬 ${escH(sei)}</div>${body}</div>`;
   };
   // テーマ（対象「全体：◯◯」）ごとに見出しを付けて表示
@@ -2585,7 +2604,7 @@ function routeTableHtml(route,RID){
     route.map(x=>{
       const end=x.e||addMinutes(x.s,drNum(x.p));
       const nm=drName(x);
-      const nmHtml=(x.ch&&!drIsMeal(x))?`<a href="#" class="chainpg" data-chain="${escH(x.ch)}" title="チェーン攻略ページを見る">${escH(x.ch)}</a>${x.n?" "+escH(x.n):""}`:escH(nm);
+      const nmHtml=(x.ch&&!drIsMeal(x))?`<a href="#" class="chainpg" data-chain="${escH(x.ch)}" title="チェーン攻略ページを見る">${escH(x.ch)}</a>${(x.n&&!DEMO)?" "+escH(x.n):""}`:escH(DEMO&&!drIsMeal(x)?dmShop(nm):nm);
       const nmCell=x.in?`<span class="drin-nm">└ ${nmHtml}</span>`:nmHtml;
       const ph=RID?photoCell(RID,drKey(x),drIsMeal(x)):"";
       return `<tr${x.in?' class="drin-row"':""}><td style="white-space:nowrap">${escH(x.s)}${end?`〜${escH(end)}`:""}</td>`+
@@ -2609,7 +2628,7 @@ function routeMergedHtml(actual, plan, RID){
     const p0=planMap[drKey(x)];
     const end=addMinutes(x.s,drNum(x.p));
     const nm=drName(x);
-    const nmHtml=(x.ch&&!drIsMeal(x))?`<a href="#" class="chainpg" data-chain="${escH(x.ch)}" title="チェーン攻略ページを見る">${escH(x.ch)}</a>${x.n?" "+escH(x.n):""}`:escH(nm);
+    const nmHtml=(x.ch&&!drIsMeal(x))?`<a href="#" class="chainpg" data-chain="${escH(x.ch)}" title="チェーン攻略ページを見る">${escH(x.ch)}</a>${(x.n&&!DEMO)?" "+escH(x.n):""}`:escH(DEMO&&!drIsMeal(x)?dmShop(nm):nm);
     const nmCell=x.in?`<span class="drin-nm">└ ${nmHtml}</span>`:nmHtml;
     const ph=RID?photoCell(RID,drKey(x),drIsMeal(x)):"";
     let cls="", mustCell=escH(x.m||"");
@@ -2689,10 +2708,10 @@ async function openChainPage(name){
       visits.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
       h+=visits.map(v=>{
         let vh=`<div style="border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px">
-          <div style="font-size:12.5px;font-weight:700">${escH(dokoDateLabel(v.date))} ${escH(v.place||"")}　<span class="gpn">${escH(v.shop)}</span>${v.rieki?`　<span style="color:#0e9f6e;font-weight:700">見込${yen(drNum(v.rieki))}円</span>`:""}${v.prods?`　<span class="gpn">🛒${v.prods}件</span>`:""}</div>`;
+          <div style="font-size:12.5px;font-weight:700">${DEMO?"":escH(dokoDateLabel(v.date))+" "+escH(v.place||"")+"　"}<span class="gpn">${escH(DEMO?dmShop(v.shop):v.shop)}</span>${v.rieki?`　<span style="color:#0e9f6e;font-weight:700">見込${yen(drNum(v.rieki))}円</span>`:""}${v.prods?`　<span class="gpn">🛒${v.prods}件</span>`:""}</div>`;
         vh+=v.cs.map(c2=>{
           const t2=String(c2.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
-          const sei=String(c2.name||"").trim().split(/[\s　]+/)[0];
+          const sei=dmName(String(c2.name||"").trim().split(/[\s　]+/)[0]);
           return `<div class="drcmt1"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t2)}</span></div>`;
         }).join("");
         return vh+`</div>`;
@@ -2723,10 +2742,10 @@ function openSlide(rid,startShop){
   const route=sortRoute(parseRoute(r.route));
   const pmap={}; (r.photos||[]).forEach(p=>{const sh=pmap[p.shop]=pmap[p.shop]||{}; if(p.kind==="memo"||p.kind==="products"){sh[p.kind]=p.url;} else {(sh[p.kind]=sh[p.kind]||[]).push(p.url);}});
   // 全体＋各店舗のスライド
-  const slides=[{title:`${dokoDateLabel(r.date)} ${escH(r.place)}`, sub:escH(r.members||""), shop:null}]
+  const slides=[{title:DEMO?"店舗同行":`${dokoDateLabel(r.date)} ${escH(r.place)}`, sub:escH(dmNames(r.members||"")), shop:null}]
     .concat(route.map(x=>{
       const info=[x.s||"", x.k||"", x.r?("見込利益 "+yen(x.r)+"円"):""].filter(Boolean).join("　");
-      return {title:drName(x), sub:escH(info), shop:drKey(x), memo:(pmap[drKey(x)]||{}).memo||""};
+      return {title:DEMO?dmShop(drName(x)):drName(x), sub:escH(info), shop:drKey(x), memo:(pmap[drKey(x)]||{}).memo||""};
     }));
   let i=0;
   if(startShop){ const idx=slides.findIndex(sl=>sl.shop===startShop); if(idx>0) i=idx; }
@@ -2802,13 +2821,13 @@ async function renderDoko(){
     return `<div class="dcard">
       <div class="dcardh">
         <span class="ddate">${dokoDateLabel(r.date)}</span>
-        <span class="dplace">${escH(r.place)}</span>
+        <span class="dplace">${DEMO?"店舗同行":escH(r.place)}</span>
         <span style="flex:1"></span>
         <button class="dpin${String(r.id)===(localStorage.getItem("nonocon_doko_pin")||"")?" on":""}" data-id="${r.id}" title="この同行を一番上に固定">${String(r.id)===(localStorage.getItem("nonocon_doko_pin")||"")?"📌 固定中":"📌"}</button>
         <button class="dedit" data-id="${r.id}">編集</button>
         ${(mine||ADMIN_KEY)?`<button class="ddel" data-id="${r.id}">削除</button>`:""}
       </div>
-      <div class="dmeta">👥 ${escH(r.members)||"—"}${r.memo?`　<button class="dmemo-tgl" data-id="${r.id}">📝 メモ ＋</button>`:""}</div>
+      <div class="dmeta">👥 ${escH(dmNames(r.members))||"—"}${r.memo?`　<button class="dmemo-tgl" data-id="${r.id}">📝 メモ ＋</button>`:""}</div>
       ${r.memo?`<div class="dmemobox" data-memobox="${r.id}" style="display:none">${escH(r.memo)}</div>`:""}
       <div class="dwho">${r.name?`作成：${escH(r.name)}${r.created?`（${escH(r.created)}）`:""}`:""}${r.editor?`　／　最終編集：${escH(r.editor)}${r.updated?`（${escH(r.updated)}）`:""}`:""}</div>
       ${overallCmtsHtml(r.id)}
@@ -2859,11 +2878,12 @@ async function renderDoko(){
   };
   const listHtml=list=>list.length?list.map(entryHtml).join("")
     :'<div style="color:#c2c8d0;font-size:13px;padding:6px 2px">まだ登録がありません</div>';
+  const demoTgt=DEMO?((DEMO_ID?rows.find(r=>String(r.id)===String(DEMO_ID)):null)||pinned[0]||past[0]||null):null;
   const editRoute=editing?parseRoute(editing.route):[];
   let html=`<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">＋</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
     <div id="dmatomeB" style="display:none">${DOKO_MATOME}</div></div>`;
   const formOpen=editing?true:dokoOpen.form;
-  html+=`<div class="gpanel"><div class="gph gtoggle" id="dformT"><span class="caret">${formOpen?"−":"＋"}</span> ${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
+  html+=`${demoTgt?entryHtml(demoTgt):""}<div class="gpanel${DEMO?" dmhide":""}"><div class="gph gtoggle" id="dformT"><span class="caret">${formOpen?"−":"＋"}</span> ${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
     <div id="dformB" style="${formOpen?"":"display:none"}">
     <div class="nrow3">
       <div><label class="glbl">日付</label><input class="ginput" type="date" id="d_date" value="${editing?escH(editing.date):""}"></div>
@@ -2883,9 +2903,9 @@ async function renderDoko(){
       <span class="gmsg" id="dmsg"></span></div>
     </div>
   </div>
-  ${pinned.length?`<div class="gpanel" style="border:2px solid var(--accent)"><div class="gph">📌 固定中の同行 <span class="gpn">（📌をもう一度押すと解除）</span></div>${listHtml(pinned)}</div>`:""}
-  <div class="gpanel"><div class="gph gtoggle" id="dfutureT"><span class="caret">${dokoOpen.future?"−":"＋"}</span> これからの同行（${future.length}件）</div><div id="dfutureB" style="${dokoOpen.future?"":"display:none"}">${listHtml(future)}</div></div>
-  <div class="gpanel"><div class="gph gtoggle" id="dpastT"><span class="caret">${dokoOpen.past?"−":"＋"}</span> 過去の同行（${past.length}件）</div><div id="dpastB" style="${dokoOpen.past?"":"display:none"}">${listHtml(past)}</div></div>`;
+  ${(pinned.length&&!DEMO)?`<div class="gpanel" style="border:2px solid var(--accent)"><div class="gph">📌 固定中の同行 <span class="gpn">（📌をもう一度押すと解除）</span></div>${listHtml(pinned)}</div>`:""}
+  <div class="gpanel${DEMO?" dmhide":""}"><div class="gph gtoggle" id="dfutureT"><span class="caret">${dokoOpen.future?"−":"＋"}</span> これからの同行（${future.length}件）</div><div id="dfutureB" style="${dokoOpen.future?"":"display:none"}">${listHtml(future)}</div></div>
+  <div class="gpanel${DEMO?" dmhide":""}"><div class="gph gtoggle" id="dpastT"><span class="caret">${dokoOpen.past?"−":"＋"}</span> 過去の同行（${past.length}件）</div><div id="dpastB" style="${dokoOpen.past?"":"display:none"}">${listHtml(past)}</div></div>`;
   body.innerHTML=html;
 
   // 参加メンバーのチップ（現役メンバーから選択）
