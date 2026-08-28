@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 00:55</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 00:58</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2561,7 +2561,7 @@ function overallCmtsHtml(rid){
   const THEME_ORDER=["仕入れ判断","商品知識と相場観","店舗の回り方","販売・出品","ツール"];
   const themes=[...new Set(all.filter(c=>(c.target||"").indexOf("全体：")===0).map(c=>c.target.slice(3)))];
   themes.sort((a,b)=>{const ia=THEME_ORDER.indexOf(a),ib=THEME_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
-  const sumOpen=(window.__sumClosed||{})[rid]!==true;
+  const sumOpen=(window.__sumClosed||{})[rid]===false; // 既定は閉じた状態
   let h=`<div class="drsummary"><div class="drsumh drsumtgl" data-sumtgl="${rid}"><span class="caret">${sumOpen?"−":"＋"}</span> 🗒 全体総括</div><div class="drsumbody" data-sumbody="${rid}"${sumOpen?"":' style="display:none"'}>`;
   themes.forEach(th=>{
     h+=`<div class="drsumtheme">${escH(th)}</div>`;
