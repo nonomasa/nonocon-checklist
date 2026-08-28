@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 00:53</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 00:55</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2736,8 +2736,11 @@ function openSlide(rid,startShop){
       imgs=`<div class="slide-cover">🚗 同行スタート<br><span>${escH(r.memo||"")}</span></div>`;
     }else{
       // 種別ごとに見出しを付けて表示（左＝店頭・売れた／右＝せどプレ）
+      // Driveサムネは既定w1000で文字が潰れるので、表示は高解像度・リンクは原寸ファイルへ
+      const bigU=u=>String(u).replace(/([?&]sz=)w\d+/,"$1w2400");
+      const origU=u=>{ const m=String(u).match(/[?&]id=([^&]+)/); return m?`https://drive.google.com/file/d/${m[1]}/view`:u; };
       const G={};
-      PHOTO_KINDS.forEach(k=>{ G[k[0]]=(ph[k[0]]||[]).map(u=>`<figure class="ph-tile"><a href="${u}" target="_blank" rel="noopener" title="クリックで原寸表示"><img src="${u}" alt="${k[1]}"></a></figure>`); });
+      PHOTO_KINDS.forEach(k=>{ G[k[0]]=(ph[k[0]]||[]).map(u=>`<figure class="ph-tile"><a href="${origU(u)}" target="_blank" rel="noopener" title="クリックで原寸表示"><img src="${bigU(u)}" alt="${k[1]}" loading="lazy"></a></figure>`); });
       const sec=(label,arr,cls)=> arr.length?`<div class="ph-sec"><div class="ph-seclbl">${label}（${arr.length}）<span class="ph-hint">クリックで原寸</span></div><div class="${cls}">${arr.join("")}</div></div>`:"";
       // 売れた（表のスクショが多い）は文字が読めるよう1列・幅いっぱいで表示
       const leftHtml=sec("🏬 店頭",G.shelf||[],"ph-flow")+sec("💰 売れた",G.sold||[],"ph-col");
