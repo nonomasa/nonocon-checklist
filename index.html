@@ -275,6 +275,10 @@
   .slide-imgs{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;justify-content:center}
   .slide-imgs.cover{align-items:center}
   .ph-flow{display:grid;gap:14px;width:100%;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));align-content:center;justify-items:center}
+  .ph-sec{margin-bottom:14px}
+  .ph-seclbl{font-size:12.5px;font-weight:800;color:#cfd3db;margin-bottom:6px;letter-spacing:.02em}
+  .ph-col{display:flex;flex-direction:column;gap:12px}
+  .ph-col .ph-tile img{max-height:none;width:100%}
   .ph-split{display:flex;gap:16px;width:100%;height:100%;min-height:0;align-items:stretch}
   .ph-split-l{flex:1;min-width:0;overflow-y:auto}
   .ph-split-l .ph-flow{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));align-content:start}
@@ -579,7 +583,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-28 23:33</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 00:47</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2729,15 +2733,16 @@ function openSlide(rid,startShop){
     if(!sl.shop){
       imgs=`<div class="slide-cover">🚗 同行スタート<br><span>${escH(r.memo||"")}</span></div>`;
     }else{
-      // 左＝店頭・売れた等の写真グリッド／右＝せどプレ（縦読みのスクショ）
-      const leftTiles=[], sedTiles=[];
-      PHOTO_KINDS.forEach(k=>{ (ph[k[0]]||[]).forEach(u=>{
-        const tile=`<figure class="ph-tile"><figcaption>${k[1]}</figcaption><img src="${u}" alt="${k[1]}"></figure>`;
-        if(k[0]==="list") sedTiles.push(tile); else leftTiles.push(tile);
-      }); });
-      if(!leftTiles.length&&!sedTiles.length) imgs=`<div class="ph-none">この店舗の写真はまだありません</div>`;
-      else if(!sedTiles.length) imgs=`<div class="ph-flow">${leftTiles.join("")}</div>`;
-      else imgs=`<div class="ph-split"><div class="ph-split-l">${leftTiles.length?`<div class="ph-flow">${leftTiles.join("")}</div>`:`<div class="ph-none">店頭写真なし</div>`}</div><div class="ph-split-r">${sedTiles.join("")}</div></div>`;
+      // 種別ごとに見出しを付けて表示（左＝店頭・売れた／右＝せどプレ）
+      const G={};
+      PHOTO_KINDS.forEach(k=>{ G[k[0]]=(ph[k[0]]||[]).map(u=>`<figure class="ph-tile"><img src="${u}" alt="${k[1]}"></figure>`); });
+      const sec=(label,arr,cls)=> arr.length?`<div class="ph-sec"><div class="ph-seclbl">${label}（${arr.length}）</div><div class="${cls}">${arr.join("")}</div></div>`:"";
+      const leftHtml=sec("🏬 店頭",G.shelf||[],"ph-flow")+sec("💰 売れた",G.sold||[],"ph-flow");
+      const rightHtml=sec("📱 せどプレ",G.list||[],"ph-col");
+      if(!leftHtml&&!rightHtml) imgs=`<div class="ph-none">この店舗の写真はまだありません</div>`;
+      else if(!rightHtml) imgs=leftHtml;
+      else if(!leftHtml) imgs=rightHtml;
+      else imgs=`<div class="ph-split"><div class="ph-split-l">${leftHtml}</div><div class="ph-split-r">${rightHtml}</div></div>`;
     }
     ov.innerHTML=`<div class="slide-top"><button class="slide-x">✕ 閉じる</button><span class="slide-page">${i+1} / ${slides.length}</span></div>
       <div class="slide-body">
