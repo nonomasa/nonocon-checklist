@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 09:34</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 09:36</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2904,7 +2904,8 @@ async function renderDoko(){
   const demoTgt=DEMO?((DEMO_ID?rows.find(r=>String(r.id)===String(DEMO_ID)):null)||pinned[0]||past[0]||null):null;
   if(demoTgt) dmSetPlace(demoTgt.place);
   const editRoute=editing?parseRoute(editing.route):[];
-  let html=`<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">＋</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
+  const demoBtn=(!DEMO&&me&&/野々脇/.test(me.name||""))?`<div style="text-align:right;margin-bottom:6px"><button class="gbtn" id="demoOnBtn" style="background:#dc2626">🎥 収録モードにする（名前・日付を匿名化）</button></div>`:"";
+  let html=`${demoBtn}<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">＋</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
     <div id="dmatomeB" style="display:none">${DOKO_MATOME}</div></div>`;
   const formOpen=editing?true:dokoOpen.form;
   html+=`${demoTgt?entryHtml(demoTgt):""}<div class="gpanel${DEMO?" dmhide":""}"><div class="gph gtoggle" id="dformT"><span class="caret">${formOpen?"−":"＋"}</span> ${editing?`✏️ 同行を編集（${dokoDateLabel(editing.date)} ${escH(editing.place)}）`:"🚗 同行を登録"} <span class="gpn">（同じエリアの人を誘ってどんどん組みましょう。エリアはメンバー情報タブで）</span></div>
@@ -2959,6 +2960,8 @@ async function renderDoko(){
       if(key) dokoOpen[key]=!open;
     };
   };
+  const dOn=document.getElementById("demoOnBtn");
+  if(dOn) dOn.onclick=()=>{ try{ sessionStorage.setItem("nonocon_demo","1"); const pin=localStorage.getItem("nonocon_doko_pin"); if(pin) sessionStorage.setItem("nonocon_demo_id",pin); }catch(e){} location.replace(location.pathname+"?v="+Date.now()+"&demo=1"); };
   secToggle("dmatomeT","dmatomeB",null);
   secToggle("dformT","dformB","form");
   secToggle("dfutureT","dfutureB","future");
@@ -5136,7 +5139,8 @@ function render(){
 
 const doFreshReload=e=>{
   if(e) e.preventDefault();
-  location.replace(location.pathname+"?v="+Date.now()+location.hash); // キャッシュを避けて読み直す
+  const keep=DEMO?"&demo=1"+(DEMO_ID?"&doko="+encodeURIComponent(DEMO_ID):""):"";
+  location.replace(location.pathname+"?v="+Date.now()+keep+location.hash); // キャッシュを避けて読み直す（収録モードは維持）
 };
 document.getElementById("vreload").onclick=doFreshReload;
 document.getElementById("reloadFab").onclick=doFreshReload;
