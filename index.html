@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 19:57</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 21:47</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3109,10 +3109,19 @@ function bindRouteBox(scope){
       const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.multiple=true;
       inp.onchange=async()=>{
         const rid=btn.dataset.rid, shop=btn.dataset.shop, kind=btn.dataset.kind;
-        for(const f of [...inp.files]){
-          const url=await uploadPhotoRet(rid,shop,kind,f);
-          if(url){ applyPhotoLocal(rid,shop,kind,url,"add"); refreshRouteBox(rid); }
+        const files=[...inp.files]; let okc=0,ngc=0;
+        for(let i2=0;i2<files.length;i2++){
+          if(files.length>1) showToast(`📤 ${i2+1}/${files.length}枚 アップロード中…`);
+          const url=await uploadPhotoRet(rid,shop,kind,files[i2]);
+          if(url){ okc++; applyPhotoLocal(rid,shop,kind,url,"add"); }
+          else ngc++;
         }
+        refreshRouteBox(rid);
+        if(ngc){
+          // 応答が乱れただけで実際は成功していることがある → サーバーから取り直して本当の状態を表示
+          try{ const d=await jsonp({action:"dall"}); if(d&&d.rows){ DOKOALL=d.rows; cacheSet("dall",d.rows); refreshRouteBox(rid); } }catch(e){}
+          showToast(`⚠️ ${okc}枚成功／${ngc}枚は応答を確認できませんでした。表示されていない写真だけもう一度アップしてください`);
+        }else if(files.length>1){ showToast(`✅ ${files.length}枚アップロードしました`); }
       };
       inp.click();
     };
