@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 19:27</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 19:30</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -4076,7 +4076,7 @@ async function renderNums(){
   const totalRow=tots.any?`<tr class="ntotal"><td>合計</td><td>${yen(tots.s)}円</td>${pctTd(tots.s,gS0)}<td>${yen(tots.p)}円</td>${pctTd(tots.p,gP0)}<td>${yen(tots.c)}個</td></tr>`:"";
   if(!selfView) html+=`<div class="gpanel"><div class="gpn">CSV取り込みや振り返りの入力エリアは、自分を選択中のみ表示されます。${escH(viewName)}さんの報告の中身は下の「みんなの報告」で開けます</div></div>`;
   if(selfView) html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
-    <div class="ncsvrow"><span class="gpn">📥 一番上の「データ取り込み」にプライスターの注文CSVを入れると、ここに自動で反映されます</span><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
+    <div class="ncsvrow"><span class="gpn">📥 一番上の「データ取り込み」にプライスターの注文CSVを入れると、ここに自動で反映・保存されます</span><span class="gmsg" id="ncsvMsg">${numsParsed?"取り込み済み（未保存）":""}</span></div>
     <table class="ntbl"><thead><tr><th></th><th>売上</th><th>累計進捗率</th><th>粗利</th><th>累計進捗率</th><th>個数</th></tr></thead><tbody>
       ${JUNS.map(junRow).join("")}${totalRow}
     </tbody></table>
@@ -4213,9 +4213,21 @@ async function renderNums(){
       else{ if(msg) msg.textContent=`選択中の${numsMonth}のデータがCSVにありません（含まれる月：${months.join("、")}）`; return; }
     }
     numsParsed=byMonth[target];
-    await renderNums();
-    const m2=document.getElementById("uniMsg")||document.getElementById("ncsvMsg");
-    if(m2) m2.textContent=`プライスター注文CSVを②に取り込みました${skipped?`（キャンセル・保留中の${skipped}件を除外）`:""}。下の保存ボタンで確定`;
+    // その場で自動保存（数字のみ。目標・振り返り欄には触らない）
+    try{
+      const rows=JUNS.map(j=>({jun:j,sales:Math.round(numsParsed[j].sales),profit:Math.round(numsParsed[j].profit),cnt:numsParsed[j].cnt}));
+      const r1=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+        body:JSON.stringify({action:"nnum",pass:PASS,uid:me.sid,name:me.name,ym:target,rows:rows})})).json();
+      if(!r1||!r1.ok) throw (r1&&r1.error)||"保存失敗";
+      NUMSALL=null; numsParsed=null;
+      await renderNums();
+      const m2=document.getElementById("uniMsg")||document.getElementById("ncsvMsg");
+      if(m2) m2.textContent=`✅ プライスター注文CSVを②に反映して保存しました${skipped?`（キャンセル・保留中の${skipped}件を除外）`:""}`;
+    }catch(e){
+      await renderNums();
+      const m2=document.getElementById("uniMsg")||document.getElementById("ncsvMsg");
+      if(m2) m2.textContent=`取り込みはできましたが自動保存に失敗しました（${String(e)}）。②の保存ボタンで保存してください`;
+    }
   };
   const importZaikoFiles=async(files,msg)=>{
     let cnt=0,sales=0,cost=0,hasPrice=false,hasCost=false;
