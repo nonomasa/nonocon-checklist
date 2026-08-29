@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 09:37</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 09:39</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2197,9 +2197,15 @@ function dmName(n){
 }
 function dmNames(v){ return DEMO?String(v||"").split(/[・、,／\/]+/).map(x=>x.trim()).filter(Boolean).map(dmName).join("・"):String(v||""); }
 let __dmPlaceRe=null;
-function dmSetPlace(place){
-  const NG=/^(ルート|エリア|家電|同行|せどり|店舗|ツアー)$/;
+function dmSetPlace(place,route){
+  const NG=/^(ルート|エリア|家電|同行|せどり|店舗|ツアー|ホームズ)$/;
   const w=String(place||"").split(/[〜~・,、\/\s　]+/).map(t=>t.replace(/(ルート|エリア)$/,"").trim()).filter(t=>t.length>=2&&!NG.test(t));
+  // ルート表の枝番（支店名）も本文マスクの対象に加える（例：かわさき店・ルフロン・ラゾーナ）
+  (route||[]).forEach(x=>{ String(x.n||"").split(/[\s　]+/).forEach(t=>{
+    t=t.trim(); if(!t) return;
+    const noTen=t.replace(/店$/,"");
+    [t,noTen].forEach(v=>{ if(v.length>=2&&!NG.test(v)&&!w.includes(v)) w.push(v); });
+  });});
   __dmPlaceRe=w.length?new RegExp(w.sort((a,b)=>b.length-a.length).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"),"g"):null;
 }
 function dmText(t){ return (DEMO&&__dmPlaceRe)?String(t).replace(__dmPlaceRe,"◯◯"):String(t); }
@@ -2904,7 +2910,7 @@ async function renderDoko(){
   const listHtml=list=>list.length?list.map(entryHtml).join("")
     :'<div style="color:#c2c8d0;font-size:13px;padding:6px 2px">まだ登録がありません</div>';
   const demoTgt=DEMO?((DEMO_ID?rows.find(r=>String(r.id)===String(DEMO_ID)):null)||pinned[0]||past[0]||null):null;
-  if(demoTgt) dmSetPlace(demoTgt.place);
+  if(demoTgt) dmSetPlace(demoTgt.place,parseRoute(demoTgt.route));
   const editRoute=editing?parseRoute(editing.route):[];
   const demoBtn=(!DEMO&&me&&/野々脇/.test(me.name||""))?`<div style="text-align:right;margin-bottom:6px"><button class="gbtn" id="demoOnBtn" style="background:#dc2626">🎥 収録モードにする（名前・日付を匿名化）</button></div>`:"";
   let html=`${demoBtn}<div class="gpanel"><div class="gph gtoggle" id="dmatomeT"><span class="caret">＋</span> 📚 同行振り返りまとめ <span class="gpn">（過去16回の同行の学びを重複整理した保存版）</span></div>
