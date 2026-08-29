@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 09:39</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 19:27</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -4065,13 +4065,14 @@ async function renderNums(){
   // 終わっていない旬は数字が半端なので表示しない（旬の終了後に自動で出る）
   let cumS=0,cumP=0;
   const junRow=j=>{
-    if(!junDone(numsMonth,j)) return `<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">${junWaitLabel(numsMonth,j)}</td></tr>`;
     const src=srcOf(j);
-    if(!src) return `<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">未取込</td></tr>`;
+    const done=junDone(numsMonth,j);
+    if(!src) return `<tr><td>${j}</td><td colspan="5" style="color:#c2c8d0;text-align:left">${done?"未取込":junWaitLabel(numsMonth,j)}</td></tr>`;
     cumS+=src.sales; cumP+=src.profit;
-    return `<tr><td>${j}</td><td>${yen(src.sales)}円</td>${pctTd(cumS,gS0)}<td>${yen(src.profit)}円</td>${pctTd(cumP,gP0)}<td>${yen(src.cnt)}個</td></tr>`;
+    const mark=done?"":`<span class="gpn">（途中経過）</span>`;
+    return `<tr><td>${j}${mark}</td><td>${yen(src.sales)}円</td>${pctTd(cumS,gS0)}<td>${yen(src.profit)}円</td>${pctTd(cumP,gP0)}<td>${yen(src.cnt)}個</td></tr>`;
   };
-  const tots=JUNS.filter(j=>junDone(numsMonth,j)).reduce((a,j)=>{const x=srcOf(j);if(x){a.s+=x.sales;a.p+=x.profit;a.c+=x.cnt;a.any=true;}return a;},{s:0,p:0,c:0,any:false});
+  const tots=JUNS.reduce((a,j)=>{const x=srcOf(j);if(x){a.s+=x.sales;a.p+=x.profit;a.c+=x.cnt;a.any=true;}return a;},{s:0,p:0,c:0,any:false});
   const totalRow=tots.any?`<tr class="ntotal"><td>合計</td><td>${yen(tots.s)}円</td>${pctTd(tots.s,gS0)}<td>${yen(tots.p)}円</td>${pctTd(tots.p,gP0)}<td>${yen(tots.c)}個</td></tr>`:"";
   if(!selfView) html+=`<div class="gpanel"><div class="gpn">CSV取り込みや振り返りの入力エリアは、自分を選択中のみ表示されます。${escH(viewName)}さんの報告の中身は下の「みんなの報告」で開けます</div></div>`;
   if(selfView) html+=`<div class="gpanel"><div class="gph">② プライスターCSVを取り込む <span class="gpn">（プライスター→注文一覧のCSVを選ぶと自動で旬別に集計）</span></div>
