@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 09:30</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 09:34</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2178,8 +2178,15 @@ let dokoEditId=null;   // 編集中の同行ID（nullなら新規）
 let dokoOpen={form:false, future:true, past:true}; // 各セクションの開閉
 /* ===== 収録モード（プレゼント動画用）：?demo=1 で氏名・日付・店名の枝番をマスク ===== */
 const DEMOQ=new URLSearchParams(location.search);
-const DEMO=/^(1|on|true)$/i.test(DEMOQ.get("demo")||"");
-const DEMO_ID=DEMOQ.get("doko")||"";
+// ログイン等のリダイレクトでURLパラメータが落ちても収録モードが維持されるよう、タブ内に記憶する
+const DEMO=(()=>{
+  const q=DEMOQ.get("demo");
+  try{
+    if(q!==null){ const on=/^(1|on|true)$/i.test(q); sessionStorage.setItem("nonocon_demo",on?"1":"0"); if(DEMOQ.get("doko")) sessionStorage.setItem("nonocon_demo_id",DEMOQ.get("doko")); return on; }
+    return sessionStorage.getItem("nonocon_demo")==="1";
+  }catch(e){ return /^(1|on|true)$/i.test(q||""); }
+})();
+const DEMO_ID=DEMOQ.get("doko")||(()=>{try{return DEMO?(sessionStorage.getItem("nonocon_demo_id")||""):"";}catch(e){return "";}})();
 const __dmMap={}; let __dmSeq=0;
 function dmName(n){
   const s=String(n||"").trim().split(/[\s　]+/)[0];
@@ -2199,6 +2206,14 @@ function dmText(t){ return (DEMO&&__dmPlaceRe)?String(t).replace(__dmPlaceRe,"�
 function dmShop(v){ if(!DEMO) return String(v||""); const t=String(v||"").replace(/[\s　]+\S*店$/,"").trim(); return t||String(v||""); }
 if(DEMO){
   const st=document.createElement("style");
+  // どのモードか一目でわかるバナー（収録モード中のみ）
+  document.addEventListener("DOMContentLoaded",()=>{
+    const b=document.createElement("div");
+    b.style.cssText="position:sticky;top:0;z-index:9999;background:#dc2626;color:#fff;font-weight:800;font-size:13px;text-align:center;padding:7px 10px";
+    b.innerHTML='🎥 収録モード（名前・日付・店舗の枝番を匿名化中）　<button id="dmExit" style="margin-left:10px;border:0;border-radius:6px;padding:3px 10px;cursor:pointer;font-weight:700">通常表示に戻す</button>';
+    document.body.prepend(b);
+    document.getElementById("dmExit").onclick=()=>{ try{sessionStorage.removeItem("nonocon_demo");sessionStorage.removeItem("nonocon_demo_id");}catch(e){} location.href=location.pathname; };
+  });
   st.textContent='.dmhide{display:none!important}.dwho,.dmemobox,.dmemo-tgl,.ddate,.dpin,.dedit,.ddel,.dsech[data-sectgl^="cmt-"],.dcmtbox,.dsech[data-sectgl^="rev-"],.drevbox{display:none!important}';
   document.head.appendChild(st);
 }
