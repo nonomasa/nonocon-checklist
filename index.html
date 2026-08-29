@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 09:36</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 09:37</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2620,6 +2620,7 @@ function overallCmtsHtml(rid){
   return h+`</div></div>`;
 }
 function routeTableHtml(route,RID){
+  if(DEMO) route=route.filter(x=>!drIsMeal(x));
   if(!route.length) return "";
   route=sortRoute(route);
   const tp=route.reduce((a,x)=>a+drNum(x.p),0), tr=route.reduce((a,x)=>a+drNum(x.r),0);
@@ -2645,6 +2646,7 @@ function routeMergedHtml(actual, plan, RID){
   const rows=[];
   sortRoute(actual).forEach(x=>rows.push({x, kind: planMap[drKey(x)]?"kept":"added"}));
   sortRoute(plan).forEach(x=>{ if(!actMap[drKey(x)]) rows.push({x, kind:"skipped"}); });
+  if(DEMO){ const n=rows.length; for(let i=n-1;i>=0;i--){ if(drIsMeal(rows[i].x)) rows.splice(i,1); } }
   const tp=actual.reduce((a,x)=>a+drNum(x.p),0), tr=actual.reduce((a,x)=>a+riekiVal(RID,x),0);
   let body="";
   rows.forEach(({x,kind})=>{
