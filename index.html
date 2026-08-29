@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 19:30</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 19:36</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -4196,7 +4196,12 @@ async function renderNums(){
     uniDrop.ondragleave=()=>uniDrop.classList.remove("drop-on");
     uniDrop.ondrop=e=>{ e.preventDefault(); uniDrop.classList.remove("drop-on"); uniHandleFiles([...e.dataTransfer.files]); };
     const upg=document.getElementById("uniPasteGo");
-    if(upg) upg.onclick=()=>window.__applyDaily(sedoprePasteParse(document.getElementById("uniPaste").value),document.getElementById("uniMsg"));
+    if(upg) upg.onclick=()=>{
+      const pv=document.getElementById("uniPaste").value;
+      const msg=document.getElementById("uniMsg");
+      if(!pv.trim()){ if(msg) msg.textContent="このボタンはせどプレの行コピペを貼り付けたとき専用です。CSVファイルは上の枠に入れるだけで自動反映されます（ボタン不要）"; return; }
+      window.__applyDaily(sedoprePasteParse(pv),msg);
+    };
   }
   document.getElementById("nprev0").onclick=()=>{numsMonth=ymShift(numsMonth,-1);numsParsed=null;numsDraft=null;renderNums();};
   document.getElementById("nnext0").onclick=()=>{numsMonth=ymShift(numsMonth,1);numsParsed=null;numsDraft=null;renderNums();};
@@ -4240,7 +4245,8 @@ async function renderNums(){
     if(el("n_stockCnt")) el("n_stockCnt").value=cnt;
     if(hasPrice&&el("n_stockSales")) el("n_stockSales").value=sales;
     if(hasCost&&el("n_stockCost")) el("n_stockCost").value=cost;
-    if(msg) msg.textContent=`在庫CSVを③に反映：在庫${yen(cnt)}個`+(hasPrice?` / 販売額${yen(sales)}円`:"")+(hasCost?` / 仕入額${yen(cost)}円`:"")+"（下の保存ボタンで確定）";
+    if(msg) msg.textContent=`在庫CSVを反映：在庫${yen(cnt)}個`+(hasPrice?` / 販売額${yen(sales)}円`:"")+(hasCost?` / 仕入額${yen(cost)}円`:"")+"（すぐ下の保存ボタンで確定）";
+    if(el("n_stockCnt")) el("n_stockCnt").scrollIntoView({behavior:"smooth",block:"center"});
   };
   const ncsvB=document.getElementById("ncsvBtn");
   if(ncsvB) ncsvB.onclick=()=>{
