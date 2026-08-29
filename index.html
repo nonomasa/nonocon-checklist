@@ -585,7 +585,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 01:36</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-08-29 09:20</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2500,6 +2500,7 @@ function applyPhotoLocal(rid,shop,kind,url,mode){
   r.photos.forEach(p=>{const sh=PHOTOCTX[rid][p.shop]=PHOTOCTX[rid][p.shop]||{}; if(p.kind==="memo"||p.kind==="products"){sh[p.kind]=p.url;} else {(sh[p.kind]=sh[p.kind]||[]).push(p.url); PHOTOWHO[rid][p.url]=p.who||"";}});
 }
 function photoCell(rid,shopKey,isMeal){
+  if(DEMO&&isMeal) return "";  // 収録モード：懇親会・食事の写真は個人情報なので出さない
   const m=(PHOTOCTX[rid]||{})[shopKey]||{};
   const memo=m.memo||"";
   const canEdit=canEditDokoId(rid);
@@ -2750,7 +2751,7 @@ function openSlide(rid,startShop){
   const pmap={}; (r.photos||[]).forEach(p=>{const sh=pmap[p.shop]=pmap[p.shop]||{}; if(p.kind==="memo"||p.kind==="products"){sh[p.kind]=p.url;} else {(sh[p.kind]=sh[p.kind]||[]).push(p.url);}});
   // 全体＋各店舗のスライド
   const slides=[{title:DEMO?"店舗同行":`${dokoDateLabel(r.date)} ${escH(r.place)}`, sub:escH(dmNames(r.members||"")), shop:null}]
-    .concat(route.map(x=>{
+    .concat(route.filter(x=>!(DEMO&&drIsMeal(x))).map(x=>{
       const info=[x.s||"", x.k||"", x.r?("見込利益 "+yen(x.r)+"円"):""].filter(Boolean).join("　");
       return {title:DEMO?dmShop(drName(x)):drName(x), sub:escH(info), shop:drKey(x), memo:(pmap[drKey(x)]||{}).memo||""};
     }));
