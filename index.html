@@ -301,6 +301,9 @@
     .ph-tile img{max-height:48vh}
     .slide-nav button{padding:12px 24px;font-size:15px}
   }
+  /* 日程調整 */
+  .chmark{border:1.5px solid var(--line);background:#fff;border-radius:8px;width:34px;height:34px;font-size:15px;font-weight:800;color:#8a93a3;cursor:pointer;margin:0 2px}
+  .chmark.on{border-color:var(--accent);background:var(--accent);color:#fff}
   /* 仕入れクイズ */
   .quizwrap{max-width:680px;margin:0 auto}
   .quizintro{background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.7;color:#7c3a12;margin-bottom:14px}
@@ -585,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-08-29 22:30</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:00</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1643,6 +1646,8 @@ const MEMBERS = DATA.length+4; // メンバー情報タブ
 const ADMIN   = DATA.length+5; // 管理タブ（キー保持者のみ表示）
 const QUIZ    = DATA.length+6; // 仕入れクイズタブ
 const TODOV   = DATA.length+7; // 🎯今やることタブ
+const CHOSEI  = DATA.length+8; // 📅日程調整タブ
+let CHOSEIALL = null;          // 日程調整キャッシュ
 let QUIZALL   = null;          // クイズ一覧キャッシュ
 let quizNewPhoto = null;       // 出題フォームで選択中の写真 {data,mime}
 let quizEditId = null;         // 編集中のクイズID（管理者）
@@ -1690,6 +1695,11 @@ function renderTabs(){
   db.innerHTML=`店舗同行`;
   db.onclick=()=>{chap=DOKO;render();};
   el.appendChild(db);
+  const cb2=document.createElement("button");
+  cb2.className="tab"+(chap===CHOSEI?" on":"");
+  cb2.innerHTML=`📅 日程調整`;
+  cb2.onclick=()=>{chap=CHOSEI;render();};
+  el.appendChild(cb2);
   const qb=document.createElement("button");
   qb.className="tab"+(chap===QUIZ?" on":"");
   qb.innerHTML=`仕入れクイズ`;
@@ -5024,6 +5034,115 @@ function bindQuizDetail(root,qid){
   });
 }
 
+
+/* ---------- 📅 日程調整タブ（ののコン内の調整さん） ---------- */
+async function renderChosei(){
+  const body=document.getElementById("body");
+  if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと日程調整に回答できます</div>'; return; }
+  if(CHOSEIALL===null){
+    const cd=cacheGet("chall");
+    const bg=async()=>{ try{ const d=await jsonp({action:"chall"}); const polls=(d&&d.polls)||[]; cacheSet("chall",polls); if(chap===CHOSEI){ CHOSEIALL=polls; renderChosei(); } }catch(e){} };
+    if(cd){ CHOSEIALL=cd; bg(); }
+    else{
+      body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
+      try{ const d=await jsonp({action:"chall"}); CHOSEIALL=(d&&d.polls)||[]; cacheSet("chall",CHOSEIALL); }
+      catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; CHOSEIALL=null; return; }
+      if(chap!==CHOSEI) return;
+    }
+  }
+  const isNono=/野々脇/.test(me.name||"")||!!ADMIN_KEY;
+  const MARKS=["○","△","×"];
+  const pollHtml=p=>{
+    const ansOf={}; (p.answers||[]).forEach(a=>{ansOf[String(a.uid)]=a;});
+    const active=ROSTER.filter(m2=>String(m2.name||"").indexOf("-")!==0);
+    const noAns=active.filter(m2=>!ansOf[String(m2.sid)]);
+    const sei=n=>String(n||"").trim().split(/[\s　]+/)[0];
+    const mine=ansOf[String(me.sid)];
+    const closed=p.status==="closed";
+    // 候補ごとの集計
+    const cnt=p.dates.map((_,di)=>{const c={"○":0,"△":0,"×":0};(p.answers||[]).forEach(a=>{const v=(a.ans||[])[di];if(c[v]!==undefined)c[v]++;});return c;});
+    const maxO=Math.max(0,...cnt.map(c=>c["○"]));
+    let rows=p.dates.map((d,di)=>{
+      const names=(p.answers||[]).filter(a=>(a.ans||[])[di]==="○").map(a=>sei(a.name)).join("・");
+      const myv=mine?(mine.ans||[])[di]||"":"";
+      const sel=closed?`<span style="font-weight:800">${escH(myv)}</span>`:MARKS.map(mk=>`<button class="chmark${myv===mk?" on":""}" data-poll="${p.id}" data-di="${di}" data-mk="${mk}">${mk}</button>`).join("");
+      return `<tr${cnt[di]["○"]===maxO&&maxO>0?' style="background:#f0faf4"':''}><td style="white-space:nowrap;font-weight:700">${escH(d)}${cnt[di]["○"]===maxO&&maxO>0?" 👑":""}</td>`+
+        `<td>${cnt[di]["○"]}人</td><td>${cnt[di]["△"]}人</td><td>${cnt[di]["×"]}人</td>`+
+        `<td style="text-align:center;white-space:nowrap">${sel}</td>`+
+        `<td style="text-align:left;font-size:11.5px;color:#6b7686">${escH(names)}</td></tr>`;
+    }).join("");
+    const noAnsHtml=noAns.length
+      ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px"><b>🙋 未回答（${noAns.length}人）</b>：${noAns.map(m2=>escH(sei(m2.name))).join("・")}</div>`
+      : `<div style="background:#f0faf4;border:1px solid #bbe8cc;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px"><b>✅ 全員回答済み！</b>（${active.length}人）</div>`;
+    return `<div class="gpanel"${closed?' style="opacity:.75"':''}>
+      <div class="gph">📅 ${escH(p.title)}${closed?'<span class="gpn">（締切済み）</span>':''}
+        ${isNono?`<span style="float:right">${closed?`<button class="gbtn chreopen" data-id="${p.id}" style="background:#8a93a3;padding:4px 10px;font-size:12px">再開</button>`:`<button class="gbtn chclose" data-id="${p.id}" style="background:#8a93a3;padding:4px 10px;font-size:12px">締め切る</button>`}<button class="gbtn chdel" data-id="${p.id}" style="background:#dc2626;padding:4px 10px;font-size:12px;margin-left:6px">削除</button></span>`:''}
+      </div>
+      ${p.memo?`<div class="gpn" style="margin-bottom:6px">${escH(p.memo)}</div>`:''}
+      ${noAnsHtml}
+      <div style="overflow-x:auto"><table class="ntbl"><thead><tr><th>候補</th><th>○</th><th>△</th><th>×</th><th>あなたの回答</th><th>○の人</th></tr></thead><tbody>${rows}</tbody></table></div>
+      ${closed?'':`<div style="margin-top:8px"><input class="ginput chcmt" data-poll="${p.id}" placeholder="コメント（任意）" value="${escH(mine?mine.comment||"":"")}" style="max-width:340px"> <button class="gbtn chsend" data-id="${p.id}">回答を保存</button><span class="gmsg"></span></div>`}
+    </div>`;
+  };
+  const open_=CHOSEIALL.filter(p=>p.status!=="closed"), closed_=CHOSEIALL.filter(p=>p.status==="closed");
+  let html="";
+  if(isNono){
+    html+=`<div class="gpanel"><div class="gph gtoggle" id="chNewT"><span class="caret">＋</span> ✏️ 日程調整を作る <span class="gpn">（ののだけに表示）</span></div>
+      <div id="chNewB" style="display:none">
+      <label class="glbl">タイトル</label><input class="ginput" id="ch_title" placeholder="例：9月 月初面談">
+      <label class="glbl">メモ（任意）</label><input class="ginput" id="ch_memo" placeholder="例：Zoomで30分ずつ">
+      <label class="glbl">候補日（1行に1つ）</label><textarea class="ginput" id="ch_dates" rows="5" placeholder="9/1(火) 21:00〜&#10;9/2(水) 20:00〜&#10;9/3(木) 21:00〜"></textarea>
+      <button class="gbtn" id="chCreate" style="margin-top:8px">作成する</button><span class="gmsg" id="chNewMsg"></span>
+      </div></div>`;
+  }
+  html+=open_.length?open_.map(pollHtml).join(""):'<div style="color:#8a93a1;font-size:13px;padding:16px 4px">現在、回答受付中の日程調整はありません</div>';
+  if(closed_.length) html+=`<div class="gpanel"><div class="gph gtoggle" id="chOldT"><span class="caret">＋</span> 過去の日程調整（${closed_.length}件）</div><div id="chOldB" style="display:none">${closed_.map(pollHtml).join("")}</div></div>`;
+  body.innerHTML=html;
+
+  const tgl=(t,b)=>{const te=document.getElementById(t);if(!te)return;te.onclick=()=>{const be=document.getElementById(b);const o=be.style.display!=="none";be.style.display=o?"none":"";te.querySelector(".caret").textContent=o?"＋":"−";};};
+  tgl("chNewT","chNewB"); tgl("chOldT","chOldB");
+
+  const post=async b=>{const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({pass:PASS,key:ADMIN_KEY||""},b))});return r.json();};
+  const reload=async()=>{try{const d=await jsonp({action:"chall"});CHOSEIALL=(d&&d.polls)||[];cacheSet("chall",CHOSEIALL);}catch(e){}renderChosei();};
+
+  const cbtn=document.getElementById("chCreate");
+  if(cbtn) cbtn.onclick=async()=>{
+    const title=document.getElementById("ch_title").value.trim();
+    const dates=document.getElementById("ch_dates").value.split("\n").map(x=>x.trim()).filter(Boolean);
+    const msg=document.getElementById("chNewMsg");
+    if(!title||!dates.length){ msg.textContent="タイトルと候補日を入れてください"; return; }
+    cbtn.disabled=true; msg.textContent="作成中…";
+    const r=await post({action:"chsave",id:crypto.randomUUID(),title:title,memo:document.getElementById("ch_memo").value.trim(),dates:JSON.stringify(dates)}).catch(()=>null);
+    if(r&&r.ok){ await reload(); showToast("✅ 作成しました"); } else { msg.textContent="作成に失敗しました"; cbtn.disabled=false; }
+  };
+  // ○△×の選択（画面内だけで切替→保存ボタンで確定）
+  document.querySelectorAll(".chmark").forEach(b=>{ b.onclick=()=>{
+    document.querySelectorAll(`.chmark[data-poll="${b.dataset.poll}"][data-di="${b.dataset.di}"]`).forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+  };});
+  document.querySelectorAll(".chsend").forEach(b=>{ b.onclick=async()=>{
+    const p=CHOSEIALL.find(x=>x.id===b.dataset.id); if(!p) return;
+    const ans=p.dates.map((_,di)=>{const on=document.querySelector(`.chmark[data-poll="${p.id}"][data-di="${di}"].on`);return on?on.dataset.mk:"";});
+    if(ans.every(a=>!a)){ b.nextElementSibling.textContent="○△×を選んでください"; return; }
+    b.disabled=true; b.textContent="保存中…";
+    const cmt=document.querySelector(`.chcmt[data-poll="${p.id}"]`);
+    const r=await post({action:"chanswer",id:p.id,uid:me.sid,name:me.name,ans:JSON.stringify(ans),comment:cmt?cmt.value.trim():""}).catch(()=>null);
+    if(r&&r.ok){ await reload(); showToast("✅ 回答を保存しました"); }
+    else{ b.disabled=false; b.textContent="回答を保存"; b.nextElementSibling.textContent="保存に失敗しました"; }
+  };});
+  document.querySelectorAll(".chclose,.chreopen").forEach(b=>{ b.onclick=async()=>{
+    b.disabled=true;
+    const r=await post({action:"chsave",mode:"status",id:b.dataset.id,status:b.classList.contains("chclose")?"closed":"open"}).catch(()=>null);
+    if(r&&r.ok) await reload(); else b.disabled=false;
+  };});
+  document.querySelectorAll(".chdel").forEach(b=>{ b.onclick=async()=>{
+    if(!confirm("この日程調整を削除しますか？（回答も消えます）")) return;
+    b.disabled=true;
+    const r=await post({action:"chsave",mode:"del",id:b.dataset.id}).catch(()=>null);
+    if(r&&r.ok) await reload(); else b.disabled=false;
+  };});
+}
+
 function render(){
   if(chap===-1) chap=TODOV; // デフォルトは🎯今やること
   if(chap>=0 && chap < DATA.length && chapterHidden(chap)) chap = 0;
@@ -5042,6 +5161,11 @@ function render(){
   if(chap===QUIZ){
     pc.style.display="none";
     renderQuiz();
+    return;
+  }
+  if(chap===CHOSEI){
+    pc.style.display="none";
+    renderChosei();
     return;
   }
   if(chap===TODOV){
