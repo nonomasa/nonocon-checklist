@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:04</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:10</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5105,6 +5105,12 @@ async function renderChosei(){
   const tgl=(t,b)=>{const te=document.getElementById(t);if(!te)return;te.onclick=()=>{const be=document.getElementById(b);const o=be.style.display!=="none";be.style.display=o?"none":"";te.querySelector(".caret").textContent=o?"＋":"−";};};
   tgl("chNewT","chNewB"); tgl("chOldT","chOldB");
 
+  const needKey=()=>{
+    if(ADMIN_KEY) return true;
+    const k=prompt("管理キーを入力してください（このブラウザで初回のみ）");
+    if(k&&k.trim()){ ADMIN_KEY=k.trim(); localStorage.setItem("nonocon_admin_key",ADMIN_KEY); return true; }
+    return false;
+  };
   const post=async b=>{const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({pass:PASS,key:ADMIN_KEY||""},b))});return r.json();};
   const reload=async()=>{try{const d=await jsonp({action:"chall"});CHOSEIALL=(d&&d.polls)||[];cacheSet("chall",CHOSEIALL);}catch(e){}renderChosei();};
 
@@ -5158,13 +5164,14 @@ async function renderChosei(){
   })();
   const cbtn=document.getElementById("chCreate");
   if(cbtn) cbtn.onclick=async()=>{
+    if(!needKey()) return;
     const title=document.getElementById("ch_title").value.trim();
     const dates=document.getElementById("ch_dates").value.split("\n").map(x=>x.trim()).filter(Boolean);
     const msg=document.getElementById("chNewMsg");
     if(!title||!dates.length){ msg.textContent="タイトルと候補日を入れてください"; return; }
     cbtn.disabled=true; msg.textContent="作成中…";
     const r=await post({action:"chsave",id:crypto.randomUUID(),title:title,memo:document.getElementById("ch_memo").value.trim(),dates:JSON.stringify(dates)}).catch(()=>null);
-    if(r&&r.ok){ await reload(); showToast("✅ 作成しました"); } else { msg.textContent="作成に失敗しました"; cbtn.disabled=false; }
+    if(r&&r.ok){ await reload(); showToast("✅ 作成しました"); } else { msg.textContent="作成に失敗しました"+(r&&r.error?`（${r.error}）`:""); cbtn.disabled=false; }
   };
   // ○△×の選択（画面内だけで切替→保存ボタンで確定）
   document.querySelectorAll(".chmark").forEach(b=>{ b.onclick=()=>{
@@ -5182,11 +5189,13 @@ async function renderChosei(){
     else{ b.disabled=false; b.textContent="回答を保存"; b.nextElementSibling.textContent="保存に失敗しました"; }
   };});
   document.querySelectorAll(".chclose,.chreopen").forEach(b=>{ b.onclick=async()=>{
+    if(!needKey()) return;
     b.disabled=true;
     const r=await post({action:"chsave",mode:"status",id:b.dataset.id,status:b.classList.contains("chclose")?"closed":"open"}).catch(()=>null);
     if(r&&r.ok) await reload(); else b.disabled=false;
   };});
   document.querySelectorAll(".chdel").forEach(b=>{ b.onclick=async()=>{
+    if(!needKey()) return;
     if(!confirm("この日程調整を削除しますか？（回答も消えます）")) return;
     b.disabled=true;
     const r=await post({action:"chsave",mode:"del",id:b.dataset.id}).catch(()=>null);
