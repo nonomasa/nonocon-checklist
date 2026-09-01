@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:44</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:46</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5087,14 +5087,14 @@ async function renderChosei(){
     const resp=(p.answers||[]).filter(a2=>(a2.ans||[]).some(x=>x));
     const mk=v=>v==="○"?'<span style="color:#0e9f6e;font-weight:800;font-size:16px">○</span>':(v==="△"?'<span style="color:#d97706;font-weight:800">△</span>':(v==="×"?'<span style="color:#c2c8d0;font-weight:800">×</span>':""));
     // 調整さん式：行=候補日、列=回答者
-    const head=`<tr><th style="text-align:left">候補</th><th>○</th><th>△</th><th>×</th>${resp.map(a2=>`<th${String(a2.uid)===String(me.sid)?' style="background:#fff7ed"':''}>${escH(sei(a2.name))}</th>`).join("")}</tr>`;
+    const head=`<tr><th style="text-align:left">候補</th><th>○</th><th>△</th><th>×</th>${resp.map(a2=>`<th style="white-space:nowrap${String(a2.uid)===String(me.sid)?';background:#fff7ed':''}">${escH(sei(a2.name))}${a2.comment?`<span class="chcmt-pop" data-name="${escH(sei(a2.name))}" data-cmt="${escH(a2.comment)}" title="${escH(a2.comment)}" style="cursor:pointer;margin-left:2px">💬</span>`:""}</th>`).join("")}</tr>`;
     const rows=p.dates.map((d,di)=>{
       const best=cnt[di]["○"]===maxO&&maxO>0;
       return `<tr${best?' style="background:#f0faf4"':''}><td style="white-space:nowrap;font-weight:700;text-align:left">${escH(d)}${best?" 👑":""}</td>`+
         `<td style="font-weight:700">${cnt[di]["○"]}</td><td>${cnt[di]["△"]}</td><td>${cnt[di]["×"]}</td>`+
         resp.map(a2=>`<td style="text-align:center${String(a2.uid)===String(me.sid)?';background:#fff7ed':''}">${mk((a2.ans||[])[di])}</td>`).join("")+`</tr>`;
     }).join("");
-    const cmtRow=resp.some(a2=>a2.comment)?`<tr><td style="text-align:left;color:#8a93a1">コメント</td><td colspan="3"></td>${resp.map(a2=>`<td style="font-size:11px;color:#6b7686">${escH(a2.comment||"")}</td>`).join("")}</tr>`:"";
+    const cmtRow="";
     const noAnsHtml=!active.length
       ? `<div class="gpn" style="margin:8px 0">名簿を読み込み中…（未回答の表示は少し待ってください）</div>`
       : noAns.length
@@ -5268,6 +5268,12 @@ async function renderChosei(){
   document.querySelectorAll(".chmark").forEach(b=>{ b.onclick=()=>{
     document.querySelectorAll(`.chmark[data-poll="${b.dataset.poll}"][data-di="${b.dataset.di}"]`).forEach(x=>x.classList.remove("on"));
     b.classList.add("on");
+  };});
+  document.querySelectorAll(".chcmt-pop").forEach(el=>{ el.onclick=()=>{
+    const ov=document.createElement("div"); ov.className="qovl";
+    ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:420px;width:90%;padding:18px 20px"><div style="font-weight:800;margin-bottom:8px">💬 ${escH(el.dataset.name)}さんのコメント</div><div style="font-size:13.5px;white-space:pre-wrap">${escH(el.dataset.cmt)}</div><div style="margin-top:12px;text-align:right"><button class="gbtn" style="background:#9aa3af">閉じる</button></div></div>`;
+    ov.onclick=e=>{ if(e.target===ov||e.target.tagName==="BUTTON") ov.remove(); };
+    document.body.appendChild(ov);
   };});
   document.querySelectorAll(".chedit").forEach(b=>{ b.onclick=()=>{ window.__chEditPid=b.dataset.id; renderChosei(); }; });
   document.querySelectorAll(".chsend").forEach(b=>{ b.onclick=async()=>{
