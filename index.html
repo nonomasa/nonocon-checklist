@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:22</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:26</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5064,7 +5064,7 @@ async function renderChosei(){
   const MARKS=["○","△","×"];
   const pollHtml=p=>{
     const ansOf={}; (p.answers||[]).forEach(a=>{ansOf[String(a.uid)]=a;});
-    const active=ROSTER.filter(m2=>String(m2.name||"").indexOf("-")!==0);
+    const active=ROSTER.filter(m2=>String(m2.name||"").indexOf("-")!==0&&String(m2.name||"").indexOf("野々脇")<0); // 主催のののは頭数に入れない
     const noAns=active.filter(m2=>!ansOf[String(m2.sid)]);
     const sei=n=>String(n||"").trim().split(/[\s　]+/)[0];
     const mine=ansOf[String(me.sid)];
