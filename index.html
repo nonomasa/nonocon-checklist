@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:11</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:14</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5119,9 +5119,23 @@ async function renderChosei(){
     if(ADMIN_KEY) return true;
     const k=prompt("管理キーを入力してください（このブラウザで初回のみ）");
     if(k&&k.trim()){ ADMIN_KEY=k.trim(); localStorage.setItem("nonocon_admin_key",ADMIN_KEY); return true; }
+    showToast("⚠️ 管理キーが入力されなかったため中止しました");
     return false;
   };
-  const post=async b=>{const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({pass:PASS,key:ADMIN_KEY||""},b))});return r.json();};
+  // 同じIDへの再送は「上書き」になるので、通信が乱れてもリトライして安全（二重作成されない）
+  const post=async b=>{
+    const waits=[0,2000,6000];
+    for(let i2=0;i2<waits.length;i2++){
+      if(waits[i2]) await new Promise(r2=>setTimeout(r2,waits[i2]));
+      try{
+        const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({pass:PASS,key:ADMIN_KEY||""},b))});
+        const t=await r.text();
+        try{ return JSON.parse(t); }catch(e){}
+      }catch(e){}
+    }
+    return null;
+  };
+  const newId=()=>{ try{ return crypto.randomUUID(); }catch(e){ return "ch-"+Date.now()+"-"+Math.floor(Math.random()*1e6); } };
   const reload=async()=>{try{const d=await jsonp({action:"chall"});CHOSEIALL=(d&&d.polls)||[];cacheSet("chall",CHOSEIALL);}catch(e){}renderChosei();};
 
   // ミニカレンダー（調整さん風にポチポチで候補日を追加）
@@ -5180,8 +5194,13 @@ async function renderChosei(){
     const msg=document.getElementById("chNewMsg");
     if(!title||!dates.length){ msg.textContent="タイトルと候補日を入れてください"; return; }
     cbtn.disabled=true; msg.textContent="作成中…";
-    const r=await post({action:"chsave",id:crypto.randomUUID(),title:title,memo:document.getElementById("ch_memo").value.trim(),dates:JSON.stringify(dates)}).catch(()=>null);
-    if(r&&r.ok){ await reload(); showToast("✅ 作成しました"); } else { msg.textContent="作成に失敗しました"+(r&&r.error?`（${r.error}）`:""); cbtn.disabled=false; }
+    const pid=newId();
+    let r=await post({action:"chsave",id:pid,title:title,memo:document.getElementById("ch_memo").value.trim(),dates:JSON.stringify(dates)}).catch(()=>null);
+    // 応答が読めなくても実際は作成できていることがある → サーバーに存在するかで最終判定
+    if(!(r&&r.ok)&&!(r&&r.error)){
+      try{ const d=await jsonp({action:"chall"}); if(((d&&d.polls)||[]).some(x=>x.id===pid)) r={ok:true}; }catch(e){}
+    }
+    if(r&&r.ok){ await reload(); showToast("✅ 作成しました"); } else { msg.textContent="作成に失敗しました"+(r&&r.error?`（${r.error}）`:"（通信エラー。もう一度押してください）"); cbtn.disabled=false; }
   };
   // ○△×の選択（画面内だけで切替→保存ボタンで確定）
   document.querySelectorAll(".chmark").forEach(b=>{ b.onclick=()=>{
