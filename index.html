@@ -5091,7 +5091,7 @@ async function renderChosei(){
       ${p.memo?`<div class="gpn" style="margin-bottom:6px">${escH(p.memo)}</div>`:''}
       ${noAnsHtml}
       <div style="overflow-x:auto"><table class="ntbl"><thead><tr><th>候補</th><th>○</th><th>△</th><th>×</th><th>あなたの回答</th><th>○の人</th></tr></thead><tbody>${rows}</tbody></table></div>
-      ${closed?'':`<div style="margin-top:8px"><input class="ginput chcmt" data-poll="${p.id}" placeholder="コメント（任意）" value="${escH(mine?mine.comment||"":"")}" style="max-width:340px"> <button class="gbtn chsend" data-id="${p.id}">回答を保存</button><span class="gmsg"></span></div>`}
+      ${closed?'':`<div style="margin-top:8px">${mine?`<div class="gpn" style="margin-bottom:4px">✅ あなたは回答済みです（${escH(mine.updated||"")}）。○△×を押し直して保存すれば修正できます</div>`:""}<input class="ginput chcmt" data-poll="${p.id}" placeholder="コメント（任意）" value="${escH(mine?mine.comment||"":"")}" style="max-width:340px"> <button class="gbtn chsend" data-id="${p.id}">${mine?"回答を修正する":"回答を保存"}</button><span class="gmsg"></span></div>`}
     </div>`;
   };
   const open_=CHOSEIALL.filter(p=>p.status!=="closed"), closed_=CHOSEIALL.filter(p=>p.status==="closed");
