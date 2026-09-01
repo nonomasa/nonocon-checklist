@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 23:51</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 23:56</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -666,8 +666,9 @@ const DATA = [
       {id:"mind-nobashikata", l:1, mov:1, hot:1, url:"https://app.the-online-class.com/categories/ozYjM3YDI6M2Y/category_blocks/oAM2MjNwUDI6I2Y", t:"ののコンでの物販事業の伸ばし方", n:""},
       {stage:6, id:"v11", l:1, t:"会社は辞めない・専業化を急がない", n:"月利100を最低1年は継続、月50万円を抜いても全く支障がないか確認（専業になる模擬実験）"},
       {stage:8, id:"v12", l:1, t:"物販は共同経営しない・一人でやる", n:"基本的に共同経営は絶対に揉める事を知っておく"},
+      {stage:3, id:"mind-ask-ai", l:1, t:"困ったらAIか「のの」に聞く", n:"今の時代AIが知らないことはほぼない。ののかAIに聞いて無駄な遠回りを避ける"},
       {stage:6, id:"v13", l:2, t:"販路・仕入れ先・収益源を分散する", n:"卵を一つのカゴに盛らない"},
-      {stage:6, id:"mind-next-stage", l:1, t:"せどりの次のステージ（進化ルート）を知る", n:"卸メーカー・OEM・情報発信・ツール化など、せどりの先の選択肢と良し悪し"},
+      {stage:6, id:"mind-next-stage", l:1, t:"せどりの次のステージ（進化ルート）を知る", n:"卸メーカー・OEM・情報発信・ツール化など、せどりの先の選択肢と良し悪し。画像はののの「物販マップ（独断と偏見）」と判断軸", imgs:["assets/buppan-map.png","assets/buppan-map-criteria.png"]},
     ]},
     { g:"目標と計画", items:[
       {id:"mind-mexico", l:1, t:"せどりをやる意味を「メキシコの漁師とMBA」の話から考える", n:"", url:"https://stak.tech/diary/%E3%83%A1%E3%82%AD%E3%82%B7%E3%82%B3%E3%81%AE%E9%87%A3%E3%82%8A%E5%A5%BD%E3%81%8D%E3%81%AE%E6%BC%81%E5%B8%AB%E3%81%A8mba%E3%82%92%E6%8C%81%E3%81%A3%E3%81%9F%E3%83%93%E3%82%B8%E3%83%8D%E3%82%B9/"},
@@ -5459,7 +5460,7 @@ function render(){
       const lv = `<span class="lv lvnum" title="${(STAGES.find(x=>x.n===stN)||{}).label||stN}">${stN}</span>`;
       li.innerHTML=`<div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"
         stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div style="flex:1"><div class="title${it.hot?' st1':(it.low?' stlow':'')}">${it.t}${lv}${(String(it.id||"").indexOf("chain-")===0&&!it.parent)?`<button class="chainpg chainpg-btn" data-chain="${it.t.replace(/"/g,"&quot;")}">📖 攻略ページ</button><button class="chainpin${chainPins().includes(it.id)?" on":""}" data-id="${it.id}" title="このチェーンを一番上に固定">📌</button>`:""}</div>${it.n?`<div class="note">${it.n}</div>`:""}${dep}${mov}${gmov}</div>${link}`;
+        <div style="flex:1"><div class="title${it.hot?' st1':(it.low?' stlow':'')}">${it.t}${lv}${(String(it.id||"").indexOf("chain-")===0&&!it.parent)?`<button class="chainpg chainpg-btn" data-chain="${it.t.replace(/"/g,"&quot;")}">📖 攻略ページ</button><button class="chainpin${chainPins().includes(it.id)?" on":""}" data-id="${it.id}" title="このチェーンを一番上に固定">📌</button>`:""}</div>${it.n?`<div class="note">${it.n}</div>`:""}${(it.imgs&&it.imgs.length)?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${it.imgs.map(u2=>`<a href="${u2}" target="_blank" rel="noopener" title="クリックで拡大"><img src="${u2}" style="height:110px;border-radius:8px;border:1px solid var(--line)" loading="lazy"></a>`).join("")}</div>`:""}${dep}${mov}${gmov}</div>${link}`;
       li.onclick=()=>toggle(it);
       const a=li.querySelector(".ilink");
       if(a) a.onclick=e=>e.stopPropagation(); // リンククリックではチェックを切り替えない
