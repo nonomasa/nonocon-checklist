@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:33</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:36</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5067,37 +5067,54 @@ async function renderChosei(){
   const isNono=/野々脇/.test(me.name||"")||!!ADMIN_KEY;
   const MARKS=["○","△","×"];
   const pollHtml=p=>{
-    const ansOf={}; (p.answers||[]).forEach(a=>{ansOf[String(a.uid)]=a;});
+    const ansOf={}; (p.answers||[]).forEach(a2=>{ansOf[String(a2.uid)]=a2;});
     const active=ROSTER.filter(m2=>String(m2.name||"").indexOf("-")!==0&&String(m2.name||"").indexOf("野々脇")<0); // 主催のののは頭数に入れない
     const noAns=active.filter(m2=>!ansOf[String(m2.sid)]);
     const sei=n=>String(n||"").trim().split(/[\s　]+/)[0];
     const mine=ansOf[String(me.sid)];
     const closed=p.status==="closed";
-    // 候補ごとの集計
-    const cnt=p.dates.map((_,di)=>{const c={"○":0,"△":0,"×":0};(p.answers||[]).forEach(a=>{const v=(a.ans||[])[di];if(c[v]!==undefined)c[v]++;});return c;});
+    const cnt=p.dates.map((_,di)=>{const c={"○":0,"△":0,"×":0};(p.answers||[]).forEach(a2=>{const v=(a2.ans||[])[di];if(c[v]!==undefined)c[v]++;});return c;});
     const maxO=Math.max(0,...cnt.map(c=>c["○"]));
-    let rows=p.dates.map((d,di)=>{
-      const names=(p.answers||[]).filter(a=>(a.ans||[])[di]==="○").map(a=>sei(a.name)).join("・");
-      const myv=mine?(mine.ans||[])[di]||"":"";
-      const sel=closed?`<span style="font-weight:800">${escH(myv)}</span>`:MARKS.map(mk=>`<button class="chmark${myv===mk?" on":""}" data-poll="${p.id}" data-di="${di}" data-mk="${mk}">${mk}</button>`).join("");
-      return `<tr${cnt[di]["○"]===maxO&&maxO>0?' style="background:#f0faf4"':''}><td style="white-space:nowrap;font-weight:700">${escH(d)}${cnt[di]["○"]===maxO&&maxO>0?" 👑":""}</td>`+
-        `<td>${cnt[di]["○"]}人</td><td>${cnt[di]["△"]}人</td><td>${cnt[di]["×"]}人</td>`+
-        `<td style="text-align:center;white-space:nowrap">${sel}</td>`+
-        `<td style="text-align:left;font-size:11.5px;color:#6b7686">${escH(names)}</td></tr>`;
+    const resp=(p.answers||[]).filter(a2=>(a2.ans||[]).some(x=>x));
+    const mk=v=>v==="○"?'<span style="color:#0e9f6e;font-weight:800;font-size:16px">○</span>':(v==="△"?'<span style="color:#d97706;font-weight:800">△</span>':(v==="×"?'<span style="color:#c2c8d0;font-weight:800">×</span>':""));
+    // 調整さん式：行=候補日、列=回答者
+    const head=`<tr><th style="text-align:left">候補</th><th>○</th><th>△</th><th>×</th>${resp.map(a2=>`<th${String(a2.uid)===String(me.sid)?' style="background:#fff7ed"':''}>${escH(sei(a2.name))}</th>`).join("")}</tr>`;
+    const rows=p.dates.map((d,di)=>{
+      const best=cnt[di]["○"]===maxO&&maxO>0;
+      return `<tr${best?' style="background:#f0faf4"':''}><td style="white-space:nowrap;font-weight:700;text-align:left">${escH(d)}${best?" 👑":""}</td>`+
+        `<td style="font-weight:700">${cnt[di]["○"]}</td><td>${cnt[di]["△"]}</td><td>${cnt[di]["×"]}</td>`+
+        resp.map(a2=>`<td style="text-align:center${String(a2.uid)===String(me.sid)?';background:#fff7ed':''}">${mk((a2.ans||[])[di])}</td>`).join("")+`</tr>`;
     }).join("");
+    const cmtRow=resp.some(a2=>a2.comment)?`<tr><td style="text-align:left;color:#8a93a1">コメント</td><td colspan="3"></td>${resp.map(a2=>`<td style="font-size:11px;color:#6b7686">${escH(a2.comment||"")}</td>`).join("")}</tr>`:"";
     const noAnsHtml=!active.length
       ? `<div class="gpn" style="margin:8px 0">名簿を読み込み中…（未回答の表示は少し待ってください）</div>`
       : noAns.length
       ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px"><b>🙋 未回答（${noAns.length}人）</b>：${noAns.map(m2=>escH(sei(m2.name))).join("・")}</div>`
       : `<div style="background:#f0faf4;border:1px solid #bbe8cc;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px"><b>✅ 全員回答済み！</b>（${active.length}人）</div>`;
+    // 自分の回答エリア：ののには出さない。回答済みなら畳んで「修正する」だけ
+    const isNonoMe=/野々脇/.test(me.name||"");
+    let myArea="";
+    if(!closed&&!isNonoMe){
+      const editing=window.__chEditPid===p.id||!mine;
+      if(!editing){
+        myArea=`<div style="margin-top:8px" class="gpn">✅ あなたは回答済みです（${escH(mine.updated||"")}）　<button class="gbtn chedit" data-id="${p.id}" style="background:#8a93a3;padding:4px 12px;font-size:12px">修正する</button></div>`;
+      }else{
+        const myv=di=>mine?(mine.ans||[])[di]||"":"";
+        myArea=`<div style="margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px">✍️ あなたの回答</div>
+          ${p.dates.map((d,di)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="min-width:130px;font-size:12.5px;font-weight:700">${escH(d)}</span>${MARKS.map(mk2=>`<button class="chmark${myv(di)===mk2?" on":""}" data-poll="${p.id}" data-di="${di}" data-mk="${mk2}">${mk2}</button>`).join("")}</div>`).join("")}
+          <div style="margin-top:6px"><input class="ginput chcmt" data-poll="${p.id}" placeholder="コメント（任意）" value="${escH(mine?mine.comment||"":"")}" style="max-width:300px"> <button class="gbtn chsend" data-id="${p.id}">${mine?"回答を修正する":"回答を保存"}</button><span class="gmsg"></span></div>
+        </div>`;
+      }
+    }
     return `<div class="gpanel"${closed?' style="opacity:.75"':''}>
       <div class="gph">📅 ${escH(p.title)}${closed?'<span class="gpn">（締切済み）</span>':''}
         ${isNono?`<span style="float:right">${closed?`<button class="gbtn chreopen" data-id="${p.id}" style="background:#8a93a3;padding:4px 10px;font-size:12px">再開</button>`:`<button class="gbtn chclose" data-id="${p.id}" style="background:#8a93a3;padding:4px 10px;font-size:12px">締め切る</button>`}<button class="gbtn chdel" data-id="${p.id}" style="background:#dc2626;padding:4px 10px;font-size:12px;margin-left:6px">削除</button></span>`:''}
       </div>
       ${p.memo?`<div class="gpn" style="margin-bottom:6px">${escH(p.memo)}</div>`:''}
       ${noAnsHtml}
-      <div style="overflow-x:auto"><table class="ntbl"><thead><tr><th>候補</th><th>○</th><th>△</th><th>×</th><th>あなたの回答</th><th>○の人</th></tr></thead><tbody>${rows}</tbody></table></div>
-      ${closed?'':`<div style="margin-top:8px">${mine?`<div class="gpn" style="margin-bottom:4px">✅ あなたは回答済みです（${escH(mine.updated||"")}）。○△×を押し直して保存すれば修正できます</div>`:""}<input class="ginput chcmt" data-poll="${p.id}" placeholder="コメント（任意）" value="${escH(mine?mine.comment||"":"")}" style="max-width:340px"> <button class="gbtn chsend" data-id="${p.id}">${mine?"回答を修正する":"回答を保存"}</button><span class="gmsg"></span></div>`}
+      <div style="overflow-x:auto"><table class="ntbl"><thead>${head}</thead><tbody>${rows}${cmtRow}</tbody></table></div>
+      ${myArea}
     </div>`;
   };
   const open_=CHOSEIALL.filter(p=>p.status!=="closed"), closed_=CHOSEIALL.filter(p=>p.status==="closed");
@@ -5243,6 +5260,7 @@ async function renderChosei(){
     document.querySelectorAll(`.chmark[data-poll="${b.dataset.poll}"][data-di="${b.dataset.di}"]`).forEach(x=>x.classList.remove("on"));
     b.classList.add("on");
   };});
+  document.querySelectorAll(".chedit").forEach(b=>{ b.onclick=()=>{ window.__chEditPid=b.dataset.id; renderChosei(); }; });
   document.querySelectorAll(".chsend").forEach(b=>{ b.onclick=async()=>{
     const p=CHOSEIALL.find(x=>x.id===b.dataset.id); if(!p) return;
     const ans=p.dates.map((_,di)=>{const on=document.querySelector(`.chmark[data-poll="${p.id}"][data-di="${di}"].on`);return on?on.dataset.mk:"";});
@@ -5250,7 +5268,7 @@ async function renderChosei(){
     b.disabled=true; b.textContent="保存中…";
     const cmt=document.querySelector(`.chcmt[data-poll="${p.id}"]`);
     const r=await post({action:"chanswer",id:p.id,uid:me.sid,name:me.name,ans:JSON.stringify(ans),comment:cmt?cmt.value.trim():""}).catch(()=>null);
-    if(r&&r.ok){ await reload(); showToast("✅ 回答を保存しました"); }
+    if(r&&r.ok){ window.__chEditPid=null; await reload(); showToast("✅ 回答を保存しました"); }
     else{ b.disabled=false; b.textContent="回答を保存"; b.nextElementSibling.textContent="保存に失敗しました"; }
   };});
   document.querySelectorAll(".chclose,.chreopen").forEach(b=>{ b.onclick=async()=>{
