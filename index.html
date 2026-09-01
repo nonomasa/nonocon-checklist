@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:42</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:44</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2595,7 +2595,7 @@ function cmtInlineHtml(rid,x){
   return `<div class="drcmts">`+cs.map(c=>{
     const t=dmText(c.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
     const long=t.length>60;
-    const sei=dmName(String(c.name||"").trim().split(/[\s　]+/)[0]);
+    const sei=dmName(dispName(c.name));
     return `<div class="drcmt1${long?" clamp":""}"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t)}</span>${long?`<div class="drcmt-more">▼ もっと見る</div>`:""}</div>`;
   }).join("")+`</div>`;
 }
@@ -2616,7 +2616,7 @@ function overallCmtsHtml(rid){
     const flushLi=()=>{ if(buf.length){ body+=`<ul>${buf.map(li).join("")}</ul>`; buf=[]; } };
     lines.forEach(l=>{ if(l.indexOf("・")===0) buf.push(l.slice(1).trim()); else { flushLi(); body+=`<p>${escH(l)}</p>`; } });
     flushLi();
-    const sei=dmName(String(c.name||"").trim().split(/[\s　]+/)[0]);
+    const sei=dmName(dispName(c.name));
     return `<div class="sumc"><div class="sumc-h">💬 ${escH(sei)}</div>${body}</div>`;
   };
   // テーマ（対象「全体：◯◯」）ごとに見出しを付けて表示
@@ -2753,7 +2753,7 @@ async function openChainPage(name){
           <div style="font-size:12.5px;font-weight:700">${DEMO?"":escH(dokoDateLabel(v.date))+" "+escH(v.place||"")+"　"}<span class="gpn">${escH(DEMO?dmShop(v.shop):v.shop)}</span>${v.rieki?`　<span style="color:#0e9f6e;font-weight:700">見込${yen(drNum(v.rieki))}円</span>`:""}${v.prods?`　<span class="gpn">🛒${v.prods}件</span>`:""}</div>`;
         vh+=v.cs.map(c2=>{
           const t2=dmText(c2.text).replace(/([。！？!?]|^|[\s　])[\s　]*・/g,"$1\n・").replace(/^\n/,"");
-          const sei=dmName(String(c2.name||"").trim().split(/[\s　]+/)[0]);
+          const sei=dmName(dispName(c2.name));
           return `<div class="drcmt1"><b>💬${escH(sei)}</b>：<span class="drcmt-t">${escH(t2)}</span></div>`;
         }).join("");
         return vh+`</div>`;
