@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-02 01:07</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-02 01:14</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -746,6 +746,11 @@ const DATA = [
     ]},
     { g:"配送", items:[
       {id:"base-fba-fbm-diff", l:2, t:"FBAとFBM（自己配送）の違い（手数料や配送方法など）を理解する", n:""},
+      {stage:5, id:"base-soryo-shirabe", l:2, t:"各社の配送料金を調べる", n:'ヤマト・日本郵便・佐川の主要サービスをサイズ帯で比較して、商品ごとに最安の送り方を選べるようにする。<a href="https://www.kuronekoyamato.co.jp/ytc/customer/send/services/" target="_blank" rel="noopener" style="color:#2563eb">ヤマト一覧↗</a>／<a href="https://www.post.japanpost.jp/service/send/domestic/delivery/yu-pack/" target="_blank" rel="noopener" style="color:#2563eb">日本郵便ゆうパック↗</a>／<a href="https://www.sagawa-exp.co.jp/customer/send/service/" target="_blank" rel="noopener" style="color:#2563eb">佐川一覧↗</a>'},
+      {parent:"base-soryo-shirabe", stage:5, id:"base-soryo-3cm", l:2, t:"厚さ3センチ未満の薄型の送り方を覚える", n:'<a href="https://business.kuronekoyamato.co.jp/service/lineup/nekoposu/" target="_blank" rel="noopener" style="color:#2563eb">ネコポス（ヤマト）↗</a>／<a href="https://clickpost.jp/" target="_blank" rel="noopener" style="color:#2563eb">クリックポスト（日本郵便）↗</a>／<a href="https://www.post.japanpost.jp/service/send/domestic/delivery/yu-packet/" target="_blank" rel="noopener" style="color:#2563eb">ゆうパケット（日本郵便）↗</a>。ケーブル・アイカップなど小物はここが最安'},
+      {parent:"base-soryo-shirabe", stage:5, id:"base-soryo-compact", l:2, t:"宅急便コンパクトを覚える", n:'<a href="https://www.kuronekoyamato.co.jp/ytc/customer/send/services/compact/" target="_blank" rel="noopener" style="color:#2563eb">宅急便コンパクト（ヤマト）↗</a>。専用BOXで3センチ超え〜60サイズ未満の隙間を埋める'},
+      {parent:"base-soryo-shirabe", stage:5, id:"base-soryo-60", l:2, t:"60サイズ以上の宅配便を覚える", n:'<a href="https://www.kuronekoyamato.co.jp/ytc/customer/send/services/takkyubin/" target="_blank" rel="noopener" style="color:#2563eb">宅急便（ヤマト）↗</a>／<a href="https://www.post.japanpost.jp/service/send/domestic/delivery/yu-pack/" target="_blank" rel="noopener" style="color:#2563eb">ゆうパック（日本郵便）↗</a>／<a href="https://www.sagawa-exp.co.jp/customer/send/service/" target="_blank" rel="noopener" style="color:#2563eb">飛脚宅配便（佐川）↗</a>。サイズ＝3辺合計。1サイズ下げるだけで数百円変わる'},
+      {stage:5, id:"base-pakyari", l:2, t:"パートナーキャリア配送を理解する", n:"FBA納品の配送でAmazonが提携するヤマトを使う仕組み。セラセンの納品手続きからそのまま集荷依頼でき、通常のヤマト料金より大幅に安い特別料金（納品書の印刷も含めて手続きが完結）。小型・軽量の納品はまずパーキャリを検討する"},
       {sub:"自己配送", stage:3, id:"base-haisou-howto", l:2, mov:1, t:"自己配送の配送の設定方法を知る", n:"", url:"https://app.the-online-class.com/lessons/oQM0cTNxUDI6I2Y"},
       {sub:"自己配送", id:"base-jihaso-days", l:2, t:"自己配送の日数の変更が可能なことを知る", n:"カート取得率に直結"},
       {sub:"自己配送", id:"base-karauri", l:2, t:"自己配送の空売りを理解する", n:"基本的には非推奨。リスクを負ってでも利益が出そうなものはやってみる価値はある"},
