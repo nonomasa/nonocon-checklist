@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:20</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:22</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5215,14 +5215,13 @@ async function renderChosei(){
   })();
   const cbtn=document.getElementById("chCreate");
   if(cbtn) cbtn.onclick=async()=>{
-    if(!(await needKey())) return;
     const title=document.getElementById("ch_title").value.trim();
     const dates=document.getElementById("ch_dates").value.split("\n").map(x=>x.trim()).filter(Boolean);
     const msg=document.getElementById("chNewMsg");
     if(!title||!dates.length){ msg.textContent="タイトルと候補日を入れてください"; return; }
     cbtn.disabled=true; msg.textContent="作成中…";
     const pid=newId();
-    let r=await post({action:"chsave",id:pid,title:title,memo:document.getElementById("ch_memo").value.trim(),dates:JSON.stringify(dates)}).catch(()=>null);
+    let r=await post({action:"chsave",uid:me.sid,id:pid,title:title,memo:document.getElementById("ch_memo").value.trim(),dates:JSON.stringify(dates)}).catch(()=>null);
     // 応答が読めなくても実際は作成できていることがある → サーバーに存在するかで最終判定
     if(!(r&&r.ok)&&!(r&&r.error)){
       try{ const d=await jsonp({action:"chall"}); if(((d&&d.polls)||[]).some(x=>x.id===pid)) r={ok:true}; }catch(e){}
@@ -5249,16 +5248,14 @@ async function renderChosei(){
     else{ b.disabled=false; b.textContent="回答を保存"; b.nextElementSibling.textContent="保存に失敗しました"; }
   };});
   document.querySelectorAll(".chclose,.chreopen").forEach(b=>{ b.onclick=async()=>{
-    if(!(await needKey())) return;
     b.disabled=true;
-    const r=await post({action:"chsave",mode:"status",id:b.dataset.id,status:b.classList.contains("chclose")?"closed":"open"}).catch(()=>null);
+    const r=await post({action:"chsave",uid:me.sid,mode:"status",id:b.dataset.id,status:b.classList.contains("chclose")?"closed":"open"}).catch(()=>null);
     if(r&&r.ok) await reload(); else b.disabled=false;
   };});
   document.querySelectorAll(".chdel").forEach(b=>{ b.onclick=async()=>{
-    if(!(await needKey())) return;
     if(!confirm("この日程調整を削除しますか？（回答も消えます）")) return;
     b.disabled=true;
-    const r=await post({action:"chsave",mode:"del",id:b.dataset.id}).catch(()=>null);
+    const r=await post({action:"chsave",uid:me.sid,mode:"del",id:b.dataset.id}).catch(()=>null);
     if(r&&r.ok) await reload(); else b.disabled=false;
   };});
 }
