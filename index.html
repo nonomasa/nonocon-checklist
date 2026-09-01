@@ -301,6 +301,9 @@
     .ph-tile img{max-height:48vh}
     .slide-nav button{padding:12px 24px;font-size:15px}
   }
+  .dchk{margin-top:4px}
+  .dchk-btn{border:1.5px solid var(--line);background:#fff;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;color:#6b7686;cursor:pointer}
+  .dchk-btn.on{border-color:#0e9f6e;background:#f0faf4;color:#0e9f6e}
   /* 日程調整 */
   .chmark{border:1.5px solid var(--line);background:#fff;border-radius:8px;width:34px;height:34px;font-size:15px;font-weight:800;color:#8a93a3;cursor:pointer;margin:0 2px}
   .chmark.on{border-color:var(--accent);background:var(--accent);color:#fff}
@@ -588,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 23:20</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 23:30</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2876,8 +2879,17 @@ async function renderDoko(){
       ${(()=>{
         const v=(r.photos||[]).find(p2=>p2.shop==="__video__"&&p2.kind==="memo");
         const isNonoMe2=/野々脇/.test((me&&me.name)||"");
-        if(!v&&!isNonoMe2) return "";
-        return `<div style="margin:4px 0 6px">${v?`<a href="${escH(v.url)}" target="_blank" rel="noopener" class="gbtn" style="display:inline-block;text-decoration:none;background:#7c3aed;padding:6px 14px;font-size:12.5px">🎬 この同行の動画を観る（オンクラス）</a>`:""}${isNonoMe2?`<button class="dvideo-set gbtn" data-id="${r.id}" data-cur="${v?escH(v.url):""}" style="background:#8a93a3;padding:6px 10px;font-size:11.5px;margin-left:6px">${v?"動画リンクを変更":"🎬 動画リンクを設定"}</button>`:""}</div>`;
+        let h2="";
+        if(v||isNonoMe2) h2+=`<div style="margin:4px 0 6px">${v?`<a href="${escH(v.url)}" target="_blank" rel="noopener" class="gbtn" style="display:inline-block;text-decoration:none;background:#7c3aed;padding:6px 14px;font-size:12.5px">🎬 この同行の動画を観る（オンクラス）</a>`:""}${isNonoMe2?`<button class="dvideo-set gbtn" data-id="${r.id}" data-cur="${v?escH(v.url):""}" style="background:#8a93a3;padding:6px 10px;font-size:11.5px;margin-left:6px">${v?"動画リンクを変更":"🎬 動画リンクを設定"}</button>`:""}</div>`;
+        if(!DEMO){
+          const chkRow=(kind,label)=>{
+            const cs=(r.checks||[]).filter(c2=>c2.kind===kind);
+            const mineC=cs.some(c2=>String(c2.uid)===String(me.sid));
+            return `<div class="dchk"><button class="dchk-btn${mineC?" on":""}" data-id="${r.id}" data-kind="${kind}">${mineC?"✅ チェック済み":label}</button><span class="gpn" style="margin-left:8px">${cs.length?`${cs.map(c2=>escH(dispName(c2.name))).join("・")}（${cs.length}人）`:"まだ誰もチェックしていません"}</span></div>`;
+          };
+          h2+=`<div style="margin:2px 0 6px">${chkRow("content","📋 同行内容をチェックした")}${v?chkRow("video","🎬 動画を観た"):""}</div>`;
+        }
+        return h2;
       })()}
       ${overallCmtsHtml(r.id)}
       ${route.length?`<div class="dsech" data-sectgl="route-${r.id}"><span class="caret">＋</span> 🗺 ルート表（${route.filter(x=>!(x.k==="食事・休憩"||/昼食|懇親会|休憩|兼移動|^移動/.test(String(x.ch||"")+String(x.n||"")))).length}店舗）</div>`:""}
@@ -2988,6 +3000,17 @@ async function renderDoko(){
   };
   const dOn=document.getElementById("demoOnBtn");
   if(dOn) dOn.onclick=()=>{ try{ sessionStorage.setItem("nonocon_demo","1"); const pin=localStorage.getItem("nonocon_doko_pin"); if(pin) sessionStorage.setItem("nonocon_demo_id",pin); }catch(e){} location.replace(location.pathname+"?v="+Date.now()+"&demo=1"); };
+  document.querySelectorAll(".dchk-btn").forEach(b=>{ b.onclick=async()=>{
+    const r=DOKOALL.find(x=>x.id===b.dataset.id); if(!r) return;
+    r.checks=r.checks||[];
+    const kind=b.dataset.kind;
+    const mineC=r.checks.some(c2=>c2.kind===kind&&String(c2.uid)===String(me.sid));
+    if(mineC){ if(!confirm("チェックを外しますか？")) return; r.checks=r.checks.filter(c2=>!(c2.kind===kind&&String(c2.uid)===String(me.sid))); }
+    else{ r.checks.push({kind:kind,uid:String(me.sid),name:me.name}); }
+    cacheSet("dall",DOKOALL); renderDoko();
+    try{ await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({action:"dkcheck",pass:PASS,id:b.dataset.id,kind:kind,uid:me.sid,name:me.name,on:mineC?"0":"1"})}); }catch(e){}
+  };});
   document.querySelectorAll(".dvideo-set").forEach(b=>{ b.onclick=async()=>{
     const url=prompt("この同行の動画URL（オンクラス等）を入力。空にすると削除",b.dataset.cur||"");
     if(url===null) return;
