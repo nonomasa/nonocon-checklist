@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:14</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:17</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5117,7 +5117,7 @@ async function renderChosei(){
 
   const needKey=()=>{
     if(ADMIN_KEY) return true;
-    const k=prompt("管理キーを入力してください（このブラウザで初回のみ）");
+    const k=prompt("管理キーを入力してください（合言葉ws2026ではなく、ののだけが知っている管理キーです）");
     if(k&&k.trim()){ ADMIN_KEY=k.trim(); localStorage.setItem("nonocon_admin_key",ADMIN_KEY); return true; }
     showToast("⚠️ 管理キーが入力されなかったため中止しました");
     return false;
@@ -5200,7 +5200,17 @@ async function renderChosei(){
     if(!(r&&r.ok)&&!(r&&r.error)){
       try{ const d=await jsonp({action:"chall"}); if(((d&&d.polls)||[]).some(x=>x.id===pid)) r={ok:true}; }catch(e){}
     }
-    if(r&&r.ok){ await reload(); showToast("✅ 作成しました"); } else { msg.textContent="作成に失敗しました"+(r&&r.error?`（${r.error}）`:"（通信エラー。もう一度押してください）"); cbtn.disabled=false; }
+    if(r&&r.ok){ await reload(); showToast("✅ 作成しました"); }
+    else{
+      if(r&&r.error&&String(r.error).indexOf("のの")>=0){
+        // 保存されている管理キーが間違っている → 破棄して次回もう一度聞く
+        ADMIN_KEY=""; localStorage.removeItem("nonocon_admin_key");
+        msg.textContent="管理キーが違います。もう一度「作成する」を押して、正しい管理キーを入力してください（合言葉ではありません）";
+      }else{
+        msg.textContent="作成に失敗しました"+(r&&r.error?`（${r.error}）`:"（通信エラー。もう一度押してください）");
+      }
+      cbtn.disabled=false;
+    }
   };
   // ○△×の選択（画面内だけで切替→保存ボタンで確定）
   document.querySelectorAll(".chmark").forEach(b=>{ b.onclick=()=>{
