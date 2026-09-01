@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:10</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:11</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5041,7 +5041,17 @@ async function renderChosei(){
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと日程調整に回答できます</div>'; return; }
   if(CHOSEIALL===null){
     const cd=cacheGet("chall");
-    const bg=async()=>{ try{ const d=await jsonp({action:"chall"}); const polls=(d&&d.polls)||[]; cacheSet("chall",polls); if(chap===CHOSEI){ CHOSEIALL=polls; renderChosei(); } }catch(e){} };
+    const bg=async()=>{ try{
+      const d=await jsonp({action:"chall"}); const polls=(d&&d.polls)||[];
+      const changed=JSON.stringify(polls)!==JSON.stringify(CHOSEIALL);
+      cacheSet("chall",polls); CHOSEIALL=polls;
+      if(chap!==CHOSEI||!changed) return;
+      // 入力中・選択中は再描画しない（入力が消える／トップに戻るのを防ぐ）
+      const ae=document.activeElement;
+      const typing=(ae&&/INPUT|TEXTAREA/.test(ae.tagName))||
+        ["ch_title","ch_memo","ch_dates"].some(id=>{const el=document.getElementById(id);return el&&el.value.trim();});
+      if(!typing) renderChosei();
+    }catch(e){} };
     if(cd){ CHOSEIALL=cd; bg(); }
     else{
       body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
