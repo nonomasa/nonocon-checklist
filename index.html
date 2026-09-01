@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:26</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:33</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5039,6 +5039,10 @@ function bindQuizDetail(root,qid){
 async function renderChosei(){
   const body=document.getElementById("body");
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと日程調整に回答できます</div>'; return; }
+  if(!ROSTER.length){
+    try{ await loadRoster(); }catch(e){}
+    if(chap!==CHOSEI) return;
+  }
   if(CHOSEIALL===null){
     const cd=cacheGet("chall");
     const bg=async()=>{ try{
@@ -5081,7 +5085,9 @@ async function renderChosei(){
         `<td style="text-align:center;white-space:nowrap">${sel}</td>`+
         `<td style="text-align:left;font-size:11.5px;color:#6b7686">${escH(names)}</td></tr>`;
     }).join("");
-    const noAnsHtml=noAns.length
+    const noAnsHtml=!active.length
+      ? `<div class="gpn" style="margin:8px 0">名簿を読み込み中…（未回答の表示は少し待ってください）</div>`
+      : noAns.length
       ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px"><b>🙋 未回答（${noAns.length}人）</b>：${noAns.map(m2=>escH(sei(m2.name))).join("・")}</div>`
       : `<div style="background:#f0faf4;border:1px solid #bbe8cc;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12.5px"><b>✅ 全員回答済み！</b>（${active.length}人）</div>`;
     return `<div class="gpanel"${closed?' style="opacity:.75"':''}>
