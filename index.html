@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:17</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:20</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5115,11 +5115,37 @@ async function renderChosei(){
   const tgl=(t,b)=>{const te=document.getElementById(t);if(!te)return;te.onclick=()=>{const be=document.getElementById(b);const o=be.style.display!=="none";be.style.display=o?"none":"";te.querySelector(".caret").textContent=o?"＋":"−";};};
   tgl("chNewT","chNewB"); tgl("chOldT","chOldB");
 
-  const needKey=()=>{
-    if(ADMIN_KEY) return true;
-    const k=prompt("管理キーを入力してください（合言葉ws2026ではなく、ののだけが知っている管理キーです）");
-    if(k&&k.trim()){ ADMIN_KEY=k.trim(); localStorage.setItem("nonocon_admin_key",ADMIN_KEY); return true; }
-    showToast("⚠️ 管理キーが入力されなかったため中止しました");
+  // 入力内容は打つそばから自動保存 → 再描画・失敗・リロードでも消えない
+  (function(){
+    const IDS=["ch_title","ch_memo","ch_time","ch_dates"];
+    let draft={}; try{ draft=JSON.parse(localStorage.getItem("nonocon_ch_draft")||"{}"); }catch(e){}
+    IDS.forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      if(draft[id]!==undefined&&draft[id]!==""&&!el.value) el.value=draft[id];
+      el.addEventListener("input",()=>{ draft[id]=el.value; try{ localStorage.setItem("nonocon_ch_draft",JSON.stringify(draft)); }catch(e){} });
+    });
+    // 下書きがあればフォームを開いた状態で表示
+    if((draft.ch_title||draft.ch_dates)&&document.getElementById("chNewB")){
+      document.getElementById("chNewB").style.display="";
+      const c=document.querySelector("#chNewT .caret"); if(c) c.textContent="−";
+    }
+    window.__chDraftSave=()=>{ IDS.forEach(id=>{const el=document.getElementById(id); if(el) draft[id]=el.value;}); try{ localStorage.setItem("nonocon_ch_draft",JSON.stringify(draft)); }catch(e){} };
+    window.__chDraftClear=()=>{ try{ localStorage.removeItem("nonocon_ch_draft"); }catch(e){} };
+  })();
+
+  const needKey=async()=>{
+    for(let try_=0;try_<3;try_++){
+      if(!ADMIN_KEY){
+        const k=prompt(try_===0?"管理キーを入力してください（合言葉ws2026ではなく、ののだけが知っている管理キーです）":"管理キーが違います。もう一度入力してください");
+        if(!k||!k.trim()){ showToast("⚠️ 中止しました（入力内容は保存されています）"); return false; }
+        ADMIN_KEY=k.trim();
+      }
+      const r=await post({action:"chsave",mode:"ping"}).catch(()=>null);
+      if(r&&r.ok){ localStorage.setItem("nonocon_admin_key",ADMIN_KEY); return true; }
+      ADMIN_KEY=""; localStorage.removeItem("nonocon_admin_key");
+      if(!r){ showToast("⚠️ 通信エラーです。少し待ってからもう一度押してください（入力内容は保存されています）"); return false; }
+    }
+    showToast("⚠️ 管理キーが確認できませんでした（入力内容は保存されています）");
     return false;
   };
   // 同じIDへの再送は「上書き」になるので、通信が乱れてもリトライして安全（二重作成されない）
@@ -5174,13 +5200,14 @@ async function renderChosei(){
       cal.querySelectorAll(".chcal-day").forEach(b=>{ b.onclick=()=>{
         const d=+b.dataset.day;
         const lines=ta().value.split("\n").map(x=>x.trim()).filter(Boolean);
-        if(selected(cm,d)){ ta().value=lines.filter(l=>l.indexOf(`${cm+1}/${d}(`)!==0).join("\n"); }
+        if(selected(cm,d)){ ta().value=lines.filter(l=>l.indexOf(`${cm+1}/${d}(`)!==0).join("\n"); if(window.__chDraftSave) window.__chDraftSave(); }
         else{
           lines.push(lineOf(cm,d));
           // 日付順に並べる
           lines.sort((a,b2)=>{const pa=a.match(/^(\d+)\/(\d+)/),pb=b2.match(/^(\d+)\/(\d+)/);if(!pa||!pb)return 0;return (+pa[1]*100+ +pa[2])-(+pb[1]*100+ +pb[2]);});
           ta().value=lines.join("\n");
         }
+        if(window.__chDraftSave) window.__chDraftSave();
         draw();
       };});
     };
@@ -5188,7 +5215,7 @@ async function renderChosei(){
   })();
   const cbtn=document.getElementById("chCreate");
   if(cbtn) cbtn.onclick=async()=>{
-    if(!needKey()) return;
+    if(!(await needKey())) return;
     const title=document.getElementById("ch_title").value.trim();
     const dates=document.getElementById("ch_dates").value.split("\n").map(x=>x.trim()).filter(Boolean);
     const msg=document.getElementById("chNewMsg");
@@ -5200,15 +5227,9 @@ async function renderChosei(){
     if(!(r&&r.ok)&&!(r&&r.error)){
       try{ const d=await jsonp({action:"chall"}); if(((d&&d.polls)||[]).some(x=>x.id===pid)) r={ok:true}; }catch(e){}
     }
-    if(r&&r.ok){ await reload(); showToast("✅ 作成しました"); }
+    if(r&&r.ok){ if(window.__chDraftClear) window.__chDraftClear(); await reload(); showToast("✅ 作成しました"); }
     else{
-      if(r&&r.error&&String(r.error).indexOf("のの")>=0){
-        // 保存されている管理キーが間違っている → 破棄して次回もう一度聞く
-        ADMIN_KEY=""; localStorage.removeItem("nonocon_admin_key");
-        msg.textContent="管理キーが違います。もう一度「作成する」を押して、正しい管理キーを入力してください（合言葉ではありません）";
-      }else{
-        msg.textContent="作成に失敗しました"+(r&&r.error?`（${r.error}）`:"（通信エラー。もう一度押してください）");
-      }
+      msg.textContent="作成に失敗しました"+(r&&r.error?`（${r.error}）`:"（通信エラー。入力内容は保存されているので、もう一度押してください）");
       cbtn.disabled=false;
     }
   };
@@ -5228,13 +5249,13 @@ async function renderChosei(){
     else{ b.disabled=false; b.textContent="回答を保存"; b.nextElementSibling.textContent="保存に失敗しました"; }
   };});
   document.querySelectorAll(".chclose,.chreopen").forEach(b=>{ b.onclick=async()=>{
-    if(!needKey()) return;
+    if(!(await needKey())) return;
     b.disabled=true;
     const r=await post({action:"chsave",mode:"status",id:b.dataset.id,status:b.classList.contains("chclose")?"closed":"open"}).catch(()=>null);
     if(r&&r.ok) await reload(); else b.disabled=false;
   };});
   document.querySelectorAll(".chdel").forEach(b=>{ b.onclick=async()=>{
-    if(!needKey()) return;
+    if(!(await needKey())) return;
     if(!confirm("この日程調整を削除しますか？（回答も消えます）")) return;
     b.disabled=true;
     const r=await post({action:"chsave",mode:"del",id:b.dataset.id}).catch(()=>null);
