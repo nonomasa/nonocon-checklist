@@ -588,7 +588,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-01 22:00</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">更新 <span id="appVer">2026-09-01 22:04</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5091,7 +5091,10 @@ async function renderChosei(){
       <div id="chNewB" style="display:none">
       <label class="glbl">タイトル</label><input class="ginput" id="ch_title" placeholder="例：9月 月初面談">
       <label class="glbl">メモ（任意）</label><input class="ginput" id="ch_memo" placeholder="例：Zoomで30分ずつ">
-      <label class="glbl">候補日（1行に1つ）</label><textarea class="ginput" id="ch_dates" rows="5" placeholder="9/1(火) 21:00〜&#10;9/2(水) 20:00〜&#10;9/3(木) 21:00〜"></textarea>
+      <label class="glbl">時刻 <span class="gpn">（カレンダーで選んだ日に付きます）</span></label><input class="ginput" id="ch_time" value="21:00〜" style="max-width:140px">
+      <label class="glbl">候補日 <span class="gpn">（カレンダーをポチポチで追加・もう一度押すと削除。下の欄で直接編集もOK）</span></label>
+      <div id="chCal"></div>
+      <textarea class="ginput" id="ch_dates" rows="4" placeholder="カレンダーから選ぶとここに入ります"></textarea>
       <button class="gbtn" id="chCreate" style="margin-top:8px">作成する</button><span class="gmsg" id="chNewMsg"></span>
       </div></div>`;
   }
@@ -5105,6 +5108,54 @@ async function renderChosei(){
   const post=async b=>{const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(Object.assign({pass:PASS,key:ADMIN_KEY||""},b))});return r.json();};
   const reload=async()=>{try{const d=await jsonp({action:"chall"});CHOSEIALL=(d&&d.polls)||[];cacheSet("chall",CHOSEIALL);}catch(e){}renderChosei();};
 
+  // ミニカレンダー（調整さん風にポチポチで候補日を追加）
+  (function(){
+    const cal=document.getElementById("chCal"); if(!cal) return;
+    const now=new Date();
+    let cy=now.getFullYear(), cm=now.getMonth(); // 0始まり
+    const YOBI="日月火水木金土";
+    const ta=()=>document.getElementById("ch_dates");
+    const lineOf=(m,d)=>{
+      const dow=new Date(cy,m,d).getDay();
+      const t=(document.getElementById("ch_time").value||"").trim();
+      return `${m+1}/${d}(${YOBI[dow]})${t?" "+t:""}`;
+    };
+    const selected=(m,d)=>ta().value.split("\n").some(l=>l.trim().indexOf(`${m+1}/${d}(`)===0);
+    const draw=()=>{
+      const first=new Date(cy,cm,1), last=new Date(cy,cm+1,0).getDate();
+      let h=`<div style="border:1px solid var(--line);border-radius:12px;padding:10px;max-width:340px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <button type="button" class="chcal-nav" data-d="-1" style="border:0;background:#f2f5f8;border-radius:8px;padding:4px 12px;cursor:pointer;font-weight:800">‹</button>
+          <b>${cy}年${cm+1}月</b>
+          <button type="button" class="chcal-nav" data-d="1" style="border:0;background:#f2f5f8;border-radius:8px;padding:4px 12px;cursor:pointer;font-weight:800">›</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:12px">`;
+      YOBI.split("").forEach((y2,i2)=>{ h+=`<div style="font-weight:700;color:${i2===0?"#dc2626":(i2===6?"#2563eb":"#8a93a1")};padding:2px 0">${y2}</div>`; });
+      for(let b=0;b<first.getDay();b++) h+="<div></div>";
+      const today=new Date(); today.setHours(0,0,0,0);
+      for(let d=1;d<=last;d++){
+        const past=new Date(cy,cm,d)<today;
+        const on=selected(cm,d);
+        h+=`<button type="button" class="chcal-day" data-day="${d}" ${past?"disabled":""} style="border:1px solid ${on?"var(--accent)":"var(--line)"};background:${on?"var(--accent)":"#fff"};color:${past?"#d5dae1":(on?"#fff":"#3b4652")};border-radius:8px;padding:7px 0;cursor:${past?"default":"pointer"};font-weight:700">${d}</button>`;
+      }
+      h+=`</div></div>`;
+      cal.innerHTML=h;
+      cal.querySelectorAll(".chcal-nav").forEach(b=>{ b.onclick=()=>{ cm+=+b.dataset.d; if(cm<0){cm=11;cy--;} if(cm>11){cm=0;cy++;} draw(); }; });
+      cal.querySelectorAll(".chcal-day").forEach(b=>{ b.onclick=()=>{
+        const d=+b.dataset.day;
+        const lines=ta().value.split("\n").map(x=>x.trim()).filter(Boolean);
+        if(selected(cm,d)){ ta().value=lines.filter(l=>l.indexOf(`${cm+1}/${d}(`)!==0).join("\n"); }
+        else{
+          lines.push(lineOf(cm,d));
+          // 日付順に並べる
+          lines.sort((a,b2)=>{const pa=a.match(/^(\d+)\/(\d+)/),pb=b2.match(/^(\d+)\/(\d+)/);if(!pa||!pb)return 0;return (+pa[1]*100+ +pa[2])-(+pb[1]*100+ +pb[2]);});
+          ta().value=lines.join("\n");
+        }
+        draw();
+      };});
+    };
+    draw();
+  })();
   const cbtn=document.getElementById("chCreate");
   if(cbtn) cbtn.onclick=async()=>{
     const title=document.getElementById("ch_title").value.trim();
