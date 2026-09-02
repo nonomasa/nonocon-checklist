@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 12:51</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 12:54</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5158,7 +5158,7 @@ async function renderChosei(){
   if(CHOSEIALL===null){
     const cd=cacheGet("chall");
     const bg=async()=>{ try{
-      const d=await jsonp({action:"chall"}); const polls=(d&&d.polls)||[];
+      const d=await jsonp({action:"chall"}); const polls=(d&&d.polls)||[]; window.__chPairs=(d&&d.pairs)||[];
       const changed=JSON.stringify(polls)!==JSON.stringify(CHOSEIALL);
       cacheSet("chall",polls); CHOSEIALL=polls;
       if(chap!==CHOSEI||!changed) return;
@@ -5171,7 +5171,7 @@ async function renderChosei(){
     if(cd){ CHOSEIALL=cd; bg(); }
     else{
       body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込み中…</div>';
-      try{ const d=await jsonp({action:"chall"}); CHOSEIALL=(d&&d.polls)||[]; cacheSet("chall",CHOSEIALL); }
+      try{ const d=await jsonp({action:"chall"}); CHOSEIALL=(d&&d.polls)||[]; window.__chPairs=(d&&d.pairs)||[]; cacheSet("chall",CHOSEIALL); }
       catch(e){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">読み込みに失敗しました</div>'; CHOSEIALL=null; return; }
       if(chap!==CHOSEI) return;
     }
@@ -5323,7 +5323,7 @@ async function renderChosei(){
     return null;
   };
   const newId=()=>{ try{ return crypto.randomUUID(); }catch(e){ return "ch-"+Date.now()+"-"+Math.floor(Math.random()*1e6); } };
-  const reload=async()=>{try{const d=await jsonp({action:"chall"});CHOSEIALL=(d&&d.polls)||[];cacheSet("chall",CHOSEIALL);}catch(e){}renderChosei();};
+  const reload=async()=>{try{const d=await jsonp({action:"chall"});CHOSEIALL=(d&&d.polls)||[];window.__chPairs=(d&&d.pairs)||[];cacheSet("chall",CHOSEIALL);}catch(e){}renderChosei();};
 
   // ミニカレンダー（調整さん風にポチポチで候補日を追加）
   (function(){
@@ -5417,50 +5417,93 @@ async function renderChosei(){
     else{ b.disabled=false; b.textContent="回答を保存"; b.nextElementSibling.textContent="保存に失敗しました"; }
   };});
   // ランダム割り振り：○を付けた決定日が1つならその日、複数なら人数が均等になるようランダムに配分
-  const assignRandom=(p,D)=>{
+  // fixed: {uid: 日付index | "any"}  pairs: [[uidA,uidB],...]（毎回同じ日にする）
+  const assignRandom=(p,D,fixed,pairs)=>{
+    fixed=fixed||{}; pairs=pairs||[];
+    const ansOf={}; (p.answers||[]).forEach(a2=>{ansOf[String(a2.uid)]=a2;});
+    const okOf=uid=>{
+      const f=fixed[uid];
+      if(typeof f==="number") return [f];
+      if(f==="any") return D.slice();
+      const a2=ansOf[uid]; if(!a2) return null;                // 未回答＆指定なし→対象外
+      const ok=D.filter(di=>(a2.ans||[])[di]==="○"); return ok;
+    };
+    const uids=new Set(Object.keys(ansOf)); Object.keys(fixed).forEach(u=>uids.add(String(u)));
+    // ペアは1ユニットにまとめる
+    const unitOf={}; const units=[];
+    uids.forEach(u=>{ unitOf[u]=[u]; });
+    pairs.forEach(pr=>{ const a=String(pr[0]),b=String(pr[1]); if(!uids.has(a)||!uids.has(b)) return; const ua=unitOf[a],ub=unitOf[b]; if(ua===ub) return; const m=ua.concat(ub); m.forEach(u=>{unitOf[u]=m;}); });
+    const seen=new Set(); uids.forEach(u=>{ const m=unitOf[u]; if(seen.has(m)) return; seen.add(m); units.push(m); });
     const assign={}; const count={}; D.forEach(di=>{count[di]=0;});
     const flex=[];
-    (p.answers||[]).forEach(a2=>{
-      const ok=D.filter(di=>(a2.ans||[])[di]==="○");
-      if(!ok.length) return;
-      if(ok.length===1){ assign[String(a2.uid)]=ok[0]; count[ok[0]]++; }
-      else flex.push({uid:String(a2.uid),ok});
+    units.forEach(m=>{
+      const fx=m.map(u=>fixed[u]).find(f=>typeof f==="number");
+      let ok=null;
+      m.forEach(u=>{ const o=okOf(u); if(o===null) return; ok=ok===null?o.slice():ok.filter(di=>o.indexOf(di)>=0); });
+      if(typeof fx==="number") ok=[fx];
+      if(ok===null||!ok.length){ // 共通の○がないペアは片方の○の和集合から
+        if(m.length>1){ const uni=new Set(); m.forEach(u=>{(okOf(u)||[]).forEach(di=>uni.add(di));}); ok=[...uni]; }
+        if(!ok||!ok.length) return;
+      }
+      if(ok.length===1){ m.forEach(u=>{assign[u]=ok[0];}); count[ok[0]]+=m.length; }
+      else flex.push({m,ok});
     });
     for(let i2=flex.length-1;i2>0;i2--){ const j=Math.floor(Math.random()*(i2+1)); [flex[i2],flex[j]]=[flex[j],flex[i2]]; }
+    flex.sort((a,b)=>b.m.length-a.m.length); // ペア（大きい単位）から先に置く
     flex.forEach(f=>{
       const min=Math.min(...f.ok.map(di=>count[di]));
       const cands=f.ok.filter(di=>count[di]===min);
       const di=cands[Math.floor(Math.random()*cands.length)];
-      assign[f.uid]=di; count[di]++;
+      f.m.forEach(u=>{assign[u]=di;}); count[di]+=f.m.length;
     });
     return assign;
   };
-  const saveDecision=async(p,D)=>{
-    const assign=assignRandom(p,D);
-    const r=await post({action:"chsave",uid:me.sid,mode:"decide",id:p.id,decided:JSON.stringify({dates:D,assign:assign,at:Date.now()})}).catch(()=>null);
+  const saveDecision=async(p,D,fixed)=>{
+    const pairs=window.__chPairs||[];
+    const assign=assignRandom(p,D,fixed,pairs);
+    const r=await post({action:"chsave",uid:me.sid,mode:"decide",id:p.id,decided:JSON.stringify({dates:D,assign:assign,fixed:fixed||{},at:Date.now()})}).catch(()=>null);
     if(r&&r.ok){ await reload(); showToast("🎉 決定して割り振りました"); } else showToast("保存に失敗しました");
   };
   document.querySelectorAll(".chdecide").forEach(b=>{ b.onclick=()=>{
     const p=CHOSEIALL.find(x=>x.id===b.dataset.id); if(!p) return;
     const ov=document.createElement("div"); ov.className="qovl";
-    ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:420px;width:92%;padding:18px 20px">
+    const members=ROSTER.filter(m2=>String(m2.name||"").indexOf("-")!==0&&String(m2.name||"").indexOf("野々脇")<0);
+    const prevFixed=(p.decided&&p.decided.fixed)||{};
+    let pairs=(window.__chPairs||[]).map(x=>[String(x[0]),String(x[1])]);
+    const nameOf=u=>{const m2=members.find(x=>String(x.sid)===String(u));return m2?dispName(m2.name):u;};
+    const selOpts=(u)=>`<option value="">自動（○の中から）</option><option value="any"${prevFixed[u]==="any"?" selected":""}>どちらでもOK</option>${p.dates.map((d,di)=>`<option value="${di}"${prevFixed[u]===di?" selected":""}>${escH(d)}</option>`).join("")}`;
+    const memSel=cls=>`<select class="ginput ${cls}" style="padding:4px 6px;font-size:12px;max-width:130px"><option value="">選択</option>${members.map(m2=>`<option value="${m2.sid}">${escH(dispName(m2.name))}</option>`).join("")}</select>`;
+    ov.innerHTML=`<div style="background:#fff;border-radius:14px;max-width:520px;width:94%;padding:18px 20px;max-height:88vh;overflow-y:auto">
       <div style="font-weight:800;margin-bottom:6px">✅ 決定する日を選ぶ</div>
-      <div class="gpn" style="margin-bottom:10px">複数選ぶと、両方に○の人は人数が均等になるようランダムに割り振ります（片方だけ○の人はその日）</div>
-      ${p.dates.map((d,di)=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;cursor:pointer"><input type="checkbox" class="dc-day" value="${di}">${escH(d)}<span class="gpn">（○${(p.answers||[]).filter(a2=>(a2.ans||[])[di]==="○").length}人）</span></label>`).join("")}
-      <div style="display:flex;gap:8px;margin-top:10px"><button class="gbtn dc-go" style="flex:1;background:#0e9f6e">🔀 ランダムに割り振って決定</button><button class="gbtn dc-cancel" style="background:#9aa3af">キャンセル</button></div></div>`;
+      <div class="gpn" style="margin-bottom:8px">複数選ぶと、両方に○の人は人数が均等になるようランダムに割り振ります（片方だけ○の人はその日）</div>
+      ${p.dates.map((d,di)=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px;cursor:pointer"><input type="checkbox" class="dc-day" value="${di}"${(p.decided&&p.decided.dates||[]).indexOf(di)>=0?" checked":""}>${escH(d)}<span class="gpn">（○${(p.answers||[]).filter(a2=>(a2.ans||[])[di]==="○").length}人）</span></label>`).join("")}
+      <div style="font-weight:700;font-size:13px;margin:12px 0 4px">👤 個別指定 <span class="gpn">（必要な人だけ。未回答の人も指定できます）</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:12.5px">${members.map(m2=>`<label style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span>${escH(dispName(m2.name))}</span><select class="ginput dc-fix" data-uid="${m2.sid}" style="padding:3px 6px;font-size:12px;max-width:150px">${selOpts(String(m2.sid))}</select></label>`).join("")}</div>
+      <div style="font-weight:700;font-size:13px;margin:12px 0 4px">👥 毎回同じ日にするペア <span class="gpn">（保存され、次回以降も適用）</span></div>
+      <div class="dc-pairs" style="font-size:12.5px;margin-bottom:6px"></div>
+      <div style="display:flex;align-items:center;gap:6px">${memSel("dc-pa")}＋${memSel("dc-pb")}<button type="button" class="gbtn dc-padd" style="padding:4px 10px;font-size:12px;background:#8a93a3">追加</button></div>
+      <div style="display:flex;gap:8px;margin-top:14px"><button class="gbtn dc-go" style="flex:1;background:#0e9f6e">🔀 ランダムに割り振って決定</button><button class="gbtn dc-cancel" style="background:#9aa3af">キャンセル</button></div></div>`;
     document.body.appendChild(ov);
+    const drawPairs=()=>{ const box=ov.querySelector(".dc-pairs"); box.innerHTML=pairs.length?pairs.map((pr,i2)=>`<span style="display:inline-block;background:#f2f5f8;border-radius:8px;padding:3px 8px;margin:0 6px 4px 0">${escH(nameOf(pr[0]))}＋${escH(nameOf(pr[1]))} <a href="#" class="dc-pdel" data-i="${i2}" style="color:#dc2626;text-decoration:none">✕</a></span>`).join(""):'<span class="gpn">なし</span>';
+      box.querySelectorAll(".dc-pdel").forEach(a=>{a.onclick=e=>{e.preventDefault();pairs.splice(+a.dataset.i,1);drawPairs();};}); };
+    drawPairs();
+    ov.querySelector(".dc-padd").onclick=()=>{ const a=ov.querySelector(".dc-pa").value,b=ov.querySelector(".dc-pb").value; if(!a||!b||a===b){ showToast("2人を選んでください"); return; } pairs.push([a,b]); drawPairs(); };
     ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
     ov.querySelector(".dc-cancel").onclick=()=>ov.remove();
     ov.querySelector(".dc-go").onclick=async()=>{
       const D=[...ov.querySelectorAll(".dc-day:checked")].map(c=>+c.value);
       if(!D.length){ showToast("日を1つ以上選んでください"); return; }
-      ov.remove(); await saveDecision(p,D);
+      const fixed={}; ov.querySelectorAll(".dc-fix").forEach(sl=>{ if(sl.value==="any") fixed[sl.dataset.uid]="any"; else if(sl.value!=="") fixed[sl.dataset.uid]=+sl.value; });
+      ov.remove();
+      await post({action:"chsave",uid:me.sid,mode:"setpairs",pairs:JSON.stringify(pairs)}).catch(()=>null);
+      window.__chPairs=pairs;
+      await saveDecision(p,D,fixed);
     };
   };});
   document.querySelectorAll(".chredo").forEach(b=>{ b.onclick=async()=>{
     const p=CHOSEIALL.find(x=>x.id===b.dataset.id); if(!p||!p.decided) return;
-    if(!confirm("同じ決定日で割り振りをランダムにやり直しますか？")) return;
-    await saveDecision(p,p.decided.dates);
+    if(!confirm("同じ決定日・同じ個別指定で割り振りをランダムにやり直しますか？")) return;
+    await saveDecision(p,p.decided.dates,p.decided.fixed||{});
   };});
   document.querySelectorAll(".chundecide").forEach(b=>{ b.onclick=async()=>{
     if(!confirm("決定を取り消して回答受付中に戻しますか？")) return;
