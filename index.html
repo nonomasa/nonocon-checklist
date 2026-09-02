@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 11:01</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 11:06</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -4119,7 +4119,8 @@ async function renderNums(){
     const d=(NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).find(x=>String(x.uid)===viewUid);
     return d?d.name:viewUid; })();
   const V=k=>escH((numsDraft&&numsDraft[k]!==undefined)?numsDraft[k]:(meta[k]||""));
-  let html=`<div class="nbar"><button class="nnav" id="nprev0">◀</button><span class="nmonth">${numsMonth}</span><button class="nnav" id="nnext0">▶</button></div>`;
+  let html="";
+  const monthBar=`<div class="nbar" style="margin-top:18px"><button class="nnav" id="nprev0">◀</button><span class="nmonth">${numsMonth}</span><button class="nnav" id="nnext0">▶</button></div><div class="gpn" style="text-align:center;margin:-6px 0 10px">ここから下は選んだ月の内容</div>`;
 
   // メンバー選択（ここで選ぶとタブ全体がその人の表示に切り替わる）
   const whoUids=(()=>{const set=new Map(); if(me)set.set(String(me.sid),me.name+"（自分）"); ROSTER.forEach(x=>{if(!set.has(String(x.sid)))set.set(String(x.sid),x.name);}); (NUMSALL&&NUMSALL.nums||[]).concat(NUMSALL&&NUMSALL.metas||[]).forEach(x=>{if(!set.has(String(x.uid)))set.set(String(x.uid),x.name);}); return [...set.entries()];})();
@@ -4147,6 +4148,7 @@ async function renderNums(){
       <div id="trendBox">${trendTableHtml(viewUid,selfView)}</div></div>`;
   }
 
+  html+=monthBar;
   if(!selfView){
     const mv=metaFor(viewUid,numsMonth)||{};
     const nv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
