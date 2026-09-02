@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 09:35</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 10:00</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3988,12 +3988,45 @@ function bindDaily(){
         <button class="gbtn" data-tgt="all">残りの全日にコピー</button>
         <button class="gbtn" data-tgt="wd">平日だけにコピー</button>
         <button class="gbtn" data-tgt="we">土日だけにコピー</button>
+        <button class="gbtn" data-tgt="pick" style="background:#2563eb">日を選んでコピー</button>
         <button class="gbtn" data-tgt="cancel" style="background:#9aa3af">キャンセル</button>
       </div></div>`;
     document.body.appendChild(ov);
     ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+    const YB="日月火水木金土";
+    const applyTo=(dates,overwrite)=>{
+      let filled=0;
+      dates.forEach(d2=>{
+        const ins={}; let any=false;
+        keys.forEach(k=>{const i=document.querySelector(`.dly[data-date="${d2}"][data-k="${k}"]`); ins[k]=i; if(i&&i.value.trim()) any=true;});
+        if(any&&!overwrite) return;
+        keys.forEach(k=>{ if(ins[k]) ins[k].value=src[k]; });
+        filled++;
+      });
+      return filled;
+    };
     ov.querySelectorAll("button").forEach(bt=>bt.onclick=()=>{
       const tgt=bt.dataset.tgt; if(tgt==="cancel"){ ov.remove(); return; }
+      if(tgt==="pick"){
+        // 日付を選んでコピー（選んだ日は入力済みでも上書き）
+        const days=[...document.querySelectorAll('.dly[data-k="cost"]')].map(ci=>ci.dataset.date).filter(d2=>d2&&d2>ds);
+        const box=ov.firstElementChild;
+        box.innerHTML=`<div style="font-weight:800;margin-bottom:6px">⧉ ${+ds.slice(5,7)}/${+ds.slice(8)}の予定をコピーする日を選ぶ</div>
+          <div class="gpn" style="margin-bottom:8px">選んだ日は入力済みでも上書きします。貼り付け後に「デイリーを保存」で確定してください</div>
+          <div style="margin-bottom:6px"><a href="#" class="pk-all" style="font-size:12px;color:#2563eb">全部選ぶ</a>　<a href="#" class="pk-none" style="font-size:12px;color:#2563eb">全部外す</a></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:40vh;overflow-y:auto;margin-bottom:12px">${days.map(d2=>{const wd2=new Date(+d2.slice(0,4),+d2.slice(5,7)-1,+d2.slice(8)).getDay();return `<label style="display:flex;align-items:center;gap:4px;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;cursor:pointer;color:${wd2===0?"#dc2626":(wd2===6?"#2563eb":"#3b4652")}"><input type="checkbox" class="pk-day" value="${d2}">${+d2.slice(8)}(${YB[wd2]})</label>`;}).join("")}</div>
+          <div style="display:flex;gap:8px"><button class="gbtn pk-go" style="flex:1">選んだ日にコピー</button><button class="gbtn pk-cancel" style="background:#9aa3af">キャンセル</button></div>`;
+        box.querySelector(".pk-all").onclick=e=>{e.preventDefault();box.querySelectorAll(".pk-day").forEach(c=>c.checked=true);};
+        box.querySelector(".pk-none").onclick=e=>{e.preventDefault();box.querySelectorAll(".pk-day").forEach(c=>c.checked=false);};
+        box.querySelector(".pk-cancel").onclick=()=>ov.remove();
+        box.querySelector(".pk-go").onclick=()=>{
+          const sel=[...box.querySelectorAll(".pk-day:checked")].map(c=>c.value);
+          if(!sel.length){ showToast("日を1つ以上選んでください"); return; }
+          const n=applyTo(sel,true); ov.remove();
+          showToast(`⧉ ${n}日分に貼り付けました。「デイリーを保存」で確定してください`);
+        };
+        return;
+      }
       let filled=0;
       document.querySelectorAll('.dly[data-k="cost"]').forEach(ci=>{
         const d2=ci.dataset.date; if(!d2||d2<=ds) return;
