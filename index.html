@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 10:28</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 11:01</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -619,6 +619,7 @@ const DATA = [
       {parent:"prep-rules", id:"prep-line-rules", l:1, t:"LINEグループの運用を覚える", n:"リアクションを使うこと（ののが既読を判別）／イベント/カレンダーに参加表明/24時過ぎたらミュートメッセージ"},
       {parent:"prep-rules", id:"prep-zoom-rule", l:1, t:"勉強会は全部Zoom。時間は21時スタート", n:"名前は「名前（県名）」で入る"},
       {parent:"prep-rules", id:"mind-jun-furikaeri", l:1, t:"旬の報告を毎月3回提出する", n:"毎旬2日まで"},
+      {parent:"prep-rules", id:"prep-suji-video", l:1, mov:1, t:"数字報告タブの入力方法を動画で覚える", n:"CSV取り込み・デイリー・旬報告の入れ方", url:"https://app.the-online-class.com/lessons/owN3ITNyUDI6I2Y"},
       {parent:"prep-rules", id:"prep-chosei-rules", l:1, t:"調整関係を覚える", n:"調整は◯か×のみ。△は無意味なので使わない、最後から3番目はラス2の2人にメンション。ラス2の人はラス1にメンション。ラス1の人は僕にメンション"},
       {id:"prep-orientation", l:1, t:"ののコン初回説明を受ける", n:""},
       {id:"prep-orientation2", l:1, t:"ののコン2回目説明を受ける", n:"進捗確認、旬の報告など"},
@@ -4130,7 +4131,7 @@ async function renderNums(){
 
   // 月次推移（北野シート型）。誰の分でも見られる
   if(selfView){
-    html+=`<div class="gpanel"><div class="gph">📥 データ取り込み <span class="gpn">ここに入れるだけで自動判別して下の欄に反映されます</span></div>
+    html+=`<div class="gpanel"><div class="gph">📥 データ取り込み <span class="gpn">ここに入れるだけで自動判別して下の欄に反映されます</span><a href="https://app.the-online-class.com/lessons/owN3ITNyUDI6I2Y" target="_blank" rel="noopener" class="gbtn" style="float:right;text-decoration:none;background:#7c3aed;padding:5px 12px;font-size:12px">🎬 数字入力方法の動画（オンクラス）</a></div>
       <div class="qphoto-drop" id="uniDrop">📄 CSVをクリックで選択 or ドラッグ（プライスター注文／せどプレ仕入れリスト／在庫CSV。複数まとめてOK）</div>
       <div style="margin-top:8px"><textarea class="ginput" id="uniPaste" rows="2" placeholder="せどプレの行コピペはここに貼り付け（何ヶ月分でもOK）"></textarea>
       <button class="gbtn" id="uniPasteGo" style="margin-top:6px;padding:6px 14px;font-size:12px">貼り付けを反映</button>
