@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">更新 <span id="appVer">2026-09-02 01:37</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 09:35</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5527,7 +5527,7 @@ document.getElementById("reloadFab").onclick=doFreshReload;
 
 // ヘッダーにも最終更新を表示（一番下までスクロールしなくても分かるように）
 (function(){ const a=document.getElementById("appVer"), t=document.getElementById("appVerTop");
-  if(a&&t) t.textContent="最終更新 "+a.textContent; })();
+  if(a&&t){ t.textContent="🛠 ツール更新 "+a.textContent; t.title="ツール本体（機能）の更新時刻です。数字や記録の保存とは関係ありません"; } })();
 
 // リロード時は常に準備タブから（#adminは管理キー入力のトリガーとしてだけ使う）
 initIdent();
