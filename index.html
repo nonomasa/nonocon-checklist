@@ -569,7 +569,7 @@
 <header>
   <div class="wrap">
     <h1>ののコン スタートアップ チェックリスト</h1>
-    <div class="sub">動画は<b>オンクラス</b>で。ここでは「実際に手を動かすこと」を順に潰していきます。<span class="hdrver" id="appVerTop"></span></div>
+    <div class="sub">動画は<b>オンクラス</b>で。ここでは「実際に手を動かすこと」を順に潰していきます。<span class="hdrver" id="appVerTop"></span> <span class="hdrver" id="dataVerTop" title="サーバーから最新のデータを受け取った時刻。保存や更新ボタンで進みます"></span></div>
     <div class="ident" id="ident"></div>
     <div class="tabs" id="tabs"></div>
   </div>
@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 10:04</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-02 10:28</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -1410,6 +1410,7 @@ async function jsonpOnce(params,timeoutMs){
     const t=await r.text();
     let j; try{ j=JSON.parse(t); }
     catch(e){ throw "server-busy"; } // Googleの混雑エラーページ（HTML）が返った
+    if(j&&!j.error) markDataUpdated();
     if(j&&j.error==="unauthorized"&&params.action!=="roster"&&!ADMIN_KEY&&PASS){ onUnauthorized(); throw "unauthorized"; }
     return j;
   }finally{ clearTimeout(tm); }
@@ -5560,6 +5561,13 @@ const doFreshReload=e=>{
 document.getElementById("vreload").onclick=doFreshReload;
 document.getElementById("reloadFab").onclick=doFreshReload;
 
+/* 📡 データ更新時刻：サーバーからデータを受け取った最新時刻を上下のバッジに表示 */
+function markDataUpdated(){
+  const d=new Date();
+  const t=`${d.getMonth()+1}/${d.getDate()} ${("0"+d.getHours()).slice(-2)}:${("0"+d.getMinutes()).slice(-2)}:${("0"+d.getSeconds()).slice(-2)}`;
+  const a=document.getElementById("dataVer"); if(a) a.textContent=t;
+  const b=document.getElementById("dataVerTop"); if(b) b.textContent="📡 データ更新 "+t;
+}
 // ヘッダーにも最終更新を表示（一番下までスクロールしなくても分かるように）
 (function(){ const a=document.getElementById("appVer"), t=document.getElementById("appVerTop");
   if(a&&t){ t.textContent="🛠 ツール更新 "+a.textContent; t.title="ツール本体（機能）の更新時刻です。数字や記録の保存とは関係ありません"; } })();
