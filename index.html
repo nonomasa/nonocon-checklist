@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 16:22</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 16:33</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -4193,6 +4193,7 @@ async function renderNums(){
     </div>`;})()}</div>`;
 
   html+=`<div id="dailyWrap">${dailySectionHtml(viewUid,selfView)}</div>`;
+  if(numsMode==="view") html+=`<div class="gpanel"><div class="gph">📋 ${escH(viewName)}さんの報告（${numsMonth}）</div>${numsReportHtml(viewUid,numsMonth)}</div>`;
 
   const numv=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
   const gS1=numv(meta.gsales), gP1=numv(meta.gprofit);
@@ -4263,11 +4264,9 @@ async function renderNums(){
   const memName=u=>{const m=ROSTER.find(x=>String(x.sid)===u); if(m) return m.name;
     const d=((NUMSALL&&NUMSALL.nums)||[]).concat((NUMSALL&&NUMSALL.metas)||[]).find(x=>String(x.uid)===String(u));
     return d&&d.name?d.name:u;};
-  if(numsMode==="view") html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
-    memHas.map((u,i)=>{
-      const isSel=String(u)===String(viewUid);
-      return `<div class="nmem"><div class="nmemh" data-uid="${u}">${isSel?"− ":"＋ "}${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}<span class="nmemsum">${numsSummaryLine(u,numsMonth)}</span></div><div class="nrbody" style="${isSel?"":"display:none"}" data-body="${u}">${isSel?numsReportHtml(u,numsMonth):""}</div></div>`;
-    }).join("")+`</div>`;
+  if(numsMode==="view") html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）<span class="gpn">（${escH(viewName)}さん以外）</span></div>`+
+    memHas.filter(u=>String(u)!==String(viewUid)).map(u=>
+      `<div class="nmem"><div class="nmemh" data-uid="${u}">＋ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}<span class="nmemsum">${numsSummaryLine(u,numsMonth)}</span></div><div class="nrbody" style="display:none" data-body="${u}"></div></div>`).join("")+`</div>`;
 
   body.innerHTML=html;
 
