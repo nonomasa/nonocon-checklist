@@ -120,6 +120,8 @@
   .nmemh{font-size:13.5px;font-weight:700;cursor:pointer;user-select:none;padding:9px 12px;
     background:#fff;border:1px solid var(--line);border-radius:10px}
   .nmemh:hover{border-color:#cfd5dc}
+  .nmemsum{margin-left:12px;font-weight:500;font-size:12.5px;color:#6b7686}
+  @media (max-width:640px){ .nmemsum{display:block;margin:4px 0 0 18px} }
   .nhint{font-size:10.5px;color:#8a93a3;margin-top:4px;line-height:1.5}
   .vertag{text-align:center;font-size:10.5px;color:#b6bdc7;margin:26px 0 10px}
   .vertag a{color:#b6bdc7}
@@ -591,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 11:42</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 16:21</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2079,6 +2081,18 @@ function metaFor(uid,ym){
 }
 
 /* 旬報告の画面表示（HTML） */
+/* みんなの報告の見出し用：月商・粗利（経費控除後）と目標比を1行で */
+function numsSummaryLine(uid,ym){
+  const nm=numsFor(uid,ym), meta=metaFor(uid,ym)||{};
+  const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+  const has=j=>nm[j]!==null&&junDone(ym,j);
+  if(!JUNS.some(has)) return `<span class="gpn">未入力</span>`;
+  const totS=JUNS.reduce((a,j)=>a+(has(j)?nm[j].sales:0),0);
+  const netP=JUNS.reduce((a,j)=>a+(has(j)?nm[j].profit:0),0)-num(meta.expense);
+  const gS=num(meta.gsales2)||num(meta.gsales), gP=num(meta.gprofit2)||num(meta.gprofit);
+  const pc=(v,g)=>g?`（<b class="npct">${(v/g*100).toFixed(0)}%</b>）`:"";
+  return `月商 <b>${yen(totS)}円</b>${pc(totS,gS)}　粗利 <b>${yen(netP)}円</b>${pc(netP,gP)}`;
+}
 function numsReportHtml(uid,ym){
   const nm=numsFor(uid,ym), meta=metaFor(uid,ym)||{};
   const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
@@ -3472,9 +3486,9 @@ function lifeGoalHtml(uid,allowEdit){
   const editable=allowEdit!==false&&String(uid)===String(me.sid);
   const lg=((NUMSALL&&NUMSALL.lifegoals)||[]).find(x=>String(x.uid)===String(uid))||{};
   const filled=!!(lg.life||lg.purpose||lg.need);
-  const open=editable?(lgOpen===null?!filled:lgOpen):true; // 記入済みなら普段は閉じる（閲覧モードは常に表示）
-  if(editable&&!open){
-    return `<div class="gpanel" id="lgWrap"><div class="gph lg-tgl" style="cursor:pointer;margin-bottom:0">＋ 🧭 目的（何のためのせどりか）<span class="gpn" style="margin-left:8px">記入済み。クリックで確認・編集</span></div></div>`;
+  const open=editable?(lgOpen===null?!filled:lgOpen):(lgOpen===true); // 記入済みなら普段は閉じる／他の人の分は既定で閉じる
+  if(!open){
+    return `<div class="gpanel" id="lgWrap"><div class="gph lg-tgl" style="cursor:pointer;margin-bottom:0">＋ 🧭 目的（何のためのせどりか）<span class="gpn" style="margin-left:8px">${editable?"記入済み。クリックで確認・編集":(filled?"クリックで表示":"未記入")}</span></div></div>`;
   }
   const fld=(k,label,ph)=>editable
     ? `<div class="lgf"><label class="glbl">${label}</label><textarea class="ginput lg-in" data-k="${k}" rows="2" placeholder="${ph}">${escH(lg[k]||"")}</textarea></div>`
@@ -4081,7 +4095,7 @@ function bindDaily(){
 async function renderNums(){
   const body=document.getElementById("body");
   if(!me){ body.innerHTML='<div style="text-align:center;color:#6b7686;padding:40px">お名前を選ぶと数字報告を使えます</div>'; return; }
-  if(!numsMonth) numsMonth=ymNow();
+  if(!numsMonth) numsMonth=(new Date().getDate()<=5)?ymShift(ymNow(),-1):ymNow(); // 5日までは前月（月初面談の前）
   if(NUMSALL===null){
     const applyB=b=>{ NUMSALL=b.n; GOALS=b.g; DAILYALL=b.dy; KGOALS=b.kg; if(b.br) BRANDS=b.br; if(b.kp) ALLKAIJO=b.kp; };
     const fetchB=async()=>{
@@ -4249,8 +4263,10 @@ async function renderNums(){
     const d=((NUMSALL&&NUMSALL.nums)||[]).concat((NUMSALL&&NUMSALL.metas)||[]).find(x=>String(x.uid)===String(u));
     return d&&d.name?d.name:u;};
   if(numsMode==="view") html+=`<div class="gpanel"><div class="gph">みんなの報告（${numsMonth}）</div>`+
-    memHas.map((u,i)=>
-      `<div class="nmem"><div class="nmemh" data-uid="${u}">＋ ${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}</div><div class="nrbody" style="display:none" data-body="${u}"></div></div>`).join("")+`</div>`;
+    memHas.map((u,i)=>{
+      const isSel=String(u)===String(viewUid);
+      return `<div class="nmem"><div class="nmemh" data-uid="${u}">${isSel?"− ":"＋ "}${escH(memName(u))}${u===String(me.sid)?'<span class="gpn">（自分の報告）</span>':""}<span class="nmemsum">${numsSummaryLine(u,numsMonth)}</span></div><div class="nrbody" style="${isSel?"":"display:none"}" data-body="${u}">${isSel?numsReportHtml(u,numsMonth):""}</div></div>`;
+    }).join("")+`</div>`;
 
   body.innerHTML=html;
 
@@ -4275,7 +4291,7 @@ async function renderNums(){
   };
   const tw=document.getElementById("trendWho");
   // メンバー切替時は手元のデータで即表示しつつ、裏で最新を取り直す（面談中でも最新が見えるように）
-  const switchWho=v=>{ numsWho=v; NUMSALL=null; GOALS=null; DAILYALL=null; KGOALS=null; renderNums(); };
+  const switchWho=v=>{ numsWho=v; lgOpen=null; NUMSALL=null; GOALS=null; DAILYALL=null; KGOALS=null; renderNums(); };
   if(tw) tw.onchange=()=>switchWho(tw.value);
   const ws=document.getElementById("numsWhoSel");
   if(ws) ws.onchange=()=>switchWho(ws.value);
