@@ -591,7 +591,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 09:48</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 11:00</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -4482,7 +4482,7 @@ function renderMembers(){
     const badge=isNono?'<span class="mbadge">マスタ</span>':(m.grad?'<span class="mbadge">卒業生・講師</span>':"");
     const glog=(GOALS&&GOALS[m.sid])||[];
     const hasDetail=!!(m.hobby||m.mbti||glog.length);
-    html+=`<tr class="${gcls}${hasDetail?" mexp":""}" data-mi="${i}"><td class="pname">${m.name.replace(/^-/,"")}${badge}${hasDetail?'<span class="mmore">▸</span>':""}<div class="mkana">${m.kana||""}</div></td>`+
+    html+=`<tr class="${gcls}${hasDetail?" mexp":""}" data-mi="${i}"><td class="pname"><div style="display:flex;align-items:center;gap:8px"><img src="assets/members/${encodeURIComponent(m.sid)}.jpg" alt="" loading="lazy" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid var(--line);flex:none" onerror="this.style.display='none'"><div>${m.name.replace(/^-/,"")}${badge}${hasDetail?'<span class="mmore">▸</span>':""}<div class="mkana">${m.kana||""}</div></div></div></td>`+
       `<td>${m.area||"—"}</td>`+
       `<td>${ageOk(m.age)||"—"}</td>`+
       `<td>${m.bday||"—"}</td>`+
