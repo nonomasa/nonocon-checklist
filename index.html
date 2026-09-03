@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 16:21</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 16:22</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -3488,12 +3488,12 @@ function lifeGoalHtml(uid,allowEdit){
   const filled=!!(lg.life||lg.purpose||lg.need);
   const open=editable?(lgOpen===null?!filled:lgOpen):(lgOpen===true); // 記入済みなら普段は閉じる／他の人の分は既定で閉じる
   if(!open){
-    return `<div class="gpanel" id="lgWrap"><div class="gph lg-tgl" style="cursor:pointer;margin-bottom:0">＋ 🧭 目的（何のためのせどりか）<span class="gpn" style="margin-left:8px">${editable?"記入済み。クリックで確認・編集":(filled?"クリックで表示":"未記入")}</span></div></div>`;
+    return `<div class="gpanel" id="lgWrap" data-uid="${uid}"><div class="gph lg-tgl" style="cursor:pointer;margin-bottom:0">＋ 🧭 目的（何のためのせどりか）<span class="gpn" style="margin-left:8px">${editable?"記入済み。クリックで確認・編集":(filled?"クリックで表示":"未記入")}</span></div></div>`;
   }
   const fld=(k,label,ph)=>editable
     ? `<div class="lgf"><label class="glbl">${label}</label><textarea class="ginput lg-in" data-k="${k}" rows="2" placeholder="${ph}">${escH(lg[k]||"")}</textarea></div>`
     : `<div class="lgf"><label class="glbl">${label}</label><div class="lg-view">${lg[k]?escH(lg[k]):'<span class="gpn">未記入</span>'}</div></div>`;
-  return `<div class="gpanel" id="lgWrap"><div class="gph${editable?" lg-tgl":""}"${editable?' style="cursor:pointer"':''}>${editable?"− ":""}🧭 目的（何のためのせどりか）${editable?`<span class="gpn" style="margin-left:8px">クリックで閉じる</span>`:""}</div>
+  return `<div class="gpanel" id="lgWrap" data-uid="${uid}"><div class="gph${editable?" lg-tgl":""}"${editable?' style="cursor:pointer"':''}>${editable?"− ":""}🧭 目的（何のためのせどりか）${editable?`<span class="gpn" style="margin-left:8px">クリックで閉じる</span>`:""}</div>
     ${fld("life","人生の目標","例：お金のことを気にすることなく大事な人たちと過ごす")}
     ${fld("purpose","せどり・刈り取りをする目的","例：家族が増えてもお金に困らないよう、選択肢が狭まらないようにする")}
     ${fld("need","必要な金額といつまで","例：2028年までに貯金1,000万・月収50万。だから卒業時に月利50万")}
@@ -3510,7 +3510,8 @@ function bindLifeGoal(){
     const lw=document.getElementById("lgWrap");
     const nowOpen=!!lw.querySelector(".lg-in,.lg-view");
     lgOpen=!nowOpen;
-    lw.outerHTML=lifeGoalHtml(String(me.sid),true); bindLifeGoal();
+    const vu=lw.dataset.uid||String(me.sid); // 閲覧中の人の目的を開閉（自分以外でも）
+    lw.outerHTML=lifeGoalHtml(vu,String(vu)===String(me.sid)); bindLifeGoal();
   };
   const t=document.getElementById("lgQToggle");
   if(t) t.onclick=()=>{ const b=document.getElementById("lgQBox"); const open=b.style.display==="none"; b.style.display=open?"":"none"; t.textContent=(open?"−":"＋")+" 考え方の10の問い（書く前にこれを考える）"; };
