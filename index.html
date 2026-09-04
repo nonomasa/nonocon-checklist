@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 00:30</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 00:31</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2121,9 +2121,20 @@ function allNumsTableHtml(){
   };
   const rows=showYms.map(ym=>`<tr${ym===cur?' style="background:#fffbea"':''}><td style="text-align:left;font-weight:700;white-space:nowrap">${gbtn(ym)}${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>${members.map(m2=>{const v=table[m2.sid][ym];return `<td style="${v===null?'color:#d5dae1':''}${v===best[m2.sid]&&v!==null?';background:#e8f7ee;font-weight:700':''}">${v===null?"—":yen(v)}</td>`;}).join("")}</tr>`).join("");
   const oldTgl="";
-  return `<div class="gpanel"><div class="gph gtoggle" id="allNumsT" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="caret">${allNumsOpen?"−":"＋"}</span> 📊 全員の数字一覧 <span class="gpn">（行＝月／列＝メンバー。緑＝その人の最高）</span>
-      <span style="margin-left:auto"><button class="modebtn${allNumsMode==="sales"?" on":""}" data-an="sales" style="padding:4px 12px;font-size:12px">月商</button><button class="modebtn${allNumsMode==="profit"?" on":""}" data-an="profit" style="padding:4px 12px;font-size:12px">粗利（経費控除後）</button></span></div>
+  return `<div class="gpanel" id="allNumsPanel"><div class="gph gtoggle" id="allNumsT" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="caret">${allNumsOpen?"−":"＋"}</span> 📊 全員の数字一覧 <span class="gpn">（行＝月／列＝メンバー。緑＝その人の最高）</span>
+      <span style="margin-left:auto"><button class="modebtn anbtn${allNumsMode==="sales"?" on":""}" data-an="sales" style="padding:4px 12px;font-size:12px">月商</button><button class="modebtn anbtn${allNumsMode==="profit"?" on":""}" data-an="profit" style="padding:4px 12px;font-size:12px">粗利（経費控除後）</button></span></div>
     <div id="allNumsB" style="${allNumsOpen?"":"display:none"}"><div style="overflow-x:auto;width:100%"><table class="ntbl" style="font-size:12px"><thead><tr><th style="text-align:left">月</th>${th}</tr></thead><tbody>${bestRow}${rows}</tbody></table></div>${oldTgl}</div></div>`;
+}
+function bindAllNums(){
+  const panel=document.getElementById("allNumsPanel"); if(!panel) return;
+  const redraw=()=>{ panel.outerHTML=allNumsTableHtml(); bindAllNums(); };
+  panel.querySelectorAll(".an-old").forEach(el=>{ el.onclick=e=>{ e.preventDefault(); e.stopPropagation(); allNumsOld=!allNumsOld; redraw(); }; });
+  panel.querySelectorAll(".anbtn").forEach(b=>{ b.onclick=e=>{ e.stopPropagation(); if(allNumsMode===b.dataset.an) return; allNumsMode=b.dataset.an; redraw(); }; });
+  const ant=panel.querySelector("#allNumsT");
+  ant.onclick=e=>{
+    if(e.target.closest("button")) return;
+    allNumsOpen=!allNumsOpen; const bd=panel.querySelector("#allNumsB"); bd.style.display=allNumsOpen?"":"none"; ant.querySelector(".caret").textContent=allNumsOpen?"−":"＋";
+  };
 }
 /* みんなの報告の見出し用：月商・粗利（経費控除後）と目標比を1行で */
 function numsSummaryLine(uid,ym){
@@ -4334,15 +4345,7 @@ async function renderNums(){
     });
     showToast(n+"ヶ月分の目標月利を計算しました（まとめて保存を忘れずに）");
   };
-  document.querySelectorAll("#allNumsB .an-old").forEach(el=>{ el.onclick=e=>{ e.preventDefault(); allNumsOld=!allNumsOld; renderNums(); }; });
-  const ant=document.getElementById("allNumsT");
-  if(ant){
-    ant.onclick=e=>{
-      const b=e.target.closest("button[data-an]");
-      if(b){ e.stopPropagation(); allNumsMode=b.dataset.an; renderNums(); return; }
-      allNumsOpen=!allNumsOpen; const bd=document.getElementById("allNumsB"); bd.style.display=allNumsOpen?"":"none"; ant.querySelector(".caret").textContent=allNumsOpen?"−":"＋";
-    };
-  }
+  bindAllNums();
   const tw=document.getElementById("trendWho");
   // メンバー切替時は手元のデータで即表示しつつ、裏で最新を取り直す（面談中でも最新が見えるように）
   const switchWho=v=>{ numsWho=v; lgOpen=null; NUMSALL=null; GOALS=null; DAILYALL=null; KGOALS=null; renderNums(); };
@@ -4351,7 +4354,7 @@ async function renderNums(){
   if(ws) ws.onchange=()=>switchWho(ws.value);
   const tt=document.getElementById("trendToggle");
   if(tt) tt.onclick=()=>{ trendOpen=!trendOpen; renderNums(); };
-  document.querySelectorAll(".modebtn").forEach(b=>{
+  document.querySelectorAll(".modebtn:not(.anbtn)").forEach(b=>{
     b.onclick=()=>{ if(numsMode===b.dataset.m) return; numsMode=b.dataset.m; if(numsMode==="view"&&!numsWho) numsWho=String(me.sid); renderNums(); };
   });
   bindTrendGoals();
