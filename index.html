@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-04 20:09</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 00:30</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2110,8 +2110,17 @@ function allNumsTableHtml(){
   const cur=ymNow();
   const th=members.map(m2=>`<th style="white-space:nowrap;min-width:84px">${escH(dispName(m2.name))}</th>`).join("");
   const bestRow=`<tr style="background:#fff7ed"><td style="text-align:left;font-weight:800;white-space:nowrap">最高${allNumsMode==="sales"?"月商":"月利"}</td>${members.map(m2=>`<td style="font-weight:700">${best[m2.sid]!==null?yen(best[m2.sid]):""}</td>`).join("")}</tr>`;
-  const rows=showYms.map(ym=>`<tr${ym===cur?' style="background:#fffbea"':''}><td style="text-align:left;font-weight:700;white-space:nowrap">${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>${members.map(m2=>{const v=table[m2.sid][ym];return `<td style="${v===null?'color:#d5dae1':''}${v===best[m2.sid]&&v!==null?';background:#e8f7ee;font-weight:700':''}">${v===null?"—":yen(v)}</td>`;}).join("")}</tr>`).join("");
-  const oldTgl=hiddenYms.length?`<div style="margin:6px 0 4px"><a href="#" class="an-old" style="font-size:12px;color:#2563eb;text-decoration:none">${allNumsOld?"− 人数の少ない古い月を隠す":`＋ 古い月も表示（${escH(hiddenYms[0])}〜${escH(hiddenYms[hiddenYms.length-1])}・入力者5人未満）`}</a></div>`:"";
+  // エクセルのアウトライン風：畳んでいる時は次の月の左に［＋］、開いている時は先頭の月の左に［−］
+  const firstAfter=yms.filter(y=>hiddenYms.indexOf(y)<0&&yms.indexOf(y)>yms.indexOf(hiddenYms[0]))[0];
+  const gbtn=ym=>{
+    if(!hiddenYms.length) return "";
+    const mk=(sign,title)=>`<button class="an-old" title="${title}" style="width:20px;height:20px;line-height:18px;padding:0;margin-right:6px;border:1px solid #9aa3af;border-radius:4px;background:#fff;color:#3b4652;font-weight:800;cursor:pointer;font-size:13px">${sign}</button>`;
+    if(!allNumsOld&&ym===firstAfter) return mk("＋",`${hiddenYms[0]}〜${hiddenYms[hiddenYms.length-1]}（入力者5人未満の${hiddenYms.length}ヶ月）を表示`);
+    if(allNumsOld&&ym===hiddenYms[0]) return mk("−",`${hiddenYms[0]}〜${hiddenYms[hiddenYms.length-1]}を隠す`);
+    return "";
+  };
+  const rows=showYms.map(ym=>`<tr${ym===cur?' style="background:#fffbea"':''}><td style="text-align:left;font-weight:700;white-space:nowrap">${gbtn(ym)}${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>${members.map(m2=>{const v=table[m2.sid][ym];return `<td style="${v===null?'color:#d5dae1':''}${v===best[m2.sid]&&v!==null?';background:#e8f7ee;font-weight:700':''}">${v===null?"—":yen(v)}</td>`;}).join("")}</tr>`).join("");
+  const oldTgl="";
   return `<div class="gpanel"><div class="gph gtoggle" id="allNumsT" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="caret">${allNumsOpen?"−":"＋"}</span> 📊 全員の数字一覧 <span class="gpn">（行＝月／列＝メンバー。緑＝その人の最高）</span>
       <span style="margin-left:auto"><button class="modebtn${allNumsMode==="sales"?" on":""}" data-an="sales" style="padding:4px 12px;font-size:12px">月商</button><button class="modebtn${allNumsMode==="profit"?" on":""}" data-an="profit" style="padding:4px 12px;font-size:12px">粗利（経費控除後）</button></span></div>
     <div id="allNumsB" style="${allNumsOpen?"":"display:none"}"><div style="overflow-x:auto;width:100%"><table class="ntbl" style="font-size:12px"><thead><tr><th style="text-align:left">月</th>${th}</tr></thead><tbody>${bestRow}${rows}</tbody></table></div>${oldTgl}</div></div>`;
@@ -4325,8 +4334,7 @@ async function renderNums(){
     });
     showToast(n+"ヶ月分の目標月利を計算しました（まとめて保存を忘れずに）");
   };
-  const anOld=document.querySelector("#allNumsB .an-old");
-  if(anOld) anOld.onclick=e=>{ e.preventDefault(); allNumsOld=!allNumsOld; renderNums(); };
+  document.querySelectorAll("#allNumsB .an-old").forEach(el=>{ el.onclick=e=>{ e.preventDefault(); allNumsOld=!allNumsOld; renderNums(); }; });
   const ant=document.getElementById("allNumsT");
   if(ant){
     ant.onclick=e=>{
