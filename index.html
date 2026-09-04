@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-04 18:45</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-04 20:09</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2082,7 +2082,7 @@ function metaFor(uid,ym){
 
 /* 旬報告の画面表示（HTML） */
 /* 📊 全員の数字一覧（行＝月、列＝メンバー。月商／粗利を切替） */
-let allNumsMode="sales", allNumsOpen=true;
+let allNumsMode="sales", allNumsOpen=true, allNumsOld=false;
 function allNumsTableHtml(){
   const nums=(NUMSALL&&NUMSALL.nums)||[];
   const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
@@ -2102,14 +2102,19 @@ function allNumsTableHtml(){
   const cur0=ymNow();
   for(let i2=yms.length-1;i2>=0;i2--){ const ym=yms[i2]; if(ym!==cur0&&!members.some(m2=>table[m2.sid][ym]!==null)) yms.splice(i2,1); }
   if(yms.indexOf(cur0)<0){ yms.push(cur0); members.forEach(m2=>{ table[m2.sid][cur0]=val(m2.sid,cur0); }); }
+  // 入力者が5人未満の月（1期生が入る前の1〜6月など）は既定で畳む
+  const cntOf=ym=>members.filter(m2=>table[m2.sid][ym]!==null).length;
+  const hiddenYms=yms.filter(ym=>ym!==cur0&&cntOf(ym)<5);
+  const showYms=allNumsOld?yms:yms.filter(ym=>hiddenYms.indexOf(ym)<0);
   const best={}; members.forEach(m2=>{ const vs=yms.map(ym=>table[m2.sid][ym]).filter(v=>v!==null); best[m2.sid]=vs.length?Math.max(...vs):null; });
   const cur=ymNow();
   const th=members.map(m2=>`<th style="white-space:nowrap;min-width:84px">${escH(dispName(m2.name))}</th>`).join("");
   const bestRow=`<tr style="background:#fff7ed"><td style="text-align:left;font-weight:800;white-space:nowrap">最高${allNumsMode==="sales"?"月商":"月利"}</td>${members.map(m2=>`<td style="font-weight:700">${best[m2.sid]!==null?yen(best[m2.sid]):""}</td>`).join("")}</tr>`;
-  const rows=yms.map(ym=>`<tr${ym===cur?' style="background:#fffbea"':''}><td style="text-align:left;font-weight:700;white-space:nowrap">${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>${members.map(m2=>{const v=table[m2.sid][ym];return `<td style="${v===null?'color:#d5dae1':''}${v===best[m2.sid]&&v!==null?';background:#e8f7ee;font-weight:700':''}">${v===null?"—":yen(v)}</td>`;}).join("")}</tr>`).join("");
-  return `<div class="gpanel"><div class="gph gtoggle" id="allNumsT"><span class="caret">${allNumsOpen?"−":"＋"}</span> 📊 全員の数字一覧 <span class="gpn">（行＝月／列＝メンバー。緑＝その人の最高）</span>
-      <span style="float:right"><button class="modebtn${allNumsMode==="sales"?" on":""}" data-an="sales" style="padding:4px 12px;font-size:12px">月商</button><button class="modebtn${allNumsMode==="profit"?" on":""}" data-an="profit" style="padding:4px 12px;font-size:12px">粗利（経費控除後）</button></span></div>
-    <div id="allNumsB" style="${allNumsOpen?"":"display:none"}"><div style="overflow-x:auto"><table class="ntbl" style="font-size:12px"><thead><tr><th style="text-align:left">月</th>${th}</tr></thead><tbody>${bestRow}${rows}</tbody></table></div></div></div>`;
+  const rows=showYms.map(ym=>`<tr${ym===cur?' style="background:#fffbea"':''}><td style="text-align:left;font-weight:700;white-space:nowrap">${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>${members.map(m2=>{const v=table[m2.sid][ym];return `<td style="${v===null?'color:#d5dae1':''}${v===best[m2.sid]&&v!==null?';background:#e8f7ee;font-weight:700':''}">${v===null?"—":yen(v)}</td>`;}).join("")}</tr>`).join("");
+  const oldTgl=hiddenYms.length?`<div style="margin:6px 0 4px"><a href="#" class="an-old" style="font-size:12px;color:#2563eb;text-decoration:none">${allNumsOld?"− 人数の少ない古い月を隠す":`＋ 古い月も表示（${escH(hiddenYms[0])}〜${escH(hiddenYms[hiddenYms.length-1])}・入力者5人未満）`}</a></div>`:"";
+  return `<div class="gpanel"><div class="gph gtoggle" id="allNumsT" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="caret">${allNumsOpen?"−":"＋"}</span> 📊 全員の数字一覧 <span class="gpn">（行＝月／列＝メンバー。緑＝その人の最高）</span>
+      <span style="margin-left:auto"><button class="modebtn${allNumsMode==="sales"?" on":""}" data-an="sales" style="padding:4px 12px;font-size:12px">月商</button><button class="modebtn${allNumsMode==="profit"?" on":""}" data-an="profit" style="padding:4px 12px;font-size:12px">粗利（経費控除後）</button></span></div>
+    <div id="allNumsB" style="${allNumsOpen?"":"display:none"}"><div style="overflow-x:auto;width:100%"><table class="ntbl" style="font-size:12px"><thead><tr><th style="text-align:left">月</th>${th}</tr></thead><tbody>${bestRow}${rows}</tbody></table></div>${oldTgl}</div></div>`;
 }
 /* みんなの報告の見出し用：月商・粗利（経費控除後）と目標比を1行で */
 function numsSummaryLine(uid,ym){
@@ -4320,6 +4325,8 @@ async function renderNums(){
     });
     showToast(n+"ヶ月分の目標月利を計算しました（まとめて保存を忘れずに）");
   };
+  const anOld=document.querySelector("#allNumsB .an-old");
+  if(anOld) anOld.onclick=e=>{ e.preventDefault(); allNumsOld=!allNumsOld; renderNums(); };
   const ant=document.getElementById("allNumsT");
   if(ant){
     ant.onclick=e=>{
