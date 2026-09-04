@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-04 18:42</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-04 18:45</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2098,6 +2098,10 @@ function allNumsTableHtml(){
     return JUNS.reduce((a,j)=>a+(has(j)?nm[j].profit:0),0)-num((metaFor(uid,ym)||{}).expense);
   };
   const table={}; members.forEach(m2=>{ table[m2.sid]={}; yms.forEach(ym=>{ table[m2.sid][ym]=val(m2.sid,ym); }); });
+  // 誰も数字のない月（卒業生だけのデータ等）は出さない。ただし今月は常に出す
+  const cur0=ymNow();
+  for(let i2=yms.length-1;i2>=0;i2--){ const ym=yms[i2]; if(ym!==cur0&&!members.some(m2=>table[m2.sid][ym]!==null)) yms.splice(i2,1); }
+  if(yms.indexOf(cur0)<0){ yms.push(cur0); members.forEach(m2=>{ table[m2.sid][cur0]=val(m2.sid,cur0); }); }
   const best={}; members.forEach(m2=>{ const vs=yms.map(ym=>table[m2.sid][ym]).filter(v=>v!==null); best[m2.sid]=vs.length?Math.max(...vs):null; });
   const cur=ymNow();
   const th=members.map(m2=>`<th style="white-space:nowrap;min-width:84px">${escH(dispName(m2.name))}</th>`).join("");
