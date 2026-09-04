@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-04 18:37</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-04 18:42</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2081,6 +2081,32 @@ function metaFor(uid,ym){
 }
 
 /* 旬報告の画面表示（HTML） */
+/* 📊 全員の数字一覧（行＝月、列＝メンバー。月商／粗利を切替） */
+let allNumsMode="sales", allNumsOpen=true;
+function allNumsTableHtml(){
+  const nums=(NUMSALL&&NUMSALL.nums)||[];
+  const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+  const ymKey=ym=>{const m=String(ym).match(/(\d+)年(\d+)月/);return m?(+m[1])*100+(+m[2]):0;};
+  const yms=[...new Set(nums.map(n=>n.ym))].filter(Boolean).sort((a,b)=>ymKey(a)-ymKey(b));
+  const members=[...ROSTER].filter(m2=>String(m2.name||"").indexOf("-")!==0).sort((a,b)=>(parseInt(a.sid,10)||0)-(parseInt(b.sid,10)||0));
+  if(!yms.length||!members.length) return "";
+  const val=(uid,ym)=>{
+    const nm=numsFor(uid,ym); const has=j=>nm[j]!==null&&junDone(ym,j);
+    if(!JUNS.some(has)) return null;
+    const S=JUNS.reduce((a,j)=>a+(has(j)?nm[j].sales:0),0);
+    if(allNumsMode==="sales") return S;
+    return JUNS.reduce((a,j)=>a+(has(j)?nm[j].profit:0),0)-num((metaFor(uid,ym)||{}).expense);
+  };
+  const table={}; members.forEach(m2=>{ table[m2.sid]={}; yms.forEach(ym=>{ table[m2.sid][ym]=val(m2.sid,ym); }); });
+  const best={}; members.forEach(m2=>{ const vs=yms.map(ym=>table[m2.sid][ym]).filter(v=>v!==null); best[m2.sid]=vs.length?Math.max(...vs):null; });
+  const cur=ymNow();
+  const th=members.map(m2=>`<th style="white-space:nowrap;min-width:84px">${escH(dispName(m2.name))}</th>`).join("");
+  const bestRow=`<tr style="background:#fff7ed"><td style="text-align:left;font-weight:800;white-space:nowrap">最高${allNumsMode==="sales"?"月商":"月利"}</td>${members.map(m2=>`<td style="font-weight:700">${best[m2.sid]!==null?yen(best[m2.sid]):""}</td>`).join("")}</tr>`;
+  const rows=yms.map(ym=>`<tr${ym===cur?' style="background:#fffbea"':''}><td style="text-align:left;font-weight:700;white-space:nowrap">${escH(ym)}${ym===cur?'<span class="gpn">（途中）</span>':''}</td>${members.map(m2=>{const v=table[m2.sid][ym];return `<td style="${v===null?'color:#d5dae1':''}${v===best[m2.sid]&&v!==null?';background:#e8f7ee;font-weight:700':''}">${v===null?"—":yen(v)}</td>`;}).join("")}</tr>`).join("");
+  return `<div class="gpanel"><div class="gph gtoggle" id="allNumsT"><span class="caret">${allNumsOpen?"−":"＋"}</span> 📊 全員の数字一覧 <span class="gpn">（行＝月／列＝メンバー。緑＝その人の最高）</span>
+      <span style="float:right"><button class="modebtn${allNumsMode==="sales"?" on":""}" data-an="sales" style="padding:4px 12px;font-size:12px">月商</button><button class="modebtn${allNumsMode==="profit"?" on":""}" data-an="profit" style="padding:4px 12px;font-size:12px">粗利（経費控除後）</button></span></div>
+    <div id="allNumsB" style="${allNumsOpen?"":"display:none"}"><div style="overflow-x:auto"><table class="ntbl" style="font-size:12px"><thead><tr><th style="text-align:left">月</th>${th}</tr></thead><tbody>${bestRow}${rows}</tbody></table></div></div></div>`;
+}
 /* みんなの報告の見出し用：月商・粗利（経費控除後）と目標比を1行で */
 function numsSummaryLine(uid,ym){
   const nm=numsFor(uid,ym), meta=metaFor(uid,ym)||{};
@@ -4148,6 +4174,7 @@ async function renderNums(){
     ${numsMode==="view"?`👤 <select class="ginput" id="numsWhoSel" style="max-width:220px;font-size:14px;padding:8px 12px;font-weight:700">${whoUids.map(([u,n])=>`<option value="${u}"${String(u)===viewUid?" selected":""}>${escH(n)}</option>`).join("")}</select><span class="gpn">${escH(viewName)}さんを表示中（閲覧のみ）</span>`:""}
   </div>`;
 
+  if(numsMode==="view") html+=allNumsTableHtml();
   // 月次推移（北野シート型）。誰の分でも見られる
   if(selfView){
     html+=`<div class="gpanel"><div class="gph">📥 データ取り込み <span class="gpn">ここに入れるだけで自動判別して下の欄に反映されます</span><a href="https://app.the-online-class.com/lessons/owN3ITNyUDI6I2Y" target="_blank" rel="noopener" class="gbtn" style="float:right;text-decoration:none;background:#7c3aed;padding:5px 12px;font-size:12px">🎬 数字入力方法の動画（オンクラス）</a></div>
@@ -4289,6 +4316,14 @@ async function renderNums(){
     });
     showToast(n+"ヶ月分の目標月利を計算しました（まとめて保存を忘れずに）");
   };
+  const ant=document.getElementById("allNumsT");
+  if(ant){
+    ant.onclick=e=>{
+      const b=e.target.closest("button[data-an]");
+      if(b){ e.stopPropagation(); allNumsMode=b.dataset.an; renderNums(); return; }
+      allNumsOpen=!allNumsOpen; const bd=document.getElementById("allNumsB"); bd.style.display=allNumsOpen?"":"none"; ant.querySelector(".caret").textContent=allNumsOpen?"−":"＋";
+    };
+  }
   const tw=document.getElementById("trendWho");
   // メンバー切替時は手元のデータで即表示しつつ、裏で最新を取り直す（面談中でも最新が見えるように）
   const switchWho=v=>{ numsWho=v; lgOpen=null; NUMSALL=null; GOALS=null; DAILYALL=null; KGOALS=null; renderNums(); };
