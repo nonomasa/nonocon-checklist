@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-03 23:51</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-04 18:37</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -5228,7 +5228,10 @@ async function renderChosei(){
     if(dec){
       const byDate={}; dec.dates.forEach(di=>{byDate[di]=[];});
       const unassigned=[];
-      resp.forEach(a2=>{ const di=asg(a2.uid); if(di!==undefined&&byDate[di]) byDate[di].push(a2); else unassigned.push(a2); });
+      // 割り当て表は assign を正とする（未回答でも個別指定で割り当てた人＝藤本など も出す）
+      const nameOfUid=u=>{const m2=ROSTER.find(x=>String(x.sid)===String(u)); if(m2) return m2.name; const a3=(p.answers||[]).find(x=>String(x.uid)===String(u)); return a3?a3.name:String(u);};
+      Object.keys(dec.assign||{}).forEach(u=>{ const di=dec.assign[u]; if(byDate[di]) byDate[di].push({uid:u,name:nameOfUid(u)}); });
+      resp.forEach(a2=>{ if(asg(a2.uid)===undefined) unassigned.push(a2); });
       const myDi=asg(me.sid);
       decHtml=`<div style="border:2px solid #0e9f6e;border-radius:12px;padding:10px 14px;margin:8px 0;background:#fff">
         <div style="font-weight:800;margin-bottom:6px">🎉 日程が決まりました${myDi!==undefined?`　<span style="color:${colOf(myDi)}">▶ あなたは ${escH(p.dates[myDi])}</span>`:""}</div>
