@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 10:18</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 12:29</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -4222,6 +4222,9 @@ function bindDaily(){
       if(changed&&(any||orig[ds])) rows.push({date:ds,kind:kind,cost:nv.cost||0,mikomi:nv.mikomi||0,hours:nv.hours||0,visits:nv.visits||0,searches:nv.searches||0,memo:nv.memo||""});
     });
     if(!rows.length){ msg.textContent="変更はありません"; return; }
+    // 入力ミス防止：1日の時間は24hまで、回訪は50店まで（分で入れた等はここで弾く）
+    const bad=rows.filter(r=>Number(r.hours)>24||Number(r.visits)>50).map(r=>`${+r.date.slice(5,7)}/${+r.date.slice(8)}（${Number(r.hours)>24?`時間 ${r.hours}h`:""}${Number(r.hours)>24&&Number(r.visits)>50?"・":""}${Number(r.visits)>50?`回訪 ${r.visits}店`:""}）`);
+    if(bad.length){ msg.textContent=`⚠️ 保存できません。1日の時間は24h以内・回訪は50店以内で入力してください：${bad.join("、")}（時間は「分」ではなく「時間」で）`; return; }
     sv.disabled=true; msg.textContent="保存中…";
     try{
       const d=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"dysave",pass:PASS,uid:me.sid,name:me.name,rows:rows})})).json();
