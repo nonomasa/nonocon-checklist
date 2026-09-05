@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 10:10</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 10:17</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2083,8 +2083,44 @@ function metaFor(uid,ym){
 /* 旬報告の画面表示（HTML） */
 /* 📊 全員の数字一覧（行＝月、列＝メンバー。月商／粗利を切替） */
 let allNumsMode="sales", allNumsOpen=true, allNumsOld=false, allNumsSort={key:"sid",dir:"asc"}; // 並び替え：sid=背番号／ym=その月の数字／best=最高
-const AN_MODES=[["sales","月商"],["profit","粗利（経費控除後）"],["mikomi","見込利益"],["hours","時間"],["visits","回訪"],["searches","検索"]];
+const AN_MODES=[["sales","月商"],["profit","粗利（経費控除後）"],["daily","行動（見込利益・時間・回訪・検索）"]];
+let allNumsYm=null; // 行動一覧で見ている月（null＝数字報告で選択中の月）
+/* 行動一覧：1ヶ月ぶんの見込利益・時間・回訪・検索を横に並べる（上＝実績／下＝予定・達成率） */
+function allNumsDailyHtml(){
+  const drows=(DAILYALL&&DAILYALL.rows)||[];
+  const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
+  const ymOfDate=ds=>{const m=String(ds).match(/^(\d{4})-(\d{2})/);return m?`${+m[1]}年${+m[2]}月`:"";};
+  const ym=allNumsYm||numsMonth||ymNow();
+  const members=[...ROSTER].filter(m2=>String(m2.name||"").indexOf("-")!==0).sort((a,b)=>(parseInt(a.sid,10)||0)-(parseInt(b.sid,10)||0));
+  const METS=[["mikomi","見込利益",v=>yen(v)],["hours","時間",v=>(Math.round(v*10)/10)+"h"],["visits","回訪",v=>yen(v)+"店"],["searches","検索",v=>yen(v)+"件"]];
+  const sum=(uid,kind,k)=>{ const rs=drows.filter(r=>String(r.uid)===String(uid)&&(r.kind||"actual")===kind&&ymOfDate(r.date)===ym); if(!rs.length) return null; return rs.reduce((a,r)=>a+num(r[k]),0); };
+  const T={}; members.forEach(m2=>{ T[m2.sid]={}; METS.forEach(([k])=>{ T[m2.sid][k]={a:sum(m2.sid,"actual",k),p:sum(m2.sid,"plan",k)}; }); });
+  const sk=(METS.some(([k])=>k===allNumsSort.key))?allNumsSort.key:"sid", sd=allNumsSort.dir==="asc"?1:-1;
+  const sortVal=m2=>sk==="sid"?(parseInt(m2.sid,10)||0):T[m2.sid][sk].a;
+  const sorted=[...members].sort((a,b)=>{const va=sortVal(a),vb=sortVal(b); if(va===null||va===undefined) return 1; if(vb===null||vb===undefined) return -1; return (va-vb)*sd;});
+  const rankOf={}; if(sk!=="sid"){ [...members].filter(m2=>sortVal(m2)!==null).sort((a,b)=>sortVal(b)-sortVal(a)).forEach((m2,i2)=>{rankOf[m2.sid]=i2+1;}); }
+  const arrow=k=>sk===k?(allNumsSort.dir==="asc"?" ▲":" ▼"):"";
+  const thS='cursor:pointer;user-select:none;white-space:nowrap';
+  const head=`<tr><th class="an-sort" data-k="sid" style="text-align:left;${thS}">メンバー${arrow("sid")}</th>${METS.map(([k,l])=>`<th class="an-sort" data-k="${k}" style="${thS}" title="${l}で並び替え">${l}${arrow(k)}</th>`).join("")}</tr>`;
+  const rows=sorted.map(m2=>{
+    const rn=rankOf[m2.sid];
+    const rk=rn?`<span style="display:inline-block;min-width:40px;color:${rn<=3?'#e8590c':'#8a93a1'};font-size:${rn<=3?'14px':'11.5px'}">${rn===1?"🥇":(rn===2?"🥈":(rn===3?"🥉":""))}${rn}位</span>`:"";
+    const cells=METS.map(([k,l,f])=>{
+      const {a,p}=T[m2.sid][k];
+      const sub=(p!==null&&p>0)?(a!==null
+        ?`<div style="font-size:10.5px;line-height:1.25;font-weight:500;color:#6b7686;white-space:nowrap">（${f(p)}・<b style="color:${a/p>=1?'#0e9f6e':'#e8590c'}">${Math.round(a/p*100)}%</b>）</div>`
+        :`<div style="font-size:10.5px;line-height:1.25;font-weight:500;color:#8a93a1;white-space:nowrap">予定 ${f(p)}</div>`):"";
+      return `<td style="${a===null?'color:#d5dae1':''}${sk===k?';background:#f6f8fa':''}">${a===null?"—":f(a)}${sub}</td>`;
+    }).join("");
+    return `<tr><td style="text-align:left;font-weight:700;white-space:nowrap">${rk}${escH(dispName(m2.name))}</td>${cells}</tr>`;
+  }).join("");
+  const nav=`<span style="display:inline-flex;align-items:center;gap:6px;margin-left:8px"><button class="an-ym" data-d="-1" style="border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer">◀</button><b>${escH(ym)}</b><button class="an-ym" data-d="1" style="border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer">▶</button></span>`;
+  return `<div class="gpanel" id="allNumsPanel"><div class="gph gtoggle" id="allNumsT" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="caret">${allNumsOpen?"−":"＋"}</span> 📊 全員の数字一覧${nav} <span class="gpn">（上＝実績／下＝予定と達成率）</span>
+      <span style="margin-left:auto;display:flex;flex-wrap:wrap;gap:4px">${AN_MODES.map(([k,l])=>`<button class="modebtn anbtn${allNumsMode===k?" on":""}" data-an="${k}" style="padding:4px 10px;font-size:12px">${l}</button>`).join("")}</span></div>
+    <div id="allNumsB" style="${allNumsOpen?"":"display:none"}"><div style="overflow-x:auto;width:100%"><table class="ntbl" style="font-size:12.5px"><thead>${head}</thead><tbody>${rows}</tbody></table></div></div></div>`;
+}
 function allNumsTableHtml(){
+  if(allNumsMode==="daily") return allNumsDailyHtml();
   const nums=(NUMSALL&&NUMSALL.nums)||[];
   const drows=(DAILYALL&&DAILYALL.rows)||[];
   const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
@@ -2169,6 +2205,7 @@ function bindAllNums(){
   const redraw=()=>{ panel.outerHTML=allNumsTableHtml(); bindAllNums(); };
   panel.querySelectorAll(".an-old").forEach(el=>{ el.onclick=e=>{ e.preventDefault(); e.stopPropagation(); allNumsOld=!allNumsOld; redraw(); }; });
   panel.querySelectorAll(".anbtn").forEach(b=>{ b.onclick=e=>{ e.stopPropagation(); if(allNumsMode===b.dataset.an) return; allNumsMode=b.dataset.an; redraw(); }; });
+  panel.querySelectorAll(".an-ym").forEach(b=>{ b.onclick=e=>{ e.stopPropagation(); allNumsYm=ymShift(allNumsYm||numsMonth||ymNow(),+b.dataset.d); redraw(); }; });
   panel.querySelectorAll(".an-sort").forEach(th=>{ th.onclick=e=>{
     if(e.target.closest("button")) return; // ＋/−ボタンは別処理
     const k=th.dataset.k;
