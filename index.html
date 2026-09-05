@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 01:26</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 09:50</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2125,7 +2125,9 @@ function allNumsTableHtml(){
       const v=table[m2.sid][ym];
       const mt=metaFor(m2.sid,ym)||{};
       const goal=allNumsMode==="sales"?(num(mt.gsales2)||num(mt.gsales)):(num(mt.gprofit2)||num(mt.gprofit));
-      const sub=(v!==null&&goal>0)?`<div style="font-size:10.5px;line-height:1.25;font-weight:500;color:#6b7686;white-space:nowrap">（${yen(goal)}・<b style="color:${v/goal>=1?'#0e9f6e':'#e8590c'}">${Math.round(v/goal*100)}%</b>）</div>`:"";
+      const sub=goal>0?(v!==null
+        ?`<div style="font-size:10.5px;line-height:1.25;font-weight:500;color:#6b7686;white-space:nowrap">（${yen(goal)}・<b style="color:${v/goal>=1?'#0e9f6e':'#e8590c'}">${Math.round(v/goal*100)}%</b>）</div>`
+        :`<div style="font-size:10.5px;line-height:1.25;font-weight:500;color:#8a93a1;white-space:nowrap">目標 ${yen(goal)}</div>`):"";
       return `<td style="${v===null?'color:#d5dae1':''}${v===best[m2.sid]&&v!==null?';background:#e8f7ee;font-weight:700':''}${ym===cur?';background-color:#fffbea':''}">${v===null?"—":yen(v)}${sub}</td>`;
     }).join("");
     return `<tr><td style="text-align:left;font-weight:700;white-space:nowrap">${escH(dispName(m2.name))}</td>${cells}<td style="font-weight:700;background:#fff7ed">${best[m2.sid]!==null?yen(best[m2.sid]):""}</td></tr>`;
