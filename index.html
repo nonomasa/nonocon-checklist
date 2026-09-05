@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 09:50</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 10:00</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2089,7 +2089,7 @@ function allNumsTableHtml(){
   const ymKey=ym=>{const m=String(ym).match(/(\d+)年(\d+)月/);return m?(+m[1])*100+(+m[2]):0;};
   const yms=[...new Set(nums.map(n=>n.ym))].filter(Boolean).sort((a,b)=>ymKey(a)-ymKey(b));
   const members=[...ROSTER].filter(m2=>String(m2.name||"").indexOf("-")!==0).sort((a,b)=>(parseInt(a.sid,10)||0)-(parseInt(b.sid,10)||0));
-  if(!yms.length||!members.length) return "";
+  if(!yms.length||!members.length) return `<div class="gpanel" id="allNumsPanel"><div class="gph">📊 全員の数字一覧 <span class="gpn">（データを読み込み中…。出ない場合は🔄更新を押してください）</span></div></div>`;
   const val=(uid,ym)=>{
     const nm=numsFor(uid,ym); const has=j=>nm[j]!==null&&junDone(ym,j);
     if(!JUNS.some(has)) return null;
@@ -4216,7 +4216,7 @@ async function renderNums(){
     ${numsMode==="view"?`👤 <select class="ginput" id="numsWhoSel" style="max-width:220px;font-size:14px;padding:8px 12px;font-weight:700">${whoUids.map(([u,n])=>`<option value="${u}"${String(u)===viewUid?" selected":""}>${escH(n)}</option>`).join("")}</select><span class="gpn">${escH(viewName)}さんを表示中（閲覧のみ）</span>`:""}
   </div>`;
 
-  if(numsMode==="view") html+=allNumsTableHtml();
+  if(numsMode==="view"){ try{ html+=allNumsTableHtml(); }catch(e){ console.error("allNums",e); html+=`<div class="gpanel"><div class="gph">📊 全員の数字一覧 <span class="gpn">表示エラー：${escH(String(e))}</span></div></div>`; } }
   // 月次推移（北野シート型）。誰の分でも見られる
   if(selfView){
     html+=`<div class="gpanel"><div class="gph">📥 データ取り込み <span class="gpn">ここに入れるだけで自動判別して下の欄に反映されます</span><a href="https://app.the-online-class.com/lessons/owN3ITNyUDI6I2Y" target="_blank" rel="noopener" class="gbtn" style="float:right;text-decoration:none;background:#7c3aed;padding:5px 12px;font-size:12px">🎬 数字入力方法の動画（オンクラス）</a></div>
