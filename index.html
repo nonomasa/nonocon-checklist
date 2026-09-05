@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 10:09</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 10:10</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2154,7 +2154,8 @@ function allNumsTableHtml(){
         :`<div style="font-size:10.5px;line-height:1.25;font-weight:500;color:#8a93a1;white-space:nowrap">${glabel} ${fmtV(goal)}</div>`):"";
       return `<td style="${v===null?'color:#d5dae1':''}${v===best[m2.sid]&&v!==null?';background:#e8f7ee;font-weight:700':''}${ym===cur?';background-color:#fffbea':''}">${v===null?"—":fmtV(v)}${sub}</td>`;
     }).join("");
-    const rk=rankOf[m2.sid]?`<span style="display:inline-block;min-width:34px;color:${rankOf[m2.sid]<=3?'#e8590c':'#8a93a1'};font-size:11.5px">${rankOf[m2.sid]}位</span>`:"";
+    const rn=rankOf[m2.sid];
+    const rk=rn?`<span style="display:inline-block;min-width:40px;color:${rn<=3?'#e8590c':'#8a93a1'};font-size:${rn<=3?'14px':'11.5px'}">${rn===1?"🥇":(rn===2?"🥈":(rn===3?"🥉":""))}${rn}位</span>`:"";
     return `<tr><td style="text-align:left;font-weight:700;white-space:nowrap">${rk}${escH(dispName(m2.name))}</td>${cells}<td style="font-weight:700;background:#fff7ed">${best[m2.sid]!==null?fmtV(best[m2.sid]):""}</td></tr>`;
   }).join("");
   const bestRow="";
