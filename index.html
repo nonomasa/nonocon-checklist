@@ -593,7 +593,7 @@
     </div>
   </div>
   <div id="body"></div>
-  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 10:00</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
+  <div class="vertag">🛠 ツール更新 <span id="appVer">2026-09-05 10:04</span>　／　📡 データ更新 <span id="dataVer">—</span>　<a href="#" id="vreload">最新に更新</a></div>
   <button id="reloadFab" title="最新に更新">🔄 更新</button>
 </div>
 
@@ -2082,7 +2082,7 @@ function metaFor(uid,ym){
 
 /* 旬報告の画面表示（HTML） */
 /* 📊 全員の数字一覧（行＝月、列＝メンバー。月商／粗利を切替） */
-let allNumsMode="sales", allNumsOpen=true, allNumsOld=false;
+let allNumsMode="sales", allNumsOpen=true, allNumsOld=false, allNumsSort={key:"sid",dir:"asc"}; // 並び替え：sid=背番号／ym=その月の数字／best=最高
 function allNumsTableHtml(){
   const nums=(NUMSALL&&NUMSALL.nums)||[];
   const num=x=>{const v=parseFloat(String(x||"").replace(/,/g,""));return isNaN(v)?0:v;};
@@ -2119,8 +2119,17 @@ function allNumsTableHtml(){
   };
   // 行＝メンバー、列＝月（横スクロールなしで全員を縦に一覧）
   const ymLabel=ym=>{const m=ym.match(/(\d+)年(\d+)月/);return m?`${m[1].slice(2)}/${m[2]}`:ym;};
-  const head=`<tr><th style="text-align:left">メンバー</th>${showYms.map(ym=>`<th style="white-space:nowrap${ym===cur?';background:#fffbea':''}">${gbtn(ym)}${escH(ymLabel(ym))}${ym===cur?'<span class="gpn">途中</span>':''}</th>`).join("")}<th style="white-space:nowrap;background:#fff7ed">最高${allNumsMode==="sales"?"月商":"月利"}</th></tr>`;
-  const rows=members.map(m2=>{
+  const sk=allNumsSort.key, sd=allNumsSort.dir==="asc"?1:-1;
+  const sortVal=m2=>sk==="best"?best[m2.sid]:(sk==="sid"?(parseInt(m2.sid,10)||0):table[m2.sid][sk]);
+  const sorted=[...members].sort((a,b)=>{
+    const va=sortVal(a), vb=sortVal(b);
+    if(va===null||va===undefined) return 1; if(vb===null||vb===undefined) return -1; // 未入力は常に最後
+    return (va-vb)*sd;
+  });
+  const arrow=k=>sk===k?(allNumsSort.dir==="asc"?" ▲":" ▼"):"";
+  const thS='cursor:pointer;user-select:none';
+  const head=`<tr><th class="an-sort" data-k="sid" style="text-align:left;${thS}" title="背番号順">メンバー${arrow("sid")}</th>${showYms.map(ym=>`<th class="an-sort" data-k="${escH(ym)}" style="white-space:nowrap;${thS}${ym===cur?';background:#fffbea':''}" title="この月の数字で並び替え">${gbtn(ym)}${escH(ymLabel(ym))}${ym===cur?'<span class="gpn">途中</span>':''}${arrow(ym)}</th>`).join("")}<th class="an-sort" data-k="best" style="white-space:nowrap;background:#fff7ed;${thS}" title="最高で並び替え">最高${allNumsMode==="sales"?"月商":"月利"}${arrow("best")}</th></tr>`;
+  const rows=sorted.map(m2=>{
     const cells=showYms.map(ym=>{
       const v=table[m2.sid][ym];
       const mt=metaFor(m2.sid,ym)||{};
@@ -2143,6 +2152,13 @@ function bindAllNums(){
   const redraw=()=>{ panel.outerHTML=allNumsTableHtml(); bindAllNums(); };
   panel.querySelectorAll(".an-old").forEach(el=>{ el.onclick=e=>{ e.preventDefault(); e.stopPropagation(); allNumsOld=!allNumsOld; redraw(); }; });
   panel.querySelectorAll(".anbtn").forEach(b=>{ b.onclick=e=>{ e.stopPropagation(); if(allNumsMode===b.dataset.an) return; allNumsMode=b.dataset.an; redraw(); }; });
+  panel.querySelectorAll(".an-sort").forEach(th=>{ th.onclick=e=>{
+    if(e.target.closest("button")) return; // ＋/−ボタンは別処理
+    const k=th.dataset.k;
+    if(allNumsSort.key===k) allNumsSort.dir=allNumsSort.dir==="asc"?"desc":"asc";
+    else allNumsSort={key:k,dir:k==="sid"?"asc":"desc"};
+    redraw();
+  };});
   const ant=panel.querySelector("#allNumsT");
   ant.onclick=e=>{
     if(e.target.closest("button")) return;
